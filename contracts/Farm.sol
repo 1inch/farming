@@ -24,7 +24,7 @@ contract Farm is ERC20, Ownable {
     uint40 public duration;
     uint176 public reward;
 
-    // Update this slot
+    // Update this slot on deposit and withdrawals only
     uint40 public farmingUpdated;
     uint216 public farmedPerTokenStored;
     mapping(address => uint256) public userFarmedPerToken;
@@ -113,6 +113,9 @@ contract Farm is ERC20, Ownable {
 
             if (from == address(0) || to == address(0)) {
                 (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+            }
+            else {
+                // revert("Farm: transfers denied");
             }
 
             if (from != address(0)) {
