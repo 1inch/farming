@@ -4,99 +4,124 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 
-contract Farm is Ownable {
+contract Farm is ERC20, Ownable {
+    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
+
     event RewardAdded(uint256 reward);
     event RewardPaid(address indexed user, uint256 reward);
 
-    uint256 public constant DURATION = 7 days;
+    IERC20Metadata public immutable stakingToken;
+    IERC20 public immutable rewardsToken;
 
-    address public rewardDistribution;
-    IERC20 public immutable gift;
-    uint256 public periodFinish;
-    uint256 public rewardRate;
-    uint256 public lastUpdateTime;
-    uint256 public rewardPerTokenStored;
-    mapping(address => uint256) public userRewardPerTokenPaid;
-    mapping(address => uint256) public rewards;
+    // Update this slot once every new farming starts
+    uint40 public finished;
+    uint40 public duration;
+    uint176 public reward;
 
-    uint256 public totalSupply;
-    mapping(address => uint256) public balanceOf;
+    // Update this slot
+    uint40 public farmingUpdated;
+    uint216 public farmedPerTokenStored;
+    mapping(address => uint256) public userFarmedPerToken;
+    mapping(address => uint256) public userFarmed;
 
-    modifier updateReward(address account) {
-        rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = lastTimeRewardApplicable();
-        if (account != address(0)) {
-            rewards[account] = earned(account);
-            userRewardPerTokenPaid[account] = rewardPerTokenStored;
-        }
-
-        _;
+    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_) ERC20("", "") {
+        stakingToken = stakingToken_;
+        rewardsToken = rewardsToken_;
     }
 
-    modifier onlyRewardDistribution() {
-        require(msg.sender == rewardDistribution, "Access denied");
-        _;
+    function name() public view override returns (string memory) {
+        return string(abi.encodePacked("Farming of ", stakingToken.name()));
     }
 
-    constructor(IERC20 _gift) {
-        gift = _gift;
+    function symbol() public view override returns (string memory) {
+        return string(abi.encodePacked("farm", stakingToken.symbol()));
     }
 
-    function _mint(address account, uint256 amount) internal virtual {
-        balanceOf[account] = balanceOf[account] + amount;
-        totalSupply = totalSupply + amount;
+    function decimals() public view override returns (uint8) {
+        return stakingToken.decimals();
     }
 
-    function _burn(address account, uint256 amount) internal virtual {
-        balanceOf[account] = balanceOf[account] - amount;
-        totalSupply = totalSupply - amount;
+    function farm(uint256 amount) external {
+        _mint(msg.sender, amount);
+        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    function lastTimeRewardApplicable() public view returns (uint256) {
-        return Math.min(block.timestamp, periodFinish);
+    function withdraw(uint256 amount) public {
+        _burn(msg.sender, amount);
+        stakingToken.safeTransfer(msg.sender, amount);
     }
 
-    function rewardPerToken() public view returns (uint256) {
-        if (totalSupply == 0) {
-            return rewardPerTokenStored;
-        }
-        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / totalSupply;
-    }
-
-    function earned(address account) public view returns (uint256) {
-        return balanceOf[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
-    }
-
-    function getReward() public updateReward(msg.sender) {
-        uint256 reward = rewards[msg.sender];
-        if (reward > 0) {
-            rewards[msg.sender] = 0;
-            gift.transfer(msg.sender, reward);
-            emit RewardPaid(msg.sender, reward);
+    function farmedPerToken() public view returns (uint256 fpt) {
+        uint256 upd = farmingUpdated;
+        fpt = farmedPerTokenStored;
+        if (block.timestamp != upd) {
+            uint256 supply = totalSupply();
+            if (supply > 0) {
+                // TODO: check only 1 SLOAD is happening here, else use: (uint256 finished_, uint256 duration_, uint256 reward_) = (finished, duration, reward)
+                fpt += (Math.min(block.timestamp, finished) - upd) * reward / duration / supply;
+            }
         }
     }
 
-    function notifyRewardAmount(uint256 reward) external onlyRewardDistribution updateReward(address(0)) {
-        if (block.timestamp >= periodFinish) {
-            rewardRate = reward / DURATION;
-        } else {
-            uint256 remaining = periodFinish - block.timestamp;
-            uint256 leftover = remaining * rewardRate;
-            rewardRate = (reward + leftover) / DURATION;
+    function farmed(address account) public view returns (uint256) {
+        return _farmed(account, farmedPerToken());
+    }
+
+    function _farmed(address account, uint256 fpt) internal view returns (uint256) {
+        return userFarmed[account] + balanceOf(account) * (fpt - userFarmedPerToken[account]) / 1e18;
+    }
+
+    function getReward() public {
+        uint256 amount = userFarmed[msg.sender];
+        if (amount > 0) {
+            userFarmed[msg.sender] = 0;
+            rewardsToken.safeTransfer(msg.sender, amount);
+            emit RewardPaid(msg.sender, amount);
+        }
+    }
+
+    function notifyRewardAmount(uint256 amount, uint256 period) external {
+        // Update farming state
+        (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint176(farmedPerToken()));
+
+        // Add left amount to new farming amount
+        (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
+        if (block.timestamp < prevFinish) {
+            uint256 elapsed = block.timestamp + prevDuration - prevFinish;
+            amount += prevReward - prevReward * elapsed / prevDuration;
+            require(amount * prevDuration > prevReward * period, "Farm: can't lower speed");
         }
 
-        uint balance = gift.balanceOf(address(this));
-        require(rewardRate <= balance / DURATION, "Reward is too big");
+        require(period < 2**40, "Farm: Period too large");
+        require(amount < 2**192 && amount <= rewardsToken.balanceOf(address(this)), "Farm: Amount too large");
+        (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
 
-        lastUpdateTime = block.timestamp;
-        periodFinish = block.timestamp + DURATION;
         emit RewardAdded(reward);
     }
 
-    function setRewardDistribution(address _rewardDistribution) external onlyOwner {
-        rewardDistribution = _rewardDistribution;
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+        if (amount > 0) {
+            uint256 fpt = farmedPerToken();
+
+            if (from == address(0) || to == address(0)) {
+                (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+            }
+
+            if (from != address(0)) {
+                userFarmed[from] = _farmed(from, fpt);
+                userFarmedPerToken[from] = fpt;
+            }
+
+            if (to != address(0)) {
+                userFarmed[to] = _farmed(to, fpt);
+                userFarmedPerToken[to] = fpt;
+            }
+        }
     }
 }

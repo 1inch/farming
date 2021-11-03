@@ -4,7 +4,8 @@ const TokenMock = artifacts.require('TokenMock');
 contract('Farm', function ([wallet1, wallet2]) {
     beforeEach(async function () {
         this.token = await TokenMock.new('1INCH', '1INCH');
-        this.Farm = await Farm.new(this.token.address);
+        this.gift = await TokenMock.new('UDSC', 'USDC');
+        this.Farm = await Farm.new(this.token.address, this.gift.address);
     });
 
     describe('modules', async function () {
