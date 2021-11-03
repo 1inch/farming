@@ -22,8 +22,8 @@ contract Farm is Ownable {
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
-    uint256 private _totalSupply;
-    mapping(address => uint256) private _balances;
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
 
     modifier updateReward(address account) {
         rewardPerTokenStored = rewardPerToken();
@@ -41,35 +41,18 @@ contract Farm is Ownable {
         _;
     }
 
-    constructor(IERC20 _gift) public {
+    constructor(IERC20 _gift) {
         gift = _gift;
     }
 
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
-    }
-
     function _mint(address account, uint256 amount) internal virtual {
-        _totalSupply = _totalSupply + amount;
-        _balances[account] = _balances[account] + amount;
+        balanceOf[account] = balanceOf[account] + amount;
+        totalSupply = totalSupply + amount;
     }
 
     function _burn(address account, uint256 amount) internal virtual {
-        require(_balances[account] >= amount, "Burn amount exceeds balance");
-        _balances[account] = _balances[account] - amount;
-        _totalSupply = _totalSupply - amount;
-    }
-
-    function _set(address account, uint256 amount) internal virtual returns(uint256 oldAmount) {
-        oldAmount = _balances[account];
-        if (oldAmount != amount) {
-            _balances[account] = amount;
-            _totalSupply = _totalSupply + amount - oldAmount;
-        }
+        balanceOf[account] = balanceOf[account] - amount;
+        totalSupply = totalSupply - amount;
     }
 
     function lastTimeRewardApplicable() public view returns (uint256) {
@@ -77,14 +60,14 @@ contract Farm is Ownable {
     }
 
     function rewardPerToken() public view returns (uint256) {
-        if (totalSupply() == 0) {
+        if (totalSupply == 0) {
             return rewardPerTokenStored;
         }
-        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / totalSupply();
+        return rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18 / totalSupply;
     }
 
     function earned(address account) public view returns (uint256) {
-        return balanceOf(account) * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
+        return balanceOf[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
     }
 
     function getReward() public updateReward(msg.sender) {
