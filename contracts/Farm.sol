@@ -5,10 +5,9 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./BalanceAccounting.sol";
 
 
-contract Farm is Ownable, BalanceAccounting {
+contract Farm is Ownable {
     event RewardAdded(uint256 reward);
     event RewardPaid(address indexed user, uint256 reward);
 
@@ -22,6 +21,9 @@ contract Farm is Ownable, BalanceAccounting {
     uint256 public rewardPerTokenStored;
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
+
+    uint256 private _totalSupply;
+    mapping(address => uint256) private _balances;
 
     modifier updateReward(address account) {
         rewardPerTokenStored = rewardPerToken();
@@ -41,6 +43,33 @@ contract Farm is Ownable, BalanceAccounting {
 
     constructor(IERC20 _gift) public {
         gift = _gift;
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view returns (uint256) {
+        return _balances[account];
+    }
+
+    function _mint(address account, uint256 amount) internal virtual {
+        _totalSupply = _totalSupply + amount;
+        _balances[account] = _balances[account] + amount;
+    }
+
+    function _burn(address account, uint256 amount) internal virtual {
+        require(_balances[account] >= amount, "Burn amount exceeds balance");
+        _balances[account] = _balances[account] - amount;
+        _totalSupply = _totalSupply - amount;
+    }
+
+    function _set(address account, uint256 amount) internal virtual returns(uint256 oldAmount) {
+        oldAmount = _balances[account];
+        if (oldAmount != amount) {
+            _balances[account] = amount;
+            _totalSupply = _totalSupply + amount - oldAmount;
+        }
     }
 
     function lastTimeRewardApplicable() public view returns (uint256) {
