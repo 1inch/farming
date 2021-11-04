@@ -63,7 +63,7 @@ contract Farm is ERC20 {
             if (supply > 0) {
                 (uint256 finished_, uint256 duration_, uint256 reward_) = (finished, duration, reward);
                 if (finished_ > 0) {
-                    fpt += (Math.min(block.timestamp, finished_) - upd) * reward_ / duration_ / supply;
+                    fpt += (Math.min(block.timestamp, finished_) - upd) * reward_ * 1e18 / duration_ / supply;
                 }
             }
         }
