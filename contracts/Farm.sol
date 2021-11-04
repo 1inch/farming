@@ -92,7 +92,7 @@ contract Farm is ERC20 {
         claim();
     }
 
-    function notifyRewardAmount(uint256 amount, uint256 period) external {
+    function startFarming(uint256 amount, uint256 period) external {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         // Update farming state
