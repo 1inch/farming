@@ -18,6 +18,7 @@ contract Farm is ERC20, Ownable {
 
     IERC20Metadata public immutable stakingToken;
     IERC20 public immutable rewardsToken;
+    bool public immutable allowSlowDown;
 
     // Update this slot once every new farming starts
     uint40 public finished;
@@ -30,9 +31,10 @@ contract Farm is ERC20, Ownable {
     mapping(address => uint256) public userFarmedPerToken;
     mapping(address => uint256) public userFarmed;
 
-    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_) ERC20("", "") {
+    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_, bool allowSlowDown_) ERC20("", "") {
         stakingToken = stakingToken_;
         rewardsToken = rewardsToken_;
+        allowSlowDown = allowSlowDown_;
     }
 
     function name() public view override returns (string memory) {
@@ -97,7 +99,7 @@ contract Farm is ERC20, Ownable {
         if (block.timestamp < prevFinish) {
             uint256 elapsed = block.timestamp + prevDuration - prevFinish;
             amount += prevReward - prevReward * elapsed / prevDuration;
-            require(amount * prevDuration > prevReward * period, "Farm: can't lower speed");
+            require(allowSlowDown || amount * prevDuration > prevReward * period, "Farm: can't lower speed");
         }
 
         require(period < 2**40, "Farm: Period too large");

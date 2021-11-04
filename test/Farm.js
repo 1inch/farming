@@ -7,7 +7,7 @@ contract('Farm', function ([wallet1, wallet2]) {
     beforeEach(async function () {
         this.token = await TokenMock.new('1INCH', '1INCH');
         this.gift = await TokenMock.new('UDSC', 'USDC');
-        this.Farm = await Farm.new(this.token.address, this.gift.address);
+        this.Farm = await Farm.new(this.token.address, this.gift.address, false);
 
         await this.token.mint(wallet1, '1000000000');
         await this.token.mint(wallet2, '1000000000');
