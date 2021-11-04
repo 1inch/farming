@@ -115,7 +115,7 @@ contract Farm is ERC20 {
             if (from == address(0) || to == address(0)) {
                 (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
             }
-            else {
+            else { // solhint-disable-line no-empty-blocks
                 // revert("Farm: transfers denied");
             }
 
