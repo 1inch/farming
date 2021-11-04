@@ -26,8 +26,7 @@ contract Farm is ERC20 {
     // Update this slot on deposit and withdrawals only
     uint40 public farmingUpdated;
     uint216 public farmedPerTokenStored;
-    mapping(address => uint256) public userFarmedPerToken;
-    mapping(address => uint256) public userFarmed;
+    mapping(address => int256) public userCorrection;
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_, bool allowSlowDown_) ERC20("", "") {
         stakingToken = stakingToken_;
@@ -52,7 +51,7 @@ contract Farm is ERC20 {
     }
 
     function _farmed(address account, uint256 fpt) internal view returns (uint256) {
-        return userFarmed[account] + balanceOf(account) * (fpt - userFarmedPerToken[account]) / 1e18;
+        return uint256(int256(balanceOf(account) * fpt) - userCorrection[account]) / 1e18;
     }
 
     function farmedPerToken() public view returns (uint256 fpt) {
@@ -83,8 +82,7 @@ contract Farm is ERC20 {
         uint256 fpt = farmedPerToken();
         uint256 amount = _farmed(msg.sender, fpt);
         if (amount > 0) {
-            userFarmed[msg.sender] = 0;
-            userFarmedPerToken[msg.sender] = fpt;
+            userCorrection[msg.sender] = -int256(balanceOf(msg.sender) * fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
@@ -127,13 +125,11 @@ contract Farm is ERC20 {
             }
 
             if (from != address(0)) {
-                userFarmed[from] = _farmed(from, fpt);
-                userFarmedPerToken[from] = fpt;
+                userCorrection[from] = int256(balanceOf(from) * fpt - _farmed(from, fpt));
             }
 
             if (to != address(0)) {
-                userFarmed[to] = _farmed(to, fpt);
-                userFarmedPerToken[to] = fpt;
+                userCorrection[to] = int256(balanceOf(to) * fpt - _farmed(to, fpt));
             }
         }
     }
