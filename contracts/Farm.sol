@@ -101,6 +101,7 @@ contract Farm is ERC20 {
         // If something left from prev farming add it to the new farming
         (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
         if (block.timestamp < prevFinish) {
+            require(block.timestamp + period >= prevFinish, "Farm: farming shortening denied");
             uint256 elapsed = block.timestamp + prevDuration - prevFinish;
             amount += prevReward - prevReward * elapsed / prevDuration;
             require(allowSlowDown || amount * prevDuration > prevReward * period, "Farm: can't lower speed");
