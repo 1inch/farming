@@ -125,11 +125,11 @@ contract Farm is ERC20 {
             }
 
             if (from != address(0)) {
-                userCorrection[from] = int256(balanceOf(from) * fpt - _farmed(from, fpt));
+                userCorrection[from] -= int256(amount * fpt);
             }
 
             if (to != address(0)) {
-                userCorrection[to] = int256(balanceOf(to) * fpt - _farmed(to, fpt));
+                userCorrection[to] += int256(amount * fpt);
             }
         }
     }
