@@ -116,6 +116,8 @@ contract Farm is ERC20 {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+        super._beforeTokenTransfer(from, to, amount);
+
         if (amount > 0) {
             uint256 fpt = farmedPerToken();
 
