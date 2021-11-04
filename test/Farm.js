@@ -290,7 +290,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
 
             await timeIncreaseTo(this.started.add(time.duration.weeks(1)).addn(2));
 
-            // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('2500');
+            // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('2750');
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('2750');
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('8250');
         });
