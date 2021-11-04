@@ -12,8 +12,7 @@ contract Farm is ERC20 {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
 
-    event RewardAdded(uint256 reward);
-    event RewardPaid(address indexed user, uint256 reward);
+    event RewardAdded(uint256 reward, uint256 duration);
 
     IERC20Metadata public immutable stakingToken;
     IERC20 public immutable rewardsToken;
@@ -80,16 +79,17 @@ contract Farm is ERC20 {
         return userFarmed[account] + balanceOf(account) * (fpt - userFarmedPerToken[account]) / 1e18;
     }
 
-    function getReward() public {
-        uint256 amount = userFarmed[msg.sender];
+    function claim() public {
+        uint256 amount = farmed(msg.sender);
         if (amount > 0) {
             userFarmed[msg.sender] = 0;
             rewardsToken.safeTransfer(msg.sender, amount);
-            emit RewardPaid(msg.sender, amount);
         }
     }
 
     function notifyRewardAmount(uint256 amount, uint256 period) external {
+        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
+
         // Update farming state
         (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint176(farmedPerToken()));
 
@@ -105,7 +105,7 @@ contract Farm is ERC20 {
         require(amount < 2**192 && amount <= rewardsToken.balanceOf(address(this)), "Farm: Amount too large");
         (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
 
-        emit RewardAdded(reward);
+        emit RewardAdded(reward, period);
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
