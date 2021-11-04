@@ -109,7 +109,7 @@ contract Farm is ERC20 {
         }
 
         require(period < 2**40, "Farm: Period too large");
-        require(amount < 2**192 && amount <= rewardsToken.balanceOf(address(this)), "Farm: Amount too large");
+        require(amount < 2**192, "Farm: Amount too large");
         (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
 
         emit RewardAdded(reward, period);
