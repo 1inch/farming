@@ -47,14 +47,12 @@ contract Farm is ERC20 {
         return stakingToken.decimals();
     }
 
-    function deposit(uint256 amount) external {
-        _mint(msg.sender, amount);
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+    function farmed(address account) public view returns (uint256) {
+        return _farmed(account, farmedPerToken());
     }
 
-    function withdraw(uint256 amount) public {
-        _burn(msg.sender, amount);
-        stakingToken.safeTransfer(msg.sender, amount);
+    function _farmed(address account, uint256 fpt) internal view returns (uint256) {
+        return userFarmed[account] + balanceOf(account) * (fpt - userFarmedPerToken[account]) / 1e18;
     }
 
     function farmedPerToken() public view returns (uint256 fpt) {
@@ -71,18 +69,22 @@ contract Farm is ERC20 {
         }
     }
 
-    function farmed(address account) public view returns (uint256) {
-        return _farmed(account, farmedPerToken());
+    function deposit(uint256 amount) external {
+        _mint(msg.sender, amount);
+        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    function _farmed(address account, uint256 fpt) internal view returns (uint256) {
-        return userFarmed[account] + balanceOf(account) * (fpt - userFarmedPerToken[account]) / 1e18;
+    function withdraw(uint256 amount) public {
+        _burn(msg.sender, amount);
+        stakingToken.safeTransfer(msg.sender, amount);
     }
 
     function claim() public {
-        uint256 amount = farmed(msg.sender);
+        uint256 fpt = farmedPerToken();
+        uint256 amount = _farmed(msg.sender, fpt);
         if (amount > 0) {
             userFarmed[msg.sender] = 0;
+            userFarmedPerToken[msg.sender] = fpt;
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
