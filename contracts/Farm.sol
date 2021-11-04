@@ -89,6 +89,11 @@ contract Farm is ERC20 {
         }
     }
 
+    function exit() public {
+        withdraw(balanceOf(msg.sender));
+        claim();
+    }
+
     function notifyRewardAmount(uint256 amount, uint256 period) external {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
