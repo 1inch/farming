@@ -25,8 +25,8 @@ require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', function (original) {
         return function (value) {
             if (utils.flag(this, 'bignumber')) {
-                var expected = new BN(value);
-                var actual = new BN(this._obj);
+                const expected = new BN(value);
+                const actual = new BN(this._obj);
                 almostEqual.apply(this, [expected, actual]);
             } else {
                 original.apply(this, arguments);
@@ -41,7 +41,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
         this.gift = await TokenMock.new('UDSC', 'USDC');
         this.farm = await Farm.new(this.token.address, this.gift.address, false);
 
-        for (let wallet of [wallet1, wallet2, wallet3]) {
+        for (const wallet of [wallet1, wallet2, wallet3]) {
             await this.token.mint(wallet, '1000000000');
             await this.gift.mint(wallet, '1000000000');
             await this.token.approve(this.farm.address, '1000000000', { from: wallet });
