@@ -24,7 +24,7 @@ contract Farm is ERC20 {
     uint176 public reward;
 
     // Update this slot on deposit and withdrawals only
-    uint40 public farmingUpdated;
+    uint40 public farmedPerTokenUpdated;
     uint216 public farmedPerTokenStored;
     mapping(address => int256) public userCorrection;
 
@@ -55,7 +55,7 @@ contract Farm is ERC20 {
     }
 
     function farmedPerToken() public view returns (uint256 fpt) {
-        uint256 upd = farmingUpdated;
+        uint256 upd = farmedPerTokenUpdated;
         fpt = farmedPerTokenStored;
         if (block.timestamp != upd) {
             uint256 supply = totalSupply();
@@ -96,7 +96,7 @@ contract Farm is ERC20 {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         // Update farming state
-        (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint176(farmedPerToken()));
+        (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(farmedPerToken()));
 
         // If something left from prev farming add it to the new farming
         (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
@@ -119,7 +119,7 @@ contract Farm is ERC20 {
             uint256 fpt = farmedPerToken();
 
             if (from == address(0) || to == address(0)) {
-                (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+                (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
             }
             else { // solhint-disable-line no-empty-blocks
                 // revert("Farm: transfers denied");
