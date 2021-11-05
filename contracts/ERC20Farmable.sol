@@ -80,21 +80,29 @@ abstract contract ERC20Farmable is ERC20 {
     mapping(address => AddressSet.Data) private _userFarms;
 
     function farm(IERC20Farm farm_) public {
+        uint256 fpt = farmedPerToken(farm_);
+        _update(farm_, fpt);
         _farmTotalSupply[farm_] += balanceOf(msg.sender);
-        // _userFarmedPerToken[farm_][msg.sender] = farmedPerToken(farm_);
+        _userFarmedPerToken[farm_][msg.sender] = fpt;
         require(_userFarms[msg.sender].add(address(farm_)), "ERC20Farmable: already farming");
     }
 
     function exit(IERC20Farm farm_) public {
+        uint256 fpt = farmedPerToken(farm_);
+        _update(farm_, fpt);
         _farmTotalSupply[farm_] -= balanceOf(msg.sender);
-        // _userFarmedPerToken[farm_][msg.sender] = farmedPerToken(farm_);
+        _userFarmedPerToken[farm_][msg.sender] = fpt;
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
     }
 
     function update(IERC20Farm farm_) public {
+        _update(farm_, farmedPerToken(farm_));
+    }
+
+    function _update(IERC20Farm farm_, uint256 fpt) internal {
         _farming[farm_] = FarmingData({
             updated: uint40(block.timestamp),
-            perToken: uint216(farmedPerToken(farm_))
+            perToken: uint216(fpt)
         });
     }
 
