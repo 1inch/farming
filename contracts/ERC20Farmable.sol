@@ -81,12 +81,12 @@ abstract contract ERC20Farmable is ERC20 {
 
     function farm(IERC20Farm farm_) public {
         _farmTotalSupply[farm_] += balanceOf(msg.sender);
-        require(_userFarms[msg.sender].add(address(farm_)), "ERC20F: already farming");
+        require(_userFarms[msg.sender].add(address(farm_)), "ERC20Farmable: already farming");
     }
 
     function exit(IERC20Farm farm_) public {
         _farmTotalSupply[farm_] -= balanceOf(msg.sender);
-        require(_userFarms[msg.sender].remove(address(farm_)), "ERC20F: already exited");
+        require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
     }
 
     function update(IERC20Farm farm_) public {
