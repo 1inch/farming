@@ -308,5 +308,22 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
                 'Farm: can\'t lower speed',
             );
         });
+
+        it('Notify Reward Amount with farming shortening denied thrown', async function () {
+            // 10000 UDSC per week for 1 weeks
+            await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
+
+            // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
+            expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
+            expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
+            expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
+            expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+
+            // 1000 UDSC per week for 1 days
+            expectRevert(
+                this.farm.startFarming('1000', time.duration.days(1), { from: wallet1 }),
+                'Farm: farming shortening denied',
+            );
+        });
     });
 });
