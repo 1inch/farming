@@ -87,7 +87,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await this.token.farm(this.farm.address, { from: wallet1 });
             await expectRevert(
                 this.token.farm(this.farm.address, { from: wallet1 }),
-                'ERC20F: already farming',
+                'ERC20Farmable: already farming',
             );
         });
     });
@@ -103,7 +103,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         it('should be thrown', async function () {
             await expectRevert(
                 this.token.exit(this.farm.address, { from: wallet1 }),
-                'ERC20F: already exited',
+                'ERC20Farmable: already exited',
             );
         });
     });

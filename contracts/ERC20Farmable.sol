@@ -81,11 +81,13 @@ abstract contract ERC20Farmable is ERC20 {
 
     function farm(IERC20Farm farm_) public {
         _farmTotalSupply[farm_] += balanceOf(msg.sender);
+        // _userFarmedPerToken[farm_][msg.sender] = farmedPerToken(farm_);
         require(_userFarms[msg.sender].add(address(farm_)), "ERC20Farmable: already farming");
     }
 
     function exit(IERC20Farm farm_) public {
         _farmTotalSupply[farm_] -= balanceOf(msg.sender);
+        // _userFarmedPerToken[farm_][msg.sender] = farmedPerToken(farm_);
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
     }
 
@@ -123,8 +125,11 @@ abstract contract ERC20Farmable is ERC20 {
         return _farmed(farm_, account, farmedPerToken(farm_));
     }
 
-    function _farmed(IERC20Farm farm_, address account, uint256 fpt) private view returns (uint256) {
-        return _userFarmed[farm_][account] + balanceOf(account) * (fpt - _userFarmedPerToken[farm_][account]) / 1e18;
+    function _farmed(IERC20Farm farm_, address account, uint256 fpt) private view returns (uint256 ret) {
+        ret = _userFarmed[farm_][account];
+        if (_userFarms[account].contains(address(farm_))) {
+            ret += balanceOf(account) * (fpt - _userFarmedPerToken[farm_][account]) / 1e18;
+        }
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
