@@ -8,10 +8,12 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./libs/AddressSet.sol";
 
+
 interface IERC20Farm {
     function options() external view returns(uint256 finished_, uint256 duration_, uint256 reward_);
     function notifyRewardAmount(uint256 amount, uint256 period) external;
 }
+
 
 contract ERC20Farm is IERC20Farm {
     using SafeERC20 for IERC20;
@@ -60,6 +62,7 @@ contract ERC20Farm is IERC20Farm {
     }
 }
 
+
 abstract contract ERC20Farmable is ERC20 {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;
@@ -92,7 +95,7 @@ abstract contract ERC20Farmable is ERC20 {
         });
     }
 
-    function farmingUpdated(IERC20Farm farm_) public view returns (uint256) {
+    function farmedPerTokenUpdated(IERC20Farm farm_) public view returns (uint256) {
         return _farming[farm_].updated;
     }
 
@@ -101,7 +104,7 @@ abstract contract ERC20Farmable is ERC20 {
         uint256 upd = fd.updated;
         fpt = fd.perToken;
         if (block.timestamp != upd) {
-            uint256 supply = totalSupply();
+            uint256 supply = _farmTotalSupply[farm_];
             if (supply > 0) {
                 (, uint256 duration, uint256 reward) = farm_.options();
                 fpt += (block.timestamp - upd) * reward * 1e18 / duration / supply;
