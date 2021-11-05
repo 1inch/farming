@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -11,7 +12,7 @@ import "./libs/AddressSet.sol";
 
 interface IERC20Farm {
     function options() external view returns(uint256 finished_, uint256 duration_, uint256 reward_);
-    function notifyRewardAmount(uint256 amount, uint256 period) external;
+    function startFarming(uint256 amount, uint256 period) external;
 }
 
 
@@ -39,7 +40,7 @@ contract ERC20Farm is IERC20Farm {
         return (finished, duration, reward);
     }
 
-    function notifyRewardAmount(uint256 amount, uint256 period) external override {
+    function startFarming(uint256 amount, uint256 period) external override {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         // Update farming state
@@ -95,6 +96,10 @@ abstract contract ERC20Farmable is ERC20 {
         });
     }
 
+    function farmTotalSupply(IERC20Farm farm_) public view returns (uint256) {
+        return _farmTotalSupply[farm_];
+    }
+
     function farmedPerTokenUpdated(IERC20Farm farm_) public view returns (uint256) {
         return _farming[farm_].updated;
     }
@@ -106,8 +111,10 @@ abstract contract ERC20Farmable is ERC20 {
         if (block.timestamp != upd) {
             uint256 supply = _farmTotalSupply[farm_];
             if (supply > 0) {
-                (, uint256 duration, uint256 reward) = farm_.options();
-                fpt += (block.timestamp - upd) * reward * 1e18 / duration / supply;
+                (uint256 finished, uint256 duration, uint256 reward) = farm_.options();
+                if (duration > 0) {
+                    fpt += (Math.min(block.timestamp, finished) - upd) * reward * 1e18 / duration / supply;
+                }
             }
         }
     }
