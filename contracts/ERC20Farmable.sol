@@ -132,55 +132,40 @@ abstract contract ERC20Farmable is ERC20 {
             address[] memory farms = _userFarms[from].items.get();
             for (uint256 i = 0; i < farms.length; i++) {
                 IERC20Farm farm_ = IERC20Farm(farms[i]);
-                uint256 fpt = farmedPerToken(farm_);
-
-                if (from == address(0) || to == address(0)) {
-                    _farming[farm_] = FarmingData({
-                        updated: uint40(block.timestamp),
-                        perToken: uint216(fpt)
-                    });
-                }
-
-                if (from != address(0)) {
-                    _userFarmed[farm_][from] = _farmed(farm_, from, fpt);
-                    _userFarmedPerToken[farm_][from] = fpt;
-                }
-
-                if (to != address(0)) {
-                    _userFarmed[farm_][to] = _farmed(farm_, to, fpt);
-                    _userFarmedPerToken[farm_][to] = fpt;
-                }
-
-                if (!_userFarms[to].contains(address(farm_))) {
-                    _farmTotalSupply[farm_] -= amount;
-                }
+                _beforeTokenTransferFarm(farm_, from, to, amount, farmedPerToken(farm_), true, _userFarms[to].contains(address(farm_)));
             }
 
             farms = _userFarms[to].items.get();
             for (uint256 i = 0; i < farms.length; i++) {
                 IERC20Farm farm_ = IERC20Farm(farms[i]);
-                uint256 fpt = farmedPerToken(farm_);
+                _beforeTokenTransferFarm(farm_, from, to, amount, farmedPerToken(farm_), _userFarms[from].contains(address(farm_)), true);
+            }
+        }
+    }
 
-                if (from == address(0) || to == address(0)) {
-                    _farming[farm_] = FarmingData({
-                        updated: uint40(block.timestamp),
-                        perToken: uint216(fpt)
-                    });
-                }
+    function _beforeTokenTransferFarm(IERC20Farm farm_, address from, address to, uint256 amount, uint256 fpt, bool inFrom, bool inTo) internal {
+        if (from == address(0) || to == address(0)) {
+            _farming[farm_] = FarmingData({
+                updated: uint40(block.timestamp),
+                perToken: uint216(fpt)
+            });
+        }
 
-                if (from != address(0)) {
-                    _userFarmed[farm_][from] = _farmed(farm_, from, fpt);
-                    _userFarmedPerToken[farm_][from] = fpt;
-                }
+        if (from != address(0)) {
+            _userFarmed[farm_][from] = _farmed(farm_, from, fpt);
+            _userFarmedPerToken[farm_][from] = fpt;
 
-                if (to != address(0)) {
-                    _userFarmed[farm_][to] = _farmed(farm_, to, fpt);
-                    _userFarmedPerToken[farm_][to] = fpt;
-                }
+            if (!inTo) {
+                _farmTotalSupply[farm_] -= amount;
+            }
+        }
 
-                if (!_userFarms[from].contains(address(farm_))) {
-                    _farmTotalSupply[farm_] += amount;
-                }
+        if (to != address(0)) {
+            _userFarmed[farm_][to] = _farmed(farm_, to, fpt);
+            _userFarmedPerToken[farm_][to] = fpt;
+
+            if (!inFrom) {
+                _farmTotalSupply[farm_] += amount;
             }
         }
     }

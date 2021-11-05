@@ -160,11 +160,8 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('72000');
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('0');
 
-            // Forward to week 3 and notifyReward weekly
-            for (let i = 1; i < 3; i++) {
-                await timeIncreaseTo(this.started.add(time.duration.weeks(i + 1)));
-                await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
-            }
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
 
             // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('90000');
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('90000');

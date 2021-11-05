@@ -109,81 +109,86 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
     });
 
     describe('deposit', async function () {
-        // it('Two stakers with the same stakes wait 1 w', async function () {
-        //     // 72000 UDSC per week for 3 weeks
-        //     await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+        it('Two stakers with the same stakes wait 1 w', async function () {
+            await this.token.mint(wallet1, '1');
+            await this.token.mint(wallet2, '1');
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+            // 72000 UDSC per week for 3 weeks
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
 
-        //     await this.farm.deposit('1', { from: wallet1 });
-        //     await this.farm.deposit('1', { from: wallet2 });
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet2 });
 
-        //     await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('36000');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('36000');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('36000');
-        // });
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
 
-        // it('Two stakers with the different (1:3) stakes wait 1 w', async function () {
-        //     // 72000 UDSC per week
-        //     await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('36000');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('36000');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('36000');
+        });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
-        //     expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+        it('Two stakers with the different (1:3) stakes wait 1 w', async function () {
+            await this.token.mint(wallet1, '1');
+            await this.token.mint(wallet2, '3');
 
-        //     await this.farm.deposit('1', { from: wallet1 });
-        //     await this.farm.deposit('3', { from: wallet2 });
+            // 72000 UDSC per week
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
-        //     await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet2 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('18000');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('18000');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('54000');
-        // });
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
-        // it('Two stakers with the different (1:3) stakes wait 2 weeks', async function () {
-        //     //
-        //     // 1x: +----------------+ = 72k for 1w + 18k for 2w
-        //     // 3x:         +--------+ =  0k for 1w + 54k for 2w
-        //     //
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
 
-        //     // 72000 UDSC per week
-        //     await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('18000');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('18000');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('54000');
+        });
 
-        //     await this.farm.deposit('1', { from: wallet1 });
+        it('Two stakers with the different (1:3) stakes wait 2 weeks', async function () {
+            //
+            // 1x: +----------------+ = 72k for 1w + 18k for 2w
+            // 3x:         +--------+ =  0k for 1w + 54k for 2w
+            //
 
-        //     await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+            await this.token.mint(wallet1, '1');
+            await this.token.mint(wallet2, '3');
 
-        //     await this.farm.deposit('3', { from: wallet2 });
+            // 72000 UDSC per week
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('72000');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('72000');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('0');
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.almostEqual('1');
 
-        //     // Forward to week 3 and notifyReward weekly
-        //     for (let i = 1; i < 3; i++) {
-        //         await timeIncreaseTo(this.started.add(time.duration.weeks(i + 1)));
-        //         await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
-        //     }
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('90000');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('90000');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('54000');
-        // });
+            await this.token.farm(this.farm.address, { from: wallet2 });
+
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('72000');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('72000');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('0');
+
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
+
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('90000');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('90000');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('54000');
+        });
 
         // it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async function () {
         //     //
@@ -202,27 +207,27 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
         //     await this.farm.deposit('5', { from: wallet3 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('18000');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('18000');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('54000');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('18000');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('18000');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('54000');
 
         //     await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
         //     await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('26000'); // 18k + 8k
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('26000');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('78000');
-        //     expect(await this.farm.farmed(wallet3)).to.be.bignumber.almostEqual('40000');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('26000'); // 18k + 8k
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('26000');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('78000');
+        //     expect(await this.token.farmed(this.farm.address, wallet3)).to.be.bignumber.almostEqual('40000');
 
         //     await this.farm.exit({ from: wallet2 });
 
         //     await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
         //     await timeIncreaseTo(this.started.add(time.duration.weeks(3)));
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('38000'); // 18k + 8k + 12k
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('38000');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('0');
-        //     expect(await this.farm.farmed(wallet3)).to.be.bignumber.almostEqual('100000');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('38000'); // 18k + 8k + 12k
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('38000');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet3)).to.be.bignumber.almostEqual('100000');
         // });
 
         // it('One staker on 2 durations with gap', async function () {
@@ -233,40 +238,40 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
         //     await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('72000');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('72000');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('72000');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('72000');
 
         //     // 72000 UDSC per week for 1 weeks
         //     await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
 
         //     await timeIncreaseTo(this.started.add(time.duration.weeks(3)));
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('144000');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('144000');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('144000');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('144000');
         // });
 
         // it('Notify Reward Amount from mocked distribution to 10,000', async function () {
         //     // 10000 UDSC per week for 1 weeks
         //     await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
         //     expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
         //     expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
         //     await this.farm.deposit('1', { from: wallet1 });
         //     await this.farm.deposit('3', { from: wallet2 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
         //     await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('2500');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('2500');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('7500');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('2500');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('2500');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('7500');
         // });
 
         // it('Thrown with Period too large', async function () {
@@ -290,11 +295,11 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         //     // 10000 UDSC per week for 1 weeks
         //     await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
         //     expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
         //     expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
         //     // 1000 UDSC per week for 1 weeks
         //     await this.farm.startFarming('1000', time.duration.weeks(1), { from: wallet1 });
@@ -304,20 +309,20 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
         //     await timeIncreaseTo(this.started.add(time.duration.weeks(1)).addn(2));
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('2750');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('2750');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('8250');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('2750');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('2750');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('8250');
         // });
 
         // it('Notify Reward Amount before prev farming finished with thrown', async function () {
         //     // 10000 UDSC per week for 1 weeks
         //     await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
 
-        //     // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
+        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
         //     expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
         //     expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
         //     // 1000 UDSC per week for 10 weeks
         //     expectRevert(
