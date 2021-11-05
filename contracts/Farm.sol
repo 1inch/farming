@@ -24,10 +24,9 @@ contract Farm is ERC20 {
     uint176 public reward;
 
     // Update this slot on deposit and withdrawals only
-    uint40 public farmingUpdated;
+    uint40 public farmedPerTokenUpdated;
     uint216 public farmedPerTokenStored;
-    mapping(address => uint256) public userFarmedPerToken;
-    mapping(address => uint256) public userFarmed;
+    mapping(address => int256) public userCorrection;
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_, bool allowSlowDown_) ERC20("", "") {
         stakingToken = stakingToken_;
@@ -52,11 +51,11 @@ contract Farm is ERC20 {
     }
 
     function _farmed(address account, uint256 fpt) internal view returns (uint256) {
-        return userFarmed[account] + balanceOf(account) * (fpt - userFarmedPerToken[account]) / 1e18;
+        return uint256(int256(balanceOf(account) * fpt) - userCorrection[account]) / 1e18;
     }
 
     function farmedPerToken() public view returns (uint256 fpt) {
-        uint256 upd = farmingUpdated;
+        uint256 upd = farmedPerTokenUpdated;
         fpt = farmedPerTokenStored;
         if (block.timestamp != upd) {
             uint256 supply = totalSupply();
@@ -83,8 +82,7 @@ contract Farm is ERC20 {
         uint256 fpt = farmedPerToken();
         uint256 amount = _farmed(msg.sender, fpt);
         if (amount > 0) {
-            userFarmed[msg.sender] = 0;
-            userFarmedPerToken[msg.sender] = fpt;
+            userCorrection[msg.sender] = -int256(balanceOf(msg.sender) * fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
@@ -94,22 +92,23 @@ contract Farm is ERC20 {
         claim();
     }
 
-    function notifyRewardAmount(uint256 amount, uint256 period) external {
+    function startFarming(uint256 amount, uint256 period) external {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         // Update farming state
-        (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint176(farmedPerToken()));
+        (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(farmedPerToken()));
 
         // If something left from prev farming add it to the new farming
         (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
         if (block.timestamp < prevFinish) {
+            require(block.timestamp + period >= prevFinish, "Farm: farming shortening denied");
             uint256 elapsed = block.timestamp + prevDuration - prevFinish;
             amount += prevReward - prevReward * elapsed / prevDuration;
             require(allowSlowDown || amount * prevDuration > prevReward * period, "Farm: can't lower speed");
         }
 
         require(period < 2**40, "Farm: Period too large");
-        require(amount < 2**192 && amount <= rewardsToken.balanceOf(address(this)), "Farm: Amount too large");
+        require(amount < 2**192, "Farm: Amount too large");
         (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
 
         emit RewardAdded(reward, period);
@@ -122,20 +121,18 @@ contract Farm is ERC20 {
             uint256 fpt = farmedPerToken();
 
             if (from == address(0) || to == address(0)) {
-                (farmingUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+                (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
             }
             else { // solhint-disable-line no-empty-blocks
                 // revert("Farm: transfers denied");
             }
 
             if (from != address(0)) {
-                userFarmed[from] = _farmed(from, fpt);
-                userFarmedPerToken[from] = fpt;
+                userCorrection[from] -= int256(amount * fpt);
             }
 
             if (to != address(0)) {
-                userFarmed[to] = _farmed(to, fpt);
-                userFarmedPerToken[to] = fpt;
+                userCorrection[to] += int256(amount * fpt);
             }
         }
     }
