@@ -132,26 +132,26 @@ abstract contract ERC20Farmable is ERC20 {
             address[] memory farms = _userFarms[from].items.get();
             for (uint256 i = 0; i < farms.length; i++) {
                 IERC20Farm farm_ = IERC20Farm(farms[i]);
-                _beforeTokenTransferFarm(farm_, from, to, amount, farmedPerToken(farm_), true, _userFarms[to].contains(address(farm_)));
+                _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), true, _userFarms[to].contains(address(farm_)));
             }
 
             farms = _userFarms[to].items.get();
             for (uint256 i = 0; i < farms.length; i++) {
                 IERC20Farm farm_ = IERC20Farm(farms[i]);
-                _beforeTokenTransferFarm(farm_, from, to, amount, farmedPerToken(farm_), _userFarms[from].contains(address(farm_)), true);
+                _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), _userFarms[from].contains(address(farm_)), true);
             }
         }
     }
 
-    function _beforeTokenTransferFarm(IERC20Farm farm_, address from, address to, uint256 amount, uint256 fpt, bool inFrom, bool inTo) internal {
-        if (from == address(0) || to == address(0)) {
+    function _beforeTokenTransferForFarm(IERC20Farm farm_, address from, address to, uint256 amount, uint256 fpt, bool inFrom, bool inTo) internal {
+        if (!inFrom || !inTo) {
             _farming[farm_] = FarmingData({
                 updated: uint40(block.timestamp),
                 perToken: uint216(fpt)
             });
         }
 
-        if (from != address(0)) {
+        if (inFrom) {
             _userFarmed[farm_][from] = _farmed(farm_, from, fpt);
             _userFarmedPerToken[farm_][from] = fpt;
 
@@ -160,7 +160,7 @@ abstract contract ERC20Farmable is ERC20 {
             }
         }
 
-        if (to != address(0)) {
+        if (inTo) {
             _userFarmed[farm_][to] = _farmed(farm_, to, fpt);
             _userFarmedPerToken[farm_][to] = fpt;
 
