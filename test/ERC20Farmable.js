@@ -288,54 +288,53 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             );
         });
 
-        // it('Thrown with Amount too large', async function () {
-        //     const largeAmount = (new BN(2)).pow(new BN(192));
-        //     await this.gift.mint(wallet1, largeAmount, { from: wallet1 });
-        //     await this.gift.approve(this.farm.address, largeAmount, { from: wallet1 });
-        //     await expectRevert(
-        //         this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
-        //         'Amount too large',
-        //     );
-        // });
+        it('Thrown with Amount too large', async function () {
+            const largeAmount = (new BN(2)).pow(new BN(192));
+            await this.gift.mint(wallet1, largeAmount, { from: wallet1 });
+            await this.gift.approve(this.farm.address, largeAmount, { from: wallet1 });
+            await expectRevert(
+                this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
+                'Amount too large',
+            );
+        });
 
-        // it('Notify Reward Amount before prev farming finished', async function () {
-        //     // 10000 UDSC per week for 1 weeks
-        //     await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
+        it('Notify Reward Amount before prev farming finished', async function () {
+            await this.token.mint(wallet1, '1');
+            await this.token.mint(wallet2, '3');
 
-        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
-        //     expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
-        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
+            // 10000 UDSC per week for 1 weeks
+            await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
 
-        //     // 1000 UDSC per week for 1 weeks
-        //     await this.farm.startFarming('1000', time.duration.weeks(1), { from: wallet1 });
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
 
-        //     await this.farm.deposit('1', { from: wallet1 });
-        //     await this.farm.deposit('3', { from: wallet2 });
+            // 1000 UDSC per week for 1 weeks
+            await this.farm.startFarming('1000', time.duration.weeks(1), { from: wallet1 });
 
-        //     await timeIncreaseTo(this.started.add(time.duration.weeks(1)).addn(2));
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet2 });
 
-        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('2750');
-        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('2750');
-        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('8250');
-        // });
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)).addn(2));
 
-        // it('Notify Reward Amount before prev farming finished with thrown', async function () {
-        //     // 10000 UDSC per week for 1 weeks
-        //     await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('2750');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('2750');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('8250');
+        });
 
-        //     // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
-        //     expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
-        //     expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
-        //     expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
+        it('Notify Reward Amount before prev farming finished with thrown', async function () {
+            // 10000 UDSC per week for 1 weeks
+            await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
 
-        //     // 1000 UDSC per week for 10 weeks
-        //     await expectRevert(
-        //         this.farm.startFarming('1000', time.duration.weeks(10), { from: wallet1 }),
-        //         'Farm: can\'t lower speed',
-        //     );
-        // });
+            // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
+
+            // 1000 UDSC per week for 10 weeks
+            await expectRevert(
+                this.farm.startFarming('1000', time.duration.weeks(10), { from: wallet1 }),
+                'Farm: can\'t lower speed',
+            );
+        });
     });
 });
