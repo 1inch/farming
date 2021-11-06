@@ -87,7 +87,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
         });
 
         it('should be thrown', async function () {
-            expectRevert(
+            await expectRevert(
                 this.farm.withdraw('1', { from: wallet1 }),
                 'ERC20: burn amount exceeds balance',
             );
@@ -253,7 +253,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
         });
 
         it('Thrown with Period too large', async function () {
-            expectRevert(
+            await expectRevert(
                 this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
                 'Period too large',
             );
@@ -263,7 +263,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
             const largeAmount = (new BN(2)).pow(new BN(192));
             await this.gift.mint(wallet1, largeAmount, { from: wallet1 });
             await this.gift.approve(this.farm.address, largeAmount, { from: wallet1 });
-            expectRevert(
+            await expectRevert(
                 this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
                 'Amount too large',
             );
@@ -303,7 +303,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
 
             // 1000 UDSC per week for 10 weeks
-            expectRevert(
+            await expectRevert(
                 this.farm.startFarming('1000', time.duration.weeks(10), { from: wallet1 }),
                 'Farm: can\'t lower speed',
             );
@@ -320,7 +320,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
 
             // 1000 UDSC per week for 1 days
-            expectRevert(
+            await expectRevert(
                 this.farm.startFarming('1000', time.duration.days(1), { from: wallet1 }),
                 'Farm: farming shortening denied',
             );
