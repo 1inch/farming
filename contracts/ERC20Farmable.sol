@@ -12,6 +12,7 @@ import "./libs/AddressSet.sol";
 
 interface IERC20Farm {
     function options() external view returns(uint256 finished_, uint256 duration_, uint256 reward_);
+    function claimFor(address account, uint256 amount) external;
     function startFarming(uint256 amount, uint256 period) external;
 }
 
@@ -40,6 +41,11 @@ contract ERC20Farm is IERC20Farm {
         return (finished, duration, reward);
     }
 
+    function claimFor(address account, uint256 amount) public {
+        require(msg.sender == address(stakingToken), "ERC20: Access denied");
+        rewardsToken.safeTransfer(account, amount);
+    }
+
     function startFarming(uint256 amount, uint256 period) external override {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -56,7 +62,7 @@ contract ERC20Farm is IERC20Farm {
         }
 
         require(period < 2**40, "Farm: Period too large");
-        require(amount < 2**192 && amount <= rewardsToken.balanceOf(address(this)), "Farm: Amount too large");
+        require(amount < 2**192, "Farm: Amount too large");
         (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
 
         emit RewardAdded(reward, period);
@@ -93,6 +99,13 @@ abstract contract ERC20Farmable is ERC20 {
         _farmTotalSupply[farm_] -= balanceOf(msg.sender);
         _userFarmedPerToken[farm_][msg.sender] = fpt;
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
+    }
+
+    function claim(IERC20Farm farm_) public {
+        uint256 fpt = farmedPerToken(farm_);
+        farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, fpt));
+        _userFarmed[farm_][msg.sender] = 0;
+        _userFarmedPerToken[farm_][msg.sender] = fpt;
     }
 
     function update(IERC20Farm farm_) public {
