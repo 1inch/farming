@@ -7,81 +7,17 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "./interfaces/IERC20Farmable.sol";
 import "./libs/AddressSet.sol";
 
 
-interface IERC20Farm {
-    function options() external view returns(uint256 finished_, uint256 duration_, uint256 reward_);
-    function claimFor(address account, uint256 amount) external;
-    function startFarming(uint256 amount, uint256 period) external;
-}
-
-
-contract ERC20Farm is IERC20Farm {
-    using SafeERC20 for IERC20;
-    using SafeERC20 for IERC20Metadata;
-
-    event RewardAdded(uint256 reward, uint256 duration);
-
-    IERC20Metadata public immutable stakingToken;
-    IERC20 public immutable rewardsToken;
-    bool public immutable allowSlowDown;
-
-    uint40 public finished;
-    uint40 public duration;
-    uint176 public reward;
-
-    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_, bool allowSlowDown_) {
-        stakingToken = stakingToken_;
-        rewardsToken = rewardsToken_;
-        allowSlowDown = allowSlowDown_;
-    }
-
-    function options() public view override returns(uint256 finished_, uint256 duration_, uint256 reward_) {
-        return (finished, duration, reward);
-    }
-
-    function claimFor(address account, uint256 amount) public {
-        require(msg.sender == address(stakingToken), "ERC20: Access denied");
-        rewardsToken.safeTransfer(account, amount);
-    }
-
-    function startFarming(uint256 amount, uint256 period) external override {
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
-
-        // Update farming state
-        ERC20Farmable(address(stakingToken)).update(this);
-
-        // If something left from prev farming add it to the new farming
-        (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
-        if (block.timestamp < prevFinish) {
-            require(block.timestamp + period >= prevFinish, "Farm: farming shortening denied");
-            uint256 elapsed = block.timestamp + prevDuration - prevFinish;
-            amount += prevReward - prevReward * elapsed / prevDuration;
-            require(allowSlowDown || amount * prevDuration > prevReward * period, "Farm: can't lower speed");
-        }
-
-        require(period < 2**40, "Farm: Period too large");
-        require(amount < 2**192, "Farm: Amount too large");
-        (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
-
-        emit RewardAdded(reward, period);
-    }
-}
-
-
-abstract contract ERC20Farmable is ERC20 {
+abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;
 
-    struct FarmingData {
-        uint40 updated;
-        uint216 perToken;
-    }
-
     mapping(IERC20Farm => FarmingData) public farming;
-    mapping(IERC20Farm => mapping(address => int256)) public userCorrection;
-    mapping(IERC20Farm => uint256) public farmTotalSupply;
+    mapping(IERC20Farm => mapping(address => int256)) public override userCorrection;
+    mapping(IERC20Farm => uint256) public override farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
 
     function userFarms(address account) external view returns(address[] memory) {
@@ -114,7 +50,7 @@ abstract contract ERC20Farmable is ERC20 {
         return uint256(userCorrection[farm_][account]);
     }
 
-    function farm(IERC20Farm farm_) external {
+    function farm(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
         _update(farm_, fpt);
 
@@ -124,7 +60,7 @@ abstract contract ERC20Farmable is ERC20 {
         require(_userFarms[msg.sender].add(address(farm_)), "ERC20Farmable: already farming");
     }
 
-    function exit(IERC20Farm farm_) external {
+    function exit(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
         _update(farm_, fpt);
 
@@ -134,7 +70,7 @@ abstract contract ERC20Farmable is ERC20 {
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
     }
 
-    function claim(IERC20Farm farm_) external {
+    function claim(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
         uint256 balance = balanceOf(msg.sender);
         farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt));
@@ -146,7 +82,7 @@ abstract contract ERC20Farmable is ERC20 {
         }
     }
 
-    function update(IERC20Farm farm_) external {
+    function update(IERC20Farm farm_) external override {
         _update(farm_, farmedPerToken(farm_));
     }
 
