@@ -16,8 +16,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressSet for AddressSet.Data;
 
     mapping(IERC20Farm => FarmingData) public farming;
-    mapping(IERC20Farm => mapping(address => int256)) public override userCorrection;
     mapping(IERC20Farm => uint256) public override farmTotalSupply;
+    mapping(IERC20Farm => mapping(address => int256)) public override userCorrection;
     mapping(address => AddressSet.Data) private _userFarms;
 
     function userFarms(address account) external view returns(address[] memory) {
