@@ -174,16 +174,10 @@ abstract contract ERC20Farmable is ERC20 {
     }
 
     function _beforeTokenTransferForFarm(IERC20Farm farm_, address from, address to, uint256 amount, uint256 fpt, bool inFrom, bool inTo) internal {
-        if (!inFrom || !inTo) {
-            farming[farm_] = FarmingData({
-                updated: uint40(block.timestamp),
-                perToken: uint216(fpt)
-            });
-        }
-
         if (inFrom) {
             userCorrection[farm_][from] -= int256(amount * fpt);
             if (!inTo) {
+                _update(farm_, fpt);
                 farmTotalSupply[farm_] -= amount;
             }
         }
@@ -191,6 +185,7 @@ abstract contract ERC20Farmable is ERC20 {
         if (inTo) {
             userCorrection[farm_][to] += int256(amount * fpt);
             if (!inFrom) {
+                _update(farm_, fpt);
                 farmTotalSupply[farm_] += amount;
             }
         }
