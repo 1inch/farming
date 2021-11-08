@@ -95,35 +95,61 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         if (amount > 0) {
-            address[] memory farms = _userFarms[from].items.get();
-            for (uint256 i = 0; i < farms.length; i++) {
-                IERC20Farm farm_ = IERC20Farm(farms[i]);
-                _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), true, _userFarms[to].contains(address(farm_)));
-            }
+            uint256[] memory farms = _intersectAndExcludeFromB(_userFarms[from].items.get(), _userFarms[to].items.get());
 
-            farms = _userFarms[to].items.get();
             for (uint256 i = 0; i < farms.length; i++) {
-                IERC20Farm farm_ = IERC20Farm(farms[i]);
-                _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), _userFarms[from].contains(address(farm_)), true);
+                bool inFrom = farms[i] & (1 << 160) != 0;
+                bool inTo = farms[i] & (1 << 161) != 0;
+                IERC20Farm farm_ = IERC20Farm(address(uint160(farms[i])));
+                uint256 fpt = farmedPerToken(farm_);
+
+                if (inFrom) {
+                    userCorrection[farm_][from] -= int256(amount * fpt);
+                    if (!inTo) {
+                        _update(farm_, fpt);
+                        farmTotalSupply[farm_] -= amount;
+                    }
+                }
+
+                if (inTo) {
+                    userCorrection[farm_][to] += int256(amount * fpt);
+                    if (!inFrom) {
+                        _update(farm_, fpt);
+                        farmTotalSupply[farm_] += amount;
+                    }
+                }
             }
         }
     }
 
-    function _beforeTokenTransferForFarm(IERC20Farm farm_, address from, address to, uint256 amount, uint256 fpt, bool inFrom, bool inTo) internal {
-        if (inFrom) {
-            userCorrection[farm_][from] -= int256(amount * fpt);
-            if (!inTo) {
-                _update(farm_, fpt);
-                farmTotalSupply[farm_] -= amount;
+    function _intersectAndExcludeFromB(address[] memory a, address[] memory b) internal pure returns(uint256[] memory ab) {
+        uint256 al = a.length;
+        uint256 bl = b.length;
+        uint256 abl = 0;
+        ab = new uint256[](al + bl);
+        unchecked {
+            for (uint i = 0; i < al; i++) {
+                address ai = a[i];
+                uint256 value = uint160(ai) | (1 << 160);
+                uint j = 0;
+                while (j < bl && ai != b[j]) {
+                    j++;
+                }
+                if (j < bl) {
+                    value |= (2 << 160);
+                    b[j] = b[--bl];
+                }
+                ab[abl++] = value;
+            }
+
+            for (uint j = 0; j < bl; j++) {
+                ab[abl++] = uint160(b[j]) | (2 << 160);
             }
         }
 
-        if (inTo) {
-            userCorrection[farm_][to] += int256(amount * fpt);
-            if (!inFrom) {
-                _update(farm_, fpt);
-                farmTotalSupply[farm_] += amount;
-            }
+        assembly {
+            mstore(b, bl)
+            mstore(ab, abl)
         }
     }
 }
