@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../contracts/ERC20Farmable.sol";
-import "../../contracts/interfaces/IERC20Farm.sol";
 
 
 contract ERC20FarmableMock is ERC20Farmable, Ownable {
@@ -17,9 +16,5 @@ contract ERC20FarmableMock is ERC20Farmable, Ownable {
 
     function burn(address account, uint256 amount) external onlyOwner {
         _burn(account, amount);
-    }
-	
-	function claimFor(address farm, address account, uint256 amount) external onlyOwner {
-    	IERC20Farm(farm).claimFor(account, amount);
     }
 }

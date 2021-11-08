@@ -99,12 +99,43 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
                 'ERC20: Access denied',
             );
         });
+    });
 
-        it('should transfer tokens', async function () {
+    describe('claim', async function () {
+        it('should claim tokens', async function () {
+            await this.token.mint(wallet1, '1000');
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
+            
+            await this.farm.startFarming(1000, 60 * 60 * 24);
+            await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+
+            const balanceBefore = await this.gift.balanceOf(wallet1);
+            await this.token.claim(this.farm.address, { from: wallet1 });
+            expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equal(balanceBefore.addn(1000));
+        });
+
+        it('should claim tokens for non-user farms wallet', async function () {
+            await this.token.mint(wallet1, '1000');
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
+            
+            await this.farm.startFarming(1000, 60 * 60 * 24);
+            await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+
             const balanceBefore = await this.gift.balanceOf(wallet2);
-            await this.gift.transfer(this.farm.address, '1000', { from: wallet1 });
-            await this.token.claimFor(this.farm.address, wallet2, '1000', { from: wallet1 });
-            expect(await this.gift.balanceOf(wallet2)).to.be.bignumber.equal(balanceBefore.addn(1000));
+            await this.token.claim(this.farm.address, { from: wallet2 });
+            expect(await this.gift.balanceOf(wallet2)).to.be.bignumber.equal(balanceBefore);
+        });
+    });
+
+    describe('userFarms', async function () {
+        it('should return user farms', async function () {
+            await this.token.mint(wallet1, '1000');
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            const wallet1farms = await this.token.userFarms(wallet1);
+            expect(wallet1farms.length).to.be.equal(1);
+            expect(wallet1farms[0]).to.be.equal(this.farm.address);
         });
     });
 
