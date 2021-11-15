@@ -106,7 +106,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await this.token.mint(wallet1, '1000');
             await this.token.farm(this.farm.address, { from: wallet1 });
             await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
-            
+
             await this.farm.startFarming(1000, 60 * 60 * 24);
             await timeIncreaseTo(this.started.addn(60 * 60 * 25));
 
@@ -119,7 +119,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await this.token.mint(wallet1, '1000');
             await this.token.farm(this.farm.address, { from: wallet1 });
             await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
-            
+
             await this.farm.startFarming(1000, 60 * 60 * 24);
             await timeIncreaseTo(this.started.addn(60 * 60 * 25));
 
@@ -380,7 +380,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             // 1000 UDSC per week for 10 weeks
             await expectRevert(
                 this.farm.startFarming('1000', time.duration.weeks(10), { from: wallet1 }),
-                'Farm: can\'t lower speed',
+                'FP: can\'t lower speed',
             );
         });
     });

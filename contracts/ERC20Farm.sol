@@ -47,14 +47,14 @@ contract ERC20Farm is IERC20Farm {
         // If something left from prev farming add it to the new farming
         (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
         if (block.timestamp < prevFinish) {
-            require(block.timestamp + period >= prevFinish, "Farm: farming shortening denied");
+            require(block.timestamp + period >= prevFinish, "FP: farming shortening denied");
             uint256 elapsed = block.timestamp + prevDuration - prevFinish;
             amount += prevReward - prevReward * elapsed / prevDuration;
-            require(allowSlowDown || amount * prevDuration > prevReward * period, "Farm: can't lower speed");
+            require(allowSlowDown || amount * prevDuration > prevReward * period, "FP: can't lower speed");
         }
 
-        require(period < 2**40, "Farm: Period too large");
-        require(amount < 2**192, "Farm: Amount too large");
+        require(period < 2**40, "FP: Period too large");
+        require(amount < 2**192, "FP: Amount too large");
         (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
 
         emit RewardAdded(reward, period);

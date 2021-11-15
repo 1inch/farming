@@ -1,6 +1,6 @@
 const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
 
-const Farm = artifacts.require('Farm');
+const FarmingPool = artifacts.require('FarmingPool');
 const TokenMock = artifacts.require('TokenMock');
 
 async function timeIncreaseTo (seconds) {
@@ -35,11 +35,11 @@ require('chai').use(function (chai, utils) {
     });
 });
 
-contract('Farm', function ([wallet1, wallet2, wallet3]) {
+contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
     beforeEach(async function () {
         this.token = await TokenMock.new('1INCH', '1INCH');
         this.gift = await TokenMock.new('UDSC', 'USDC');
-        this.farm = await Farm.new(this.token.address, this.gift.address, false);
+        this.farm = await FarmingPool.new(this.token.address, this.gift.address, false);
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
             await this.token.mint(wallet, '1000000000');
@@ -305,7 +305,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
             // 1000 UDSC per week for 10 weeks
             await expectRevert(
                 this.farm.startFarming('1000', time.duration.weeks(10), { from: wallet1 }),
-                'Farm: can\'t lower speed',
+                'FP: can\'t lower speed',
             );
         });
 
@@ -322,7 +322,7 @@ contract('Farm', function ([wallet1, wallet2, wallet3]) {
             // 1000 UDSC per week for 1 days
             await expectRevert(
                 this.farm.startFarming('1000', time.duration.days(1), { from: wallet1 }),
-                'Farm: farming shortening denied',
+                'FP: farming shortening denied',
             );
         });
     });

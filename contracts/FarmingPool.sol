@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 
-contract Farm is ERC20 {
+contract FarmingPool is ERC20 {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
 
@@ -101,14 +101,14 @@ contract Farm is ERC20 {
         // If something left from prev farming add it to the new farming
         (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
         if (block.timestamp < prevFinish) {
-            require(block.timestamp + period >= prevFinish, "Farm: farming shortening denied");
+            require(block.timestamp + period >= prevFinish, "FP: farming shortening denied");
             uint256 elapsed = block.timestamp + prevDuration - prevFinish;
             amount += prevReward - prevReward * elapsed / prevDuration;
-            require(allowSlowDown || amount * prevDuration > prevReward * period, "Farm: can't lower speed");
+            require(allowSlowDown || amount * prevDuration > prevReward * period, "FP: can't lower speed");
         }
 
-        require(period < 2**40, "Farm: Period too large");
-        require(amount < 2**192, "Farm: Amount too large");
+        require(period < 2**40, "FP: Period too large");
+        require(amount < 2**192, "FP: Amount too large");
         (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
 
         emit RewardAdded(reward, period);
@@ -124,7 +124,7 @@ contract Farm is ERC20 {
                 (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
             }
             else { // solhint-disable-line no-empty-blocks
-                // revert("Farm: transfers denied");
+                // revert("FP: transfers denied");
             }
 
             if (from != address(0)) {
