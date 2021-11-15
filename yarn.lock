@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@1inch/solidity-utils@^1.2.0":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@1inch/solidity-utils/-/solidity-utils-1.2.3.tgz#66d6080ddb91b1f32f53d83fe16d2d7e4f1276e6"
+  integrity sha512-UbHuozONuP3ogrL9uKyJRfw1Kc53/XXQkFlJEz0sGfQQt2mdDJAkoNsKYOlUJ+Z71tewPYgHevuZsDQNfiOTgg==
+  dependencies:
+    "@openzeppelin/contracts" "^4.3.2"
+
 "@babel/code-frame@7.12.11":
   version "7.12.11"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.12.11.tgz#f4ad435aa263db935b8f10f2c552d23fb716a63f"
