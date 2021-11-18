@@ -47,8 +47,19 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await this.gift.approve(this.farm.address, '1000000000', { from: wallet });
         }
 
+        await this.farm.setRewardsDistributor(wallet1, { from: wallet1 });
+
         this.started = (await time.latest()).addn(10);
         await timeIncreaseTo(this.started);
+    });
+
+    describe('startFarming', async function () {
+        it('should thrown with rewards distribution access denied ', async function () {
+            await expectRevert(
+                this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
+                'RD: caller access denied',
+            );
+        });
     });
 
     describe('farm', async function () {
