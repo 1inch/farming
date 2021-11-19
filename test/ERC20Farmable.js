@@ -40,7 +40,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
     beforeEach(async function () {
         this.token = await ERC20FarmableMock.new('1INCH', '1INCH');
         this.gift = await TokenMock.new('UDSC', 'USDC');
-        this.farm = await ERC20Farm.new(this.token.address, this.gift.address, false);
+        this.farm = await ERC20Farm.new(this.token.address, this.gift.address);
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
             await this.gift.mint(wallet, '1000000000');
@@ -57,7 +57,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with rewards distribution access denied ', async function () {
             await expectRevert(
                 this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                'RD: caller access denied',
+                'FA: access denied',
             );
         });
     });
@@ -378,21 +378,6 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('2750');
             expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('2750');
             expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('8250');
-        });
-
-        it('Notify Reward Amount before prev farming finished with thrown', async function () {
-            // 10000 UDSC per week for 1 weeks
-            await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
-
-            // expect(await this.token.farmedPerToken()).to.be.bignumber.equal('0');
-            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.equal('0');
-            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.equal('0');
-
-            // 1000 UDSC per week for 10 weeks
-            await expectRevert(
-                this.farm.startFarming('1000', time.duration.weeks(10), { from: wallet1 }),
-                'FP: can\'t lower speed',
-            );
         });
     });
 });

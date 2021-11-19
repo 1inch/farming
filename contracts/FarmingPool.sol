@@ -7,44 +7,26 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "./DistributorAccess.sol";
+import "./FarmAccounting.sol";
 
-contract FarmingPool is ERC20, DistributorAccess {
+contract FarmingPool is ERC20, FarmAccounting {
     using SafeERC20 for IERC20;
-    using SafeERC20 for IERC20Metadata;
-
-    event RewardAdded(uint256 reward, uint256 duration);
-
-    IERC20Metadata public immutable stakingToken;
-    IERC20 public immutable rewardsToken;
-    bool public immutable allowSlowDown;
-
-    // Update this slot once every new farming starts
-    uint40 public finished;
-    uint40 public duration;
-    uint176 public reward;
 
     // Update this slot on deposit and withdrawals only
     uint40 public farmedPerTokenUpdated;
     uint216 public farmedPerTokenStored;
     mapping(address => int256) public userCorrection;
 
-    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_, bool allowSlowDown_) ERC20("", "") {
-        stakingToken = stakingToken_;
-        rewardsToken = rewardsToken_;
-        allowSlowDown = allowSlowDown_;
-    }
-
-    function name() public view override returns (string memory) {
-        return string(abi.encodePacked("Farming of ", stakingToken.name()));
-    }
-
-    function symbol() public view override returns (string memory) {
-        return string(abi.encodePacked("farm", stakingToken.symbol()));
-    }
+    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
+        FarmAccounting(stakingToken_, rewardsToken_)
+        ERC20(
+            string(abi.encodePacked("Farming of ", stakingToken_.name())),
+            string(abi.encodePacked("farm", stakingToken_.symbol()))
+        )
+    {}  // solhint-disable-line no-empty-blocks
 
     function decimals() public view override returns (uint8) {
-        return stakingToken.decimals();
+        return IERC20Metadata(address(stakingToken)).decimals();
     }
 
     function farmed(address account) public view returns (uint256) {
@@ -93,26 +75,8 @@ contract FarmingPool is ERC20, DistributorAccess {
         claim();
     }
 
-    function startFarming(uint256 amount, uint256 period) external onlyDistributor {
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
-
-        // Update farming state
+    function _updateFarmingState() internal override {
         (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(farmedPerToken()));
-
-        // If something left from prev farming add it to the new farming
-        (uint256 prevFinish, uint256 prevDuration, uint256 prevReward) = (finished, duration, reward);
-        if (block.timestamp < prevFinish) {
-            require(block.timestamp + period >= prevFinish, "FP: farming shortening denied");
-            uint256 elapsed = block.timestamp + prevDuration - prevFinish;
-            amount += prevReward - prevReward * elapsed / prevDuration;
-            require(allowSlowDown || amount * prevDuration > prevReward * period, "FP: can't lower speed");
-        }
-
-        require(period < 2**40, "FP: Period too large");
-        require(amount < 2**192, "FP: Amount too large");
-        (finished, duration, reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
-
-        emit RewardAdded(reward, period);
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
