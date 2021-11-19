@@ -58,7 +58,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with rewards distribution access denied ', async function () {
             await expectRevert(
                 this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                'RD: caller access denied',
+                'FA: access denied',
             );
         });
     });
@@ -316,7 +316,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             // 1000 UDSC per week for 1 days
             await expectRevert(
                 this.farm.startFarming('1000', time.duration.days(1), { from: wallet1 }),
-                'FP: farming shortening denied',
+                'FA: farming shortening denied',
             );
         });
     });
