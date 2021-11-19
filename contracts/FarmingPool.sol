@@ -17,18 +17,13 @@ contract FarmingPool is ERC20, FarmAccounting {
     uint216 public farmedPerTokenStored;
     mapping(address => int256) public userCorrection;
 
-    constructor(IERC20 stakingToken_, IERC20 rewardsToken_)
+    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
         FarmAccounting(stakingToken_, rewardsToken_)
-        ERC20("", "")
+        ERC20(
+            string(abi.encodePacked("Farming of ", stakingToken_.name())),
+            string(abi.encodePacked("farm", stakingToken_.symbol()))
+        )
     {}  // solhint-disable-line no-empty-blocks
-
-    function name() public view override returns (string memory) {
-        return string(abi.encodePacked("Farming of ", IERC20Metadata(address(stakingToken)).name()));
-    }
-
-    function symbol() public view override returns (string memory) {
-        return string(abi.encodePacked("farm", IERC20Metadata(address(stakingToken)).symbol()));
-    }
 
     function decimals() public view override returns (uint8) {
         return IERC20Metadata(address(stakingToken)).decimals();
