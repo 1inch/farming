@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "./DistributorAccess.sol";
 
-contract FarmingPool is ERC20 {
+contract FarmingPool is ERC20, DistributorAccess {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
 
@@ -92,7 +93,7 @@ contract FarmingPool is ERC20 {
         claim();
     }
 
-    function startFarming(uint256 amount, uint256 period) external {
+    function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         // Update farming state
