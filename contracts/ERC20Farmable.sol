@@ -10,7 +10,6 @@ import "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
 
 import "./interfaces/IERC20Farmable.sol";
 
-
 abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;

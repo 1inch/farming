@@ -47,7 +47,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await this.gift.approve(this.farm.address, '1000000000', { from: wallet });
         }
 
-        await this.farm.setRewardsDistributor(wallet1, { from: wallet1 });
+        await this.farm.setDistributor(wallet1, { from: wallet1 });
 
         this.started = (await time.latest()).addn(10);
         await timeIncreaseTo(this.started);

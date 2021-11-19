@@ -8,10 +8,9 @@ import "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
 
 import "./interfaces/IERC20Farm.sol";
 import "./interfaces/IERC20Farmable.sol";
-import "./interfaces/IRewardsDistributor.sol";
+import "./DistributorAccess.sol";
 
-
-contract ERC20Farm is IERC20Farm, IRewardsDistributor {
+contract ERC20Farm is IERC20Farm, DistributorAccess {
     using SafeERC20 for IERC20;
 
     event RewardAdded(uint256 reward, uint256 duration);
@@ -39,7 +38,7 @@ contract ERC20Farm is IERC20Farm, IRewardsDistributor {
         rewardsToken.safeTransfer(account, amount);
     }
 
-    function startFarming(uint256 amount, uint256 period) external onlyRewardsDistributor override {
+    function startFarming(uint256 amount, uint256 period) external onlyDistributor override {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         // Update farming state

@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./IERC20Farm.sol";
 
-
 interface IERC20Farmable is IERC20 {
     struct FarmingData {
         uint40 updated;
