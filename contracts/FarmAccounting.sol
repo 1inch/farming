@@ -32,6 +32,17 @@ abstract contract FarmAccounting is IFarmAccounting, Ownable {
         distributor = distributor_;
     }
 
+    // Use block.timestamp for checkpoint if needed
+    // solhint-disable-next-line no-empty-blocks
+    function farmingCheckpoint() public override {}
+
+    function farmedSinceCheckpoint(uint256 checkpoint) public view override returns(uint256 amount) {
+        (uint256 finished_, uint256 duration_, uint256 reward_) = (finished, duration, reward);
+        if (duration_ > 0) {
+            return (Math.min(block.timestamp, finished_) - checkpoint) * reward_ * 1e18 / duration_;
+        }
+    }
+
     function startFarming(uint256 amount, uint256 period) external {
         require(msg.sender == distributor, "FA: access denied");
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
