@@ -30,10 +30,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         if (block.timestamp != upd) {
             uint256 supply = farmTotalSupply[farm_];
             if (supply > 0) {
-                (uint256 finished, uint256 duration, uint256 reward) = farm_.options();
-                if (duration > 0) {
-                    fpt += (Math.min(block.timestamp, finished) - upd) * reward * 1e18 / duration / supply;
-                }
+                fpt += farm_.farmedSinceCheckpoint(upd) / supply;
             }
         }
     }
@@ -90,6 +87,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
             updated: uint40(block.timestamp),
             perToken: uint216(fpt)
         });
+        farm_.farmingCheckpoint();
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
