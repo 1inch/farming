@@ -43,10 +43,7 @@ contract FarmingPool is ERC20, FarmAccounting {
         if (block.timestamp != upd) {
             uint256 supply = totalSupply();
             if (supply > 0) {
-                (uint256 finished_, uint256 duration_, uint256 reward_) = (finished, duration, reward);
-                if (finished_ > 0) {
-                    fpt += (Math.min(block.timestamp, finished_) - upd) * reward_ * 1e18 / duration_ / supply;
-                }
+                fpt += farmedSinceCheckpoint(upd) / supply;
             }
         }
     }
@@ -77,6 +74,7 @@ contract FarmingPool is ERC20, FarmAccounting {
 
     function _updateFarmingState() internal override {
         (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(farmedPerToken()));
+        farmingCheckpoint();
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {

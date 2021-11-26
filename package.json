@@ -1,10 +1,10 @@
 {
-    "name": "@1inch/farming-contracts",
+    "name": "@1inch/farming",
     "version": "0.0.1",
     "description": "",
     "repository": {
         "type": "git",
-        "url": "git@github.com:1inch/farming-contracts.git"
+        "url": "git@github.com:1inch/farming.git"
     },
     "license": "MIT",
     "dependencies": {

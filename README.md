@@ -4,8 +4,8 @@
 
 # Farming contracts
 
-[![Build Status](https://github.com/1inch/farming-contracts/workflows/CI/badge.svg)](https://github.com/1inch/farming-contracts/actions)
-[![Coverage Status](https://coveralls.io/repos/github/1inch/farming-contracts/badge.svg?branch=master)](https://coveralls.io/github/1inch/farming-contracts?branch=master)
+[![Build Status](https://github.com/1inch/farming/workflows/CI/badge.svg)](https://github.com/1inch/farming/actions)
+[![Coverage Status](https://coveralls.io/repos/github/1inch/farming/badge.svg?branch=master)](https://coveralls.io/github/1inch/farming?branch=master)
 
 ### About
 
