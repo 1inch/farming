@@ -41,10 +41,9 @@ contract MyAmazingPool is ERC20Farmable {
 }
 ```
 
-### Implementation notes
+### Optimizations
 
-- `FarmAccounting` is base contract to deduplicate significant piece of code
-- Optimized storage:
+- Storage access:
     - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/FarmAccounting.sol#L20-L22) for farming params, updated only on farming restarting:
         ```solidity
         uint40 public finished;
