@@ -16,6 +16,8 @@ This repository offers 2 ways to have farming (incentives). Highly recommend to 
 
 ### Installation
 
+# _**!!! NOTICE: WAIT TILL FULLY AUDITED !!!**_
+
 ```sh
 $ npm install @1inch/farming
 ```
@@ -27,6 +29,8 @@ $ yarn add @1inch/farming
 ```
 
 ### Usage
+
+# _**!!! NOTICE: WAIT TILL FULLY AUDITED !!!**_
 
 Once installed, you can use the contracts in the library by importing them. Just use `ERC20Farmable` instead of `ERC20` to derive from:
 
