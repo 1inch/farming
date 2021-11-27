@@ -83,12 +83,16 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         uint256 balance = balanceOf(msg.sender);
 
 
-        try farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt)) {
-            if (_userFarms[msg.sender].contains(address(farm_))) {
-                userCorrection[farm_][msg.sender] = -int256(balance * fpt);
-            }
-            else {
-                userCorrection[farm_][msg.sender] = 0;
+        try farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt)) returns(uint256 remaining) {
+            if (remaining <= 1e36) {
+                if (_userFarms[msg.sender].contains(address(farm_))) {
+                    userCorrection[farm_][msg.sender] = -int256(balance * fpt + remaining * 1e18);
+                }
+                else {
+                    userCorrection[farm_][msg.sender] = -int256(remaining * 1e18);
+                }
+            } else {
+                emit Error("farm.claimFor() result overflowed");
             }
         }
         catch {
