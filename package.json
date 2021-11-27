@@ -8,7 +8,7 @@
     },
     "license": "MIT",
     "dependencies": {
-        "@1inch/solidity-utils": "^1.2.0",
+        "@1inch/solidity-utils": "^1.2.3",
         "@openzeppelin/contracts": "^4.3.2"
     },
     "devDependencies": {
@@ -19,7 +19,7 @@
         "@openzeppelin/test-helpers": "^0.5.13",
         "chai": "^4.3.4",
         "dotenv": "^10.0.0",
-        "eslint": "^7.32.0",
+        "eslint": "^8.3.0",
         "eslint-config-standard": "^16.0.3",
         "eslint-plugin-import": "^2.24.2",
         "eslint-plugin-node": "^11.1.0",
@@ -27,10 +27,10 @@
         "eslint-plugin-standard": "^5.0.0",
         "ethers": "^5.4.7",
         "hardhat": "^2.6.4",
-        "hardhat-deploy": "0.9.3",
+        "hardhat-deploy": "^0.9.12",
         "hardhat-gas-reporter": "^1.0.4",
         "rimraf": "^3.0.2",
-        "solc": "^0.6.12",
+        "solc": "^0.8.9",
         "solhint": "^3.3.6",
         "solidity-coverage": "^0.7.17"
     },
