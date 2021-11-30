@@ -12,11 +12,11 @@
 This repository offers 2 ways to have farming (incentives). Highly recommend to use second option for pools/share/utility tokens by deriving them from `ERC20Farmable` smart contract. If it's too late you should consider first option as well:
 
 1. [`FarmingPool.sol`](https://github.com/1inch/farming/blob/master/contracts/FarmingPool.sol) offers smart contract where you can stake/deposit specific tokens to get continiously distributed rewards.
-2. [`ERC20Farmable.sol`](https://github.com/1inch/farming/blob/master/contracts/ERC20Farmable.sol) allows derived tokens to have farming without necessarity to stake/deposit token into pool. MOreover it allow to have multiple farmings simultaneously and setup new farms permissionlessly.
+2. [`ERC20Farmable.sol`](https://github.com/1inch/farming/blob/master/contracts/ERC20Farmable.sol) allows derived tokens to have farming without necessarity to stake/deposit token into pool. Moreover it allows to have multiple farmings simultaneously and setup new farms permissionlessly.
 
 ### Installation
 
-# _**!!! NOTICE: WAIT TILL FULLY AUDITED !!!**_
+# _**!!! NOTICE: WAIT UNTILL FULLY AUDITED !!!**_
 
 ```sh
 $ npm install @1inch/farming
@@ -30,7 +30,7 @@ $ yarn add @1inch/farming
 
 ### Usage
 
-# _**!!! NOTICE: WAIT TILL FULLY AUDITED !!!**_
+# _**!!! NOTICE: WAIT UNTILL FULLY AUDITED !!!**_
 
 Once installed, you can use the contracts in the library by importing them. Just use `ERC20Farmable` instead of `ERC20` to derive from:
 
