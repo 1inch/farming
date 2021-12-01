@@ -64,3 +64,5 @@ contract MyAmazingPool is ERC20Farmable {
         ```solidity
         mapping(address => int256) public userCorrection;
         ```
+- Compact address array is used for storing farms per user/wallet. Array length is stored in high bits of the first array item:
+    - [@1inch/solidity-utils/AddressArray.sol](https://github.com/1inch/solidity-utils/blob/master/contracts/libraries/AddressArray.sol)
