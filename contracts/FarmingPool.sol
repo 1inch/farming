@@ -95,6 +95,7 @@ contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
                 _checkpoint(fpt);
             }
             else { // solhint-disable-line no-empty-blocks
+                /// @dev Uncomment the following line to deny transfers inside farming pool
                 // revert("FP: transfers denied");
             }
 
