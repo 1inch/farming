@@ -274,6 +274,34 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('0');
         });
 
+        it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async function () {
+            //
+            // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
+            //
+
+            await this.token.mint(wallet1, '1');
+
+            // 72000 UDSC per week for 1 weeks
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+
+            await this.token.farm(this.farm.address, { from: wallet1 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('72000');
+            await this.token.claim(this.farm.address, { from: wallet1 });
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('0');
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
+
+            // 72000 UDSC per week for 1 weeks
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+            await timeIncreaseTo(this.started.add(time.duration.weeks(3)));
+
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('72000');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('0');
+        });
+
         it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async function () {
             //
             // 1x: +----------------+--------+ = 18k for 1w +  8k for 2w + 12k for 3w

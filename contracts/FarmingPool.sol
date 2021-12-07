@@ -63,8 +63,7 @@ contract FarmingPool is ERC20, FarmAccounting {
         uint256 fpt = farmedPerToken();
         uint256 amount = _farmed(msg.sender, fpt);
         if (amount > 0) {
-            // todo: add test and fix "-" to "+"
-            userCorrection[msg.sender] = -int256(balanceOf(msg.sender) * fpt);
+            userCorrection[msg.sender] = int256(balanceOf(msg.sender) * fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
@@ -75,10 +74,14 @@ contract FarmingPool is ERC20, FarmAccounting {
     }
 
     function farmingCheckpoint() public override {
-        _farmingCheckpoint(farmedPerToken());
+        _checkpoint(farmedPerToken());
     }
 
-    function _farmingCheckpoint(uint256 fpt) private {
+    function _updateFarmingState() internal override {
+        _checkpoint(farmedPerToken());
+    }
+
+    function _checkpoint(uint256 fpt) private {
         (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
@@ -89,7 +92,7 @@ contract FarmingPool is ERC20, FarmAccounting {
             uint256 fpt = farmedPerToken();
 
             if (from == address(0) || to == address(0)) {
-                _farmingCheckpoint(fpt);
+                _checkpoint(fpt);
             }
             else { // solhint-disable-line no-empty-blocks
                 // revert("FP: transfers denied");
