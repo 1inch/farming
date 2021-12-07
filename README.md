@@ -39,8 +39,8 @@ pragma solidity ^0.8.0;
 
 import "@1inch/farming/contracts/ERC20Farmable.sol";
 
-contract MyAmazingPool is ERC20Farmable {
-    constructor() ERC20("MyCollectible", "MCO") {
+contract AMMPoolToken is ERC20Farmable {
+    constructor() ERC20("AMMPoolToken", "AMM") {
     }
 }
 ```
