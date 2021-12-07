@@ -202,6 +202,31 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('0');
         });
 
+        it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async function () {
+            //
+            // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
+            //
+
+            // 72000 UDSC per week for 3 weeks
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+
+            await this.farm.deposit('1', { from: wallet1 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+
+            expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('72000');
+            await this.farm.claim({ from: wallet1 });
+            expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('0');
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
+
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+            await timeIncreaseTo(this.started.add(time.duration.weeks(3)));
+
+            expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('72000');
+            expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('0');
+        });
+
         it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async function () {
             //
             // 1x: +----------------+--------+ = 18k for 1w +  8k for 2w + 12k for 3w
@@ -324,23 +349,6 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             // expect(await this.farm.farmedPerToken()).to.be.bignumber.almostEqual('2750');
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('2750');
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('8250');
-        });
-
-        it('Notify Reward Amount with farming shortening denied thrown', async function () {
-            // 10000 UDSC per week for 1 weeks
-            await this.farm.startFarming('10000', time.duration.weeks(1), { from: wallet1 });
-
-            // expect(await this.farm.farmedPerToken()).to.be.bignumber.equal('0');
-            expect(await this.farm.balanceOf(wallet1)).to.be.bignumber.equal('0');
-            expect(await this.farm.balanceOf(wallet2)).to.be.bignumber.equal('0');
-            expect(await this.farm.farmed(wallet1)).to.be.bignumber.equal('0');
-            expect(await this.farm.farmed(wallet2)).to.be.bignumber.equal('0');
-
-            // 1000 UDSC per week for 1 days
-            await expectRevert(
-                this.farm.startFarming('1000', time.duration.days(1), { from: wallet1 }),
-                'FA: farming shortening denied',
-            );
         });
     });
 });

@@ -64,7 +64,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] += balance;
-        userCorrection[farm_][msg.sender] = userCorrection[farm_][msg.sender] * 1e18 + int256(balance * fpt);
+        userCorrection[farm_][msg.sender] = int256(balance * fpt) - userCorrection[farm_][msg.sender] * 1e18;
         require(_userFarms[msg.sender].add(address(farm_)), "ERC20Farmable: already farming");
     }
 
@@ -81,22 +81,13 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     function claim(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
         uint256 balance = balanceOf(msg.sender);
-
-
-        try farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt)) returns(uint256 remaining) {
-            if (remaining <= 1e36) {
-                if (_userFarms[msg.sender].contains(address(farm_))) {
-                    userCorrection[farm_][msg.sender] = -int256(balance * fpt + remaining * 1e18);
-                }
-                else {
-                    userCorrection[farm_][msg.sender] = -int256(remaining * 1e18);
-                }
-            } else {
-                emit Error("farm.claimFor() result overflowed");
-            }
+        
+        farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt));
+        if (_userFarms[msg.sender].contains(address(farm_))) {
+            userCorrection[farm_][msg.sender] = int256(balance * fpt);
         }
-        catch {
-            emit Error("farm.claimFor() failed");
+        else {
+            userCorrection[farm_][msg.sender] = 0;
         }
     }
 
@@ -118,16 +109,34 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         if (amount > 0) {
-            address[] memory farms = _userFarms[from].items.get();
-            for (uint256 i = 0; i < farms.length; i++) {
-                IERC20Farm farm_ = IERC20Farm(farms[i]);
-                _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), true, _userFarms[to].contains(address(farm_)));
+            address[] memory a = _userFarms[from].items.get();
+            address[] memory b = _userFarms[to].items.get();
+
+            for (uint256 i = 0; i < a.length; i++) {
+                IERC20Farm farm_ = IERC20Farm(a[i]);
+
+                uint256 j;
+                for (j = 0; j < b.length; j++) {
+                    if (farm_ == IERC20Farm(b[j])) {
+                        // Both parties are farming the same token
+                        _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), true, true);
+                        b[j] = address(0);
+                        break;
+                    }
+                }
+
+                if (j == b.length) {
+                    // Sender is farming a token, but receiver is not
+                    _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), true, false);
+                }
             }
 
-            farms = _userFarms[to].items.get();
-            for (uint256 i = 0; i < farms.length; i++) {
-                IERC20Farm farm_ = IERC20Farm(farms[i]);
-                _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), _userFarms[from].contains(address(farm_)), true);
+            for (uint256 j = 0; j < b.length; j++) {
+                IERC20Farm farm_ = IERC20Farm(b[j]);
+                if (farm_ != IERC20Farm(address(0))) {
+                    // Receiver is farming a token, but sender is not
+                    _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), false, true);
+                }
             }
         }
     }

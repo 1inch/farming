@@ -7,9 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "./interfaces/IFarmingPool.sol";
 import "./FarmAccounting.sol";
 
-contract FarmingPool is ERC20, FarmAccounting {
+contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
     using SafeERC20 for IERC20;
 
     // Update this slot on deposit and withdrawals only
@@ -29,7 +30,7 @@ contract FarmingPool is ERC20, FarmAccounting {
         return IERC20Metadata(address(stakingToken)).decimals();
     }
 
-    function farmed(address account) public view returns (uint256) {
+    function farmed(address account) public view override returns (uint256) {
         return _farmed(account, farmedPerToken());
     }
 
@@ -37,44 +38,51 @@ contract FarmingPool is ERC20, FarmAccounting {
         return uint256(int256(balanceOf(account) * fpt) - userCorrection[account]) / 1e18;
     }
 
-    function farmedPerToken() public view returns (uint256 fpt) {
-        uint256 upd = farmedPerTokenUpdated;
-        fpt = farmedPerTokenStored;
+    function farmedPerToken() public view override returns (uint256) {
+        (uint256 upd, uint256 fpt) = (farmedPerTokenUpdated, farmedPerTokenStored);
         if (block.timestamp != upd) {
             uint256 supply = totalSupply();
             if (supply > 0) {
                 fpt += farmedSinceCheckpoint(upd) / supply;
             }
         }
+        return fpt;
     }
 
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external override {
         _mint(msg.sender, amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    function withdraw(uint256 amount) public {
+    function withdraw(uint256 amount) public override {
         _burn(msg.sender, amount);
         stakingToken.safeTransfer(msg.sender, amount);
     }
 
-    function claim() public {
+    function claim() public override {
         uint256 fpt = farmedPerToken();
         uint256 amount = _farmed(msg.sender, fpt);
         if (amount > 0) {
-            userCorrection[msg.sender] = -int256(balanceOf(msg.sender) * fpt);
+            userCorrection[msg.sender] = int256(balanceOf(msg.sender) * fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
 
-    function exit() public {
+    function exit() public override {
         withdraw(balanceOf(msg.sender));
         claim();
     }
 
+    function farmingCheckpoint() public override(FarmAccounting, IFarmAccounting) {
+        _checkpoint(farmedPerToken());
+    }
+
     function _updateFarmingState() internal override {
-        (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(farmedPerToken()));
-        farmingCheckpoint();
+        _checkpoint(farmedPerToken());
+    }
+
+    function _checkpoint(uint256 fpt) private {
+        (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
@@ -84,9 +92,10 @@ contract FarmingPool is ERC20, FarmAccounting {
             uint256 fpt = farmedPerToken();
 
             if (from == address(0) || to == address(0)) {
-                (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+                _checkpoint(fpt);
             }
             else { // solhint-disable-line no-empty-blocks
+                /// @dev Uncomment the following line to deny transfers inside farming pool
                 // revert("FP: transfers denied");
             }
 
