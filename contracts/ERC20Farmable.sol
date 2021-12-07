@@ -14,6 +14,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;
 
+    event Error(string error);
+
     mapping(IERC20Farm => FarmingData) public farming;
     mapping(IERC20Farm => uint256) public override farmTotalSupply;
     mapping(IERC20Farm => mapping(address => int256)) public override userCorrection;
@@ -30,7 +32,17 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         if (block.timestamp != upd) {
             uint256 supply = farmTotalSupply[farm_];
             if (supply > 0) {
-                fpt += farm_.farmedSinceCheckpoint(upd) / supply;
+                try farm_.farmedSinceCheckpoint(upd) returns(uint256 amount) {
+                    if (amount <= 1e54) {
+                        fpt += amount / supply;
+                    }
+                    else {  // solhint-disable-line no-empty-blocks
+                        // emit Error("farm.farmedSinceCheckpoint() result overflowed");
+                    }
+                }
+                catch {  // solhint-disable-line no-empty-blocks
+                    // emit Error("farm.farmedSinceCheckpoint() failed");
+                }
             }
         }
     }
@@ -69,6 +81,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     function claim(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
         uint256 balance = balanceOf(msg.sender);
+
         farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt));
         if (_userFarms[msg.sender].contains(address(farm_))) {
             userCorrection[farm_][msg.sender] = int256(balance * fpt);
@@ -87,7 +100,11 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
             updated: uint40(block.timestamp),
             perToken: uint216(fpt)
         });
-        farm_.farmingCheckpoint();
+
+        try farm_.farmingCheckpoint() {}  // solhint-disable-line no-empty-blocks
+        catch {
+            emit Error("farm.farmingCheckpoint() failed");
+        }
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
