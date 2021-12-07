@@ -33,7 +33,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
             uint256 supply = farmTotalSupply[farm_];
             if (supply > 0) {
                 try farm_.farmedSinceCheckpoint(upd) returns(uint256 amount) {
-                    if (amount <= 1e36) {
+                    if (amount <= 1e54) {
                         fpt += amount / supply;
                     }
                     else {  // solhint-disable-line no-empty-blocks
@@ -81,7 +81,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     function claim(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
         uint256 balance = balanceOf(msg.sender);
-        
+
         farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt));
         if (_userFarms[msg.sender].contains(address(farm_))) {
             userCorrection[farm_][msg.sender] = int256(balance * fpt);

@@ -38,8 +38,7 @@ abstract contract FarmAccounting is IFarmAccounting, Ownable {
     function farmedSinceCheckpoint(uint256 checkpoint) public view virtual override returns(uint256 amount) {
         (uint256 finished_, uint256 duration_, uint256 reward_) = (finished, duration, reward);
         if (duration_ > 0) {
-            uint256 farmingPeriod = Math.min(block.timestamp, finished_) - Math.max(checkpoint, finished_ - duration_);
-            return farmingPeriod * reward_ * 1e18 / duration_;
+            return (Math.min(block.timestamp, finished_) - checkpoint) * reward_ * 1e18 / duration_;
         }
     }
 
