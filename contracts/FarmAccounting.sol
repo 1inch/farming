@@ -30,11 +30,11 @@ abstract contract FarmAccounting is IFarmAccounting, Ownable {
         distributor = distributor_;
     }
 
-    /// @dev Use block.timestamp for checkpoint if needed
+    /// @dev Use block.timestamp for checkpoint if needed, try not to revert
     // solhint-disable-next-line no-empty-blocks
     function farmingCheckpoint() public virtual override {}
 
-    /// @dev Requires extra 18 decimals for precision
+    /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpoint(uint256 checkpoint) public view virtual override returns(uint256 amount) {
         (uint256 finished_, uint256 duration_, uint256 reward_) = (finished, duration, reward);
         if (duration_ > 0) {
