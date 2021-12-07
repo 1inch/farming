@@ -52,7 +52,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] += balance;
-        userCorrection[farm_][msg.sender] = userCorrection[farm_][msg.sender] * 1e18 + int256(balance * fpt);
+        // todo: test deposit + farm(wait) + withdraw + wait + deposit + farm(wait) + claim
+        userCorrection[farm_][msg.sender] = int256(balance * fpt) - userCorrection[farm_][msg.sender] * 1e18;
         require(_userFarms[msg.sender].add(address(farm_)), "ERC20Farmable: already farming");
     }
 
@@ -71,6 +72,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         uint256 balance = balanceOf(msg.sender);
         farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt));
         if (_userFarms[msg.sender].contains(address(farm_))) {
+            // todo: add test and fix "-" to "+"
             userCorrection[farm_][msg.sender] = -int256(balance * fpt);
         }
         else {
