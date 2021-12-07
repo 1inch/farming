@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "./interfaces/IFarmingPool.sol";
 import "./FarmAccounting.sol";
 
-contract FarmingPool is ERC20, FarmAccounting {
+contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
     using SafeERC20 for IERC20;
 
     // Update this slot on deposit and withdrawals only
@@ -30,7 +30,7 @@ contract FarmingPool is ERC20, FarmAccounting {
         return IERC20Metadata(address(stakingToken)).decimals();
     }
 
-    function farmed(address account) public view returns (uint256) {
+    function farmed(address account) public view override returns (uint256) {
         return _farmed(account, farmedPerToken());
     }
 
@@ -38,7 +38,7 @@ contract FarmingPool is ERC20, FarmAccounting {
         return uint256(int256(balanceOf(account) * fpt) - userCorrection[account]) / 1e18;
     }
 
-    function farmedPerToken() public view returns (uint256) {
+    function farmedPerToken() public view override returns (uint256) {
         (uint256 upd, uint256 fpt) = (farmedPerTokenUpdated, farmedPerTokenStored);
         if (block.timestamp != upd) {
             uint256 supply = totalSupply();
@@ -49,17 +49,17 @@ contract FarmingPool is ERC20, FarmAccounting {
         return fpt;
     }
 
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external override {
         _mint(msg.sender, amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    function withdraw(uint256 amount) public {
+    function withdraw(uint256 amount) public override {
         _burn(msg.sender, amount);
         stakingToken.safeTransfer(msg.sender, amount);
     }
 
-    function claim() public {
+    function claim() public override {
         uint256 fpt = farmedPerToken();
         uint256 amount = _farmed(msg.sender, fpt);
         if (amount > 0) {
@@ -68,12 +68,12 @@ contract FarmingPool is ERC20, FarmAccounting {
         }
     }
 
-    function exit() public {
+    function exit() public override {
         withdraw(balanceOf(msg.sender));
         claim();
     }
 
-    function farmingCheckpoint() public override {
+    function farmingCheckpoint() public override(FarmAccounting, IFarmAccounting) {
         _checkpoint(farmedPerToken());
     }
 
