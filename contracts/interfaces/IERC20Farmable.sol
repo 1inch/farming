@@ -22,5 +22,5 @@ interface IERC20Farmable is IERC20 {
     function farm(IERC20Farm farm_) external;
     function exit(IERC20Farm farm_) external;
     function claim(IERC20Farm farm_) external;
-    function update(IERC20Farm farm_) external;
+    function checkpoint(IERC20Farm farm_) external;
 }

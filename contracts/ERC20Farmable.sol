@@ -60,7 +60,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function farm(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
-        _update(farm_, fpt);
+        _checkpoint(farm_, fpt);
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] += balance;
@@ -70,7 +70,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function exit(IERC20Farm farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
-        _update(farm_, fpt);
+        _checkpoint(farm_, fpt);
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] -= balance;
@@ -91,11 +91,11 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         }
     }
 
-    function update(IERC20Farm farm_) external override {
-        _update(farm_, farmedPerToken(farm_));
+    function checkpoint(IERC20Farm farm_) external override {
+        _checkpoint(farm_, farmedPerToken(farm_));
     }
 
-    function _update(IERC20Farm farm_, uint256 fpt) internal {
+    function _checkpoint(IERC20Farm farm_, uint256 fpt) private {
         farming[farm_] = FarmingData({
             updated: uint40(block.timestamp),
             perToken: uint216(fpt)
@@ -145,7 +145,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         if (inFrom) {
             userCorrection[farm_][from] -= int256(amount * fpt);
             if (!inTo) {
-                _update(farm_, fpt);
+                _checkpoint(farm_, fpt);
                 farmTotalSupply[farm_] -= amount;
             }
         }
@@ -153,7 +153,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         if (inTo) {
             userCorrection[farm_][to] += int256(amount * fpt);
             if (!inFrom) {
-                _update(farm_, fpt);
+                _checkpoint(farm_, fpt);
                 farmTotalSupply[farm_] += amount;
             }
         }
