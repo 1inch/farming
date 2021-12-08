@@ -24,7 +24,7 @@ contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
             string(abi.encodePacked("Farming of ", stakingToken_.name())),
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
-    {}  // solhint-disable-line no-empty-blocks
+    {}
 
     function decimals() public view override returns (uint8) {
         return IERC20Metadata(address(stakingToken)).decimals();
@@ -43,7 +43,7 @@ contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
         if (block.timestamp != upd) {
             uint256 supply = totalSupply();
             if (supply > 0) {
-                fpt += farmedSinceCheckpoint(upd) / supply;
+                fpt += farmedSinceCheckpointScaled(upd) / supply;
             }
         }
         return fpt;
@@ -94,7 +94,7 @@ contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
             if (from == address(0) || to == address(0)) {
                 _checkpoint(fpt);
             }
-            else { // solhint-disable-line no-empty-blocks
+            else {
                 /// @dev Uncomment the following line to deny transfers inside farming pool
                 // revert("FP: transfers denied");
             }

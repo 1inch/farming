@@ -32,15 +32,15 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         if (block.timestamp != upd) {
             uint256 supply = farmTotalSupply[farm_];
             if (supply > 0) {
-                try farm_.farmedSinceCheckpoint(upd) returns(uint256 amount) {
+                try farm_.farmedSinceCheckpointScaled(upd) returns(uint256 amount) {
                     if (amount <= 1e54) {
                         fpt += amount / supply;
                     }
-                    else {  // solhint-disable-line no-empty-blocks
+                    else {
                         // emit Error("farm.farmedSinceCheckpoint() result overflowed");
                     }
                 }
-                catch {  // solhint-disable-line no-empty-blocks
+                catch {
                     // emit Error("farm.farmedSinceCheckpoint() failed");
                 }
             }
@@ -101,7 +101,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
             perToken: uint216(fpt)
         });
 
-        try farm_.farmingCheckpoint() {}  // solhint-disable-line no-empty-blocks
+        try farm_.farmingCheckpoint() {}
         catch {
             emit Error("farm.farmingCheckpoint() failed");
         }

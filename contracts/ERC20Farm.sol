@@ -15,7 +15,7 @@ contract ERC20Farm is IERC20Farm, FarmAccounting {
 
     constructor(IERC20 stakingToken_, IERC20 rewardsToken_)
         FarmAccounting(stakingToken_, rewardsToken_)
-    {}  // solhint-disable-line no-empty-blocks
+    {}
 
     function claimFor(address account, uint256 amount) external override {
         require(msg.sender == address(stakingToken), "ERC20: Access denied");
