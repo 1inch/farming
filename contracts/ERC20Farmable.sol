@@ -59,14 +59,18 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
     }
 
     function checkpoint(address farm_) external override {
-        infos[farm_].userCheckpoint(farmedPerToken(farm_));
+        infos[farm_].checkpoint(farmedPerToken(farm_));
         try IFarm(farm_).farmingCheckpoint() {}
         catch {
             emit Error("farm.farmingCheckpoint() failed");
         }
     }
 
+    // ERC20 overrides
+
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+        super._beforeTokenTransfer(from, to, amount);
+
         if (amount > 0) {
             address[] memory a = _userFarms[from].items.get();
             address[] memory b = _userFarms[to].items.get();
