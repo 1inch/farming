@@ -8,7 +8,6 @@ import "./IERC20Farm.sol";
 
 interface IERC20Farmable is IERC20 {
     function farmTotalSupply(address farm_) external view returns(uint256);
-    function userCorrection(address farm_, address account) external view returns(int256);
     function userFarms(address account) external view returns(address[] memory);
     function farmedPerToken(address farm_) external view returns (uint256 fpt);
     function farmed(address farm_, address account) external view returns (uint256);

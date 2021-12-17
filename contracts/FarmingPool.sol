@@ -14,18 +14,16 @@ import "./accounting/UserAccounting.sol";
 
 contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
-    using UserAccounting for UserAccounting.UserInfo;
-    using FarmAccounting for FarmAccounting.FarmInfo;
+    using UserAccounting for UserAccounting.Info;
+    using FarmAccounting for FarmAccounting.Info;
 
     event RewardAdded(uint256 reward, uint256 duration);
-
-    address private constant _FARM = address(0);
 
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardsToken;
 
-    UserAccounting.UserInfo public info;
-    FarmAccounting.FarmInfo public farmInfo;
+    UserAccounting.Info public userInfo;
+    FarmAccounting.Info public farmInfo;
     address public distributor;
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
@@ -47,11 +45,11 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function farmedPerToken() public view override returns (uint256) {
-        return info.farmedPerToken(_FARM, _getTotalSupply, _getFarmedSinceCheckpointScaled);
+        return userInfo.farmedPerToken(address(0), _getTotalSupply, _getFarmedSinceCheckpointScaled);
     }
 
     function farmed(address account) public view override returns (uint256) {
-        return info.farmed(account, balanceOf(account), farmedPerToken());
+        return userInfo.farmed(account, balanceOf(account), farmedPerToken());
     }
 
     function deposit(uint256 amount) external override {
@@ -67,9 +65,9 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     function claim() public override {
         uint256 fpt = farmedPerToken();
         uint256 balance = balanceOf(msg.sender);
-        uint256 amount = info.farmed(msg.sender, balance, fpt);
+        uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
         if (amount > 0) {
-            info.eraseFarmed(msg.sender, balance, fpt);
+            userInfo.eraseFarmed(msg.sender, balance, fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
@@ -79,33 +77,23 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         claim();
     }
 
-    /// @dev Use block.timestamp for checkpoint if needed, try not to revert
-    function farmingCheckpoint() public virtual override {
-        info.userCheckpoint(farmedPerToken());
-        farmInfo.farmingCheckpoint();
-    }
-
-    /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
-    function farmedSinceCheckpointScaled(uint256 updated) public view virtual override returns(uint256 amount) {
-        return farmInfo.farmedSinceCheckpointScaled(updated);
-    }
-
     function startFarming(uint256 amount, uint256 period) external {
         require(msg.sender == distributor, "FA: access denied");
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 reward = farmInfo.startFarming(amount, period, _updateFarmingState);
+        // Update farming state
+        userInfo.userCheckpoint(farmedPerToken());
+        farmInfo.farmingCheckpoint();
+
+        // Start farming
+        uint256 reward = farmInfo.startFarming(amount, period);
 
         emit RewardAdded(reward, period);
     }
 
-    function _updateFarmingState() internal {
-        info.userCheckpoint(farmedPerToken());
-    }
-
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         if (amount > 0) {
-            info.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0));
+            userInfo.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0));
         }
     }
 

@@ -5,19 +5,19 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 library UserAccounting {
-    struct UserInfo {
-        uint40 farmedPerTokenUpdated;
+    struct Info {
+        uint40 updateTime;
         uint216 farmedPerTokenStored;
         mapping(address => int256) corrections;
     }
 
     function farmedPerToken(
-        UserInfo storage info,
+        Info storage info,
         address farm,
         function(address) internal view returns(uint256) getSupply,
         function(address, uint256) internal view returns(uint256) getFarmedSinceCheckpointScaled
     ) internal view returns(uint256) {
-        (uint256 upd, uint256 fpt) = (info.farmedPerTokenUpdated, info.farmedPerTokenStored);
+        (uint256 upd, uint256 fpt) = (info.updateTime, info.farmedPerTokenStored);
         if (block.timestamp != upd) {
             uint256 supply = getSupply(farm);
             if (supply > 0) {
@@ -27,22 +27,22 @@ library UserAccounting {
         return fpt;
     }
 
-    function farmed(UserInfo storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
+    function farmed(Info storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
         return uint256(int256(balance * fpt) - info.corrections[account]) / 1e18;
     }
 
-    function eraseFarmed(UserInfo storage info, address account, uint256 balance, uint256 fpt) internal {
+    function eraseFarmed(Info storage info, address account, uint256 balance, uint256 fpt) internal {
         info.corrections[account] = int256(balance * fpt);
     }
 
-    function userCheckpoint(UserInfo storage info, uint256 fpt) internal {
-        (uint256 prevUpd, uint256 prevFpt) = (info.farmedPerTokenUpdated, info.farmedPerTokenStored);
+    function userCheckpoint(Info storage info, uint256 fpt) internal {
+        (uint256 prevUpd, uint256 prevFpt) = (info.updateTime, info.farmedPerTokenStored);
         if (block.timestamp != prevUpd || fpt != prevFpt) {
-            (info.farmedPerTokenUpdated, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+            (info.updateTime, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
         }
     }
 
-    function updateBalances(UserInfo storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
+    function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
         if (amount > 0 && (inFrom || inTo)) {
             if (!inFrom || !inTo) {
                 userCheckpoint(info, fpt);

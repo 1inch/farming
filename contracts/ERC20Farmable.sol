@@ -14,20 +14,16 @@ import "./accounting/UserAccounting.sol";
 abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;
-    using UserAccounting for UserAccounting.UserInfo;
+    using UserAccounting for UserAccounting.Info;
 
     event Error(string error);
 
-    mapping(address => UserAccounting.UserInfo) public infos;
+    mapping(address => UserAccounting.Info) public infos;
     mapping(address => uint256) public override farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
 
     function userFarms(address account) external view returns(address[] memory) {
         return _userFarms[account].items.get();
-    }
-
-    function userCorrection(address farm_, address account) external view returns(int256) {
-        return infos[farm_].corrections[account];
     }
 
     function farmedPerToken(address farm_) public view returns (uint256 fpt) {
@@ -40,31 +36,24 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function farm(address farm_) external override {
-        uint256 fpt = farmedPerToken(farm_);
-        _userCheckpoint(farm_, fpt);
+        require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
 
         uint256 balance = balanceOf(msg.sender);
+        infos[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
         farmTotalSupply[farm_] += balance;
-        infos[farm_].updateBalances(fpt, address(0), msg.sender, balance, false, true);
-
-        require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
     }
 
     function exit(address farm_) external override {
-        uint256 fpt = farmedPerToken(farm_);
-        _userCheckpoint(farm_, fpt);
+        require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
 
         uint256 balance = balanceOf(msg.sender);
+        infos[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
         farmTotalSupply[farm_] -= balance;
-        infos[farm_].updateBalances(fpt, msg.sender, address(0), balance, true, false);
-
-        require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
     }
 
     function claim(address farm_) external override {
         uint256 fpt = farmedPerToken(farm_);
         uint256 balance = balanceOf(msg.sender);
-
         uint256 amount = infos[farm_].farmed(msg.sender, balance, fpt);
         if (amount > 0) {
             infos[farm_].eraseFarmed(msg.sender, balance, fpt);
@@ -73,12 +62,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function checkpoint(address farm_) external override {
-        _userCheckpoint(farm_, farmedPerToken(farm_));
-    }
-
-    function _userCheckpoint(address farm_, uint256 fpt) internal {
-        infos[farm_].userCheckpoint(fpt);
-
+        infos[farm_].userCheckpoint(farmedPerToken(farm_));
         try IERC20Farm(farm_).farmingCheckpoint() {}
         catch {
             emit Error("farm.farmingCheckpoint() failed");

@@ -13,14 +13,14 @@ import "./accounting/FarmAccounting.sol";
 
 contract ERC20Farm is IERC20Farm, Ownable {
     using SafeERC20 for IERC20;
-    using FarmAccounting for FarmAccounting.FarmInfo;
+    using FarmAccounting for FarmAccounting.Info;
 
     event RewardAdded(uint256 reward, uint256 duration);
 
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardsToken;
 
-    FarmAccounting.FarmInfo public info;
+    FarmAccounting.Info public info;
     address public distributor;
 
     constructor(IERC20 stakingToken_, IERC20 rewardsToken_) {
@@ -46,7 +46,10 @@ contract ERC20Farm is IERC20Farm, Ownable {
         require(msg.sender == distributor, "FA: access denied");
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 reward = info.startFarming(amount, period, _updateFarmingState);
+        // Update farming state
+        IERC20Farmable(address(stakingToken)).checkpoint(address(this));
+        // Start farming
+        uint256 reward = info.startFarming(amount, period);
 
         emit RewardAdded(reward, period);
     }
@@ -54,11 +57,5 @@ contract ERC20Farm is IERC20Farm, Ownable {
     function claimFor(address account, uint256 amount) external override {
         require(msg.sender == address(stakingToken), "ERC20: Access denied");
         rewardsToken.safeTransfer(account, amount);
-    }
-
-    // FarmAccounting bindings
-
-    function _updateFarmingState() internal {
-        IERC20Farmable(address(stakingToken)).checkpoint(address(this));
     }
 }
