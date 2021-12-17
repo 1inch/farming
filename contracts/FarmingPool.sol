@@ -65,7 +65,6 @@ contract FarmingPool is IFarmingPool, BaseFarm, ERC20 {
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         super._beforeTokenTransfer(from, to, amount);
-
         if (amount > 0) {
             userInfo.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0));
         }

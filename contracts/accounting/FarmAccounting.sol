@@ -26,7 +26,7 @@ library FarmAccounting {
         }
     }
 
-    function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256 reward){
+    function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
         // If something left from prev farming add it to the new farming
         Info memory prev = info;
         if (block.timestamp < prev.finished) {
@@ -36,7 +36,6 @@ library FarmAccounting {
         require(period < 2**40, "FA: Period too large");
         require(amount < 2**176, "FA: Amount too large");
         (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
-
         return amount;
     }
 }
