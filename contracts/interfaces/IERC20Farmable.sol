@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./IERC20Farm.sol";
+import "./IFarm.sol";
 
 interface IERC20Farmable is IERC20 {
     function farmTotalSupply(address farm_) external view returns(uint256);

@@ -57,13 +57,13 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         uint256 amount = infos[farm_].farmed(msg.sender, balance, fpt);
         if (amount > 0) {
             infos[farm_].eraseFarmed(msg.sender, balance, fpt);
-            IERC20Farm(farm_).claimFor(msg.sender, amount);
+            IFarm(farm_).claimFor(msg.sender, amount);
         }
     }
 
     function checkpoint(address farm_) external override {
         infos[farm_].userCheckpoint(farmedPerToken(farm_));
-        try IERC20Farm(farm_).farmingCheckpoint() {}
+        try IFarm(farm_).farmingCheckpoint() {}
         catch {
             emit Error("farm.farmingCheckpoint() failed");
         }
@@ -112,7 +112,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function _getFarmedSinceCheckpointScaled(address farm_, uint256 updated) internal view returns(uint256) {
-        try IERC20Farm(farm_).farmedSinceCheckpointScaled(updated) returns(uint256 amount) {
+        try IFarm(farm_).farmedSinceCheckpointScaled(updated) returns(uint256 amount) {
             if (amount <= 1e54) {
                 return amount;
             }

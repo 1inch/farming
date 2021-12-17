@@ -9,36 +9,23 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./interfaces/IFarmingPool.sol";
-import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
+import "./BaseFarm.sol";
 
-contract FarmingPool is IFarmingPool, Ownable, ERC20 {
+contract FarmingPool is IFarmingPool, BaseFarm, ERC20 {
     using SafeERC20 for IERC20;
-    using UserAccounting for UserAccounting.Info;
     using FarmAccounting for FarmAccounting.Info;
-
-    event RewardAdded(uint256 reward, uint256 duration);
-
-    IERC20 public immutable stakingToken;
-    IERC20 public immutable rewardsToken;
+    using UserAccounting for UserAccounting.Info;
 
     UserAccounting.Info public userInfo;
-    FarmAccounting.Info public farmInfo;
-    address public distributor;
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
+        BaseFarm(stakingToken_, rewardsToken_)
         ERC20(
             string(abi.encodePacked("Farming of ", stakingToken_.name())),
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
-    {
-        stakingToken = stakingToken_;
-        rewardsToken = rewardsToken_;
-    }
-
-    function setDistributor(address distributor_) external onlyOwner {
-        distributor = distributor_;
-    }
+    {}
 
     function decimals() public view override returns (uint8) {
         return IERC20Metadata(address(stakingToken)).decimals();
@@ -77,21 +64,11 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         claim();
     }
 
-    function startFarming(uint256 amount, uint256 period) external {
-        require(msg.sender == distributor, "FA: access denied");
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
-
-        // Update farming state
-        userInfo.userCheckpoint(farmedPerToken());
-        farmInfo.farmingCheckpoint();
-
-        // Start farming
-        uint256 reward = farmInfo.startFarming(amount, period);
-
-        emit RewardAdded(reward, period);
-    }
+    // ERC20 overrides
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+        super._beforeTokenTransfer(from, to, amount);
+
         if (amount > 0) {
             userInfo.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0));
         }
@@ -105,5 +82,12 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function _getFarmedSinceCheckpointScaled(address /* farm */, uint256 updated) internal view returns(uint256) {
         return farmInfo.farmedSinceCheckpointScaled(updated);
+    }
+
+    // BaseFarm overrides
+
+    function _updateFarmingState() internal override {
+        userInfo.userCheckpoint(farmedPerToken());
+        farmInfo.farmingCheckpoint();
     }
 }
