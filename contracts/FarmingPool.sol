@@ -9,14 +9,13 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./interfaces/IFarmingPool.sol";
 import "./FarmAccounting.sol";
+import "./UserAccounting.sol";
 
-contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
+contract FarmingPool is IFarmingPool, ERC20, FarmAccounting, UserAccounting {
     using SafeERC20 for IERC20;
 
-    // Update this slot on deposit and withdrawals only
-    uint40 public farmedPerTokenUpdated;
-    uint216 public farmedPerTokenStored;
-    mapping(address => int256) public userCorrection;
+    address private constant _FARM = address(0);
+    UserInfo public info;
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
         FarmAccounting(stakingToken_, rewardsToken_)
@@ -31,22 +30,11 @@ contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
     }
 
     function farmed(address account) public view override returns (uint256) {
-        return _farmed(account, farmedPerToken());
+        return _farmed(info, _FARM, account);
     }
 
-    function _farmed(address account, uint256 fpt) internal view returns (uint256) {
-        return uint256(int256(balanceOf(account) * fpt) - userCorrection[account]) / 1e18;
-    }
-
-    function farmedPerToken() public view override returns (uint256) {
-        (uint256 upd, uint256 fpt) = (farmedPerTokenUpdated, farmedPerTokenStored);
-        if (block.timestamp != upd) {
-            uint256 supply = totalSupply();
-            if (supply > 0) {
-                fpt += farmedSinceCheckpointScaled(upd) / supply;
-            }
-        }
-        return fpt;
+    function farmedPerToken() external view override returns (uint256) {
+        return _farmedPerToken(info, _FARM);
     }
 
     function deposit(uint256 amount) external override {
@@ -60,10 +48,11 @@ contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
     }
 
     function claim() public override {
-        uint256 fpt = farmedPerToken();
-        uint256 amount = _farmed(msg.sender, fpt);
+        uint256 fpt = _farmedPerToken(info, _FARM);
+        uint256 balance = _balanceOf(_FARM, msg.sender);
+        uint256 amount = _farmed(info, msg.sender, balance, fpt);
         if (amount > 0) {
-            userCorrection[msg.sender] = int256(balanceOf(msg.sender) * fpt);
+            _eraseFarmed(info, msg.sender, balance, fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
@@ -74,38 +63,30 @@ contract FarmingPool is IFarmingPool, ERC20, FarmAccounting {
     }
 
     function farmingCheckpoint() public override(FarmAccounting, IFarmAccounting) {
-        _checkpoint(farmedPerToken());
+        _checkpoint(info, _farmedPerToken(info, _FARM));
     }
 
     function _updateFarmingState() internal override {
-        _checkpoint(farmedPerToken());
-    }
-
-    function _checkpoint(uint256 fpt) private {
-        (farmedPerTokenUpdated, farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+        _checkpoint(info, _farmedPerToken(info, _FARM));
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
-        super._beforeTokenTransfer(from, to, amount);
-
         if (amount > 0) {
-            uint256 fpt = farmedPerToken();
-
-            if (from == address(0) || to == address(0)) {
-                _checkpoint(fpt);
-            }
-            else {
-                /// @dev Uncomment the following line to deny transfers inside farming pool
-                // revert("FP: transfers denied");
-            }
-
-            if (from != address(0)) {
-                userCorrection[from] -= int256(amount * fpt);
-            }
-
-            if (to != address(0)) {
-                userCorrection[to] += int256(amount * fpt);
-            }
+            _beforeBalancesChanged(info, _farmedPerToken(info, _FARM), from, to, amount, from != _FARM, to != _FARM);
         }
+    }
+
+    // UserAccounting Overrides
+
+    function _balanceOf(address /* farm */, address user) internal view override returns(uint256) {
+        return balanceOf(user);
+    }
+
+    function _totalSupply(address /* farm */) internal view override returns(uint256) {
+        return totalSupply();
+    }
+
+    function _farmedSinceCheckpointScaled(address /* farm */, uint256 updated) internal view override returns(uint256) {
+        return farmedSinceCheckpointScaled(updated);
     }
 }

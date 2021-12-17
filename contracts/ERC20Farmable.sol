@@ -9,99 +9,101 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
 
 import "./interfaces/IERC20Farmable.sol";
+import "./UserAccounting.sol";
 
-abstract contract ERC20Farmable is ERC20, IERC20Farmable {
+abstract contract ERC20Farmable is ERC20, IERC20Farmable, UserAccounting {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;
 
     event Error(string error);
 
-    mapping(IERC20Farm => FarmingData) public farming;
-    mapping(IERC20Farm => uint256) public override farmTotalSupply;
-    mapping(IERC20Farm => mapping(address => int256)) public override userCorrection;
+    mapping(address => UserInfo) public infos;
+    mapping(address => uint256) public override farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
+
+    function _balanceOf(address farm_, address user) internal view override returns(uint256) {
+        if (_userFarms[user].contains(farm_)) {
+            return balanceOf(user);
+        }
+        return 0;
+    }
+
+    function _totalSupply(address farm_) internal view override returns(uint256) {
+        return farmTotalSupply[farm_];
+    }
+
+    function _farmedSinceCheckpointScaled(address farm_, uint256 updated) internal view override returns(uint256) {
+        try IERC20Farm(farm_).farmedSinceCheckpointScaled(updated) returns(uint256 amount) {
+            if (amount <= 1e54) {
+                return amount;
+            }
+            else {
+                // emit Error("farm.farmedSinceCheckpoint() result overflowed");
+            }
+        }
+        catch {
+            // emit Error("farm.farmedSinceCheckpoint() failed");
+        }
+        return 0;
+    }
 
     function userFarms(address account) external view returns(address[] memory) {
         return _userFarms[account].items.get();
     }
 
-    function farmedPerToken(IERC20Farm farm_) public view returns (uint256 fpt) {
-        FarmingData memory fd = farming[farm_];
-        uint256 upd = fd.updated;
-        fpt = fd.perToken;
-        if (block.timestamp != upd) {
-            uint256 supply = farmTotalSupply[farm_];
-            if (supply > 0) {
-                try farm_.farmedSinceCheckpointScaled(upd) returns(uint256 amount) {
-                    if (amount <= 1e54) {
-                        fpt += amount / supply;
-                    }
-                    else {
-                        // emit Error("farm.farmedSinceCheckpoint() result overflowed");
-                    }
-                }
-                catch {
-                    // emit Error("farm.farmedSinceCheckpoint() failed");
-                }
-            }
-        }
+    function userCorrection(address farm_, address account) external view returns(int256) {
+        return infos[farm_].corrections[account];
     }
 
-    function farmed(IERC20Farm farm_, address account) external view returns (uint256) {
-        return _farmed(farm_, account, balanceOf(account), farmedPerToken(farm_));
+    function farmed(address farm_, address account) external view returns (uint256) {
+        return _farmed(infos[farm_], farm_, account);
     }
 
-    function _farmed(IERC20Farm farm_, address account, uint256 balance, uint256 fpt) private view returns (uint256 ret) {
-        if (_userFarms[account].contains(address(farm_))) {
-            return uint256(int256(balance * fpt) - userCorrection[farm_][account]) / 1e18;
-        }
-        return uint256(userCorrection[farm_][account]);
+    function farmedPerToken(address farm_) external view returns (uint256 fpt) {
+        return _farmedPerToken(infos[farm_], farm_);
     }
 
-    function farm(IERC20Farm farm_) external override {
-        uint256 fpt = farmedPerToken(farm_);
+    function farm(address farm_) external override {
+        uint256 fpt = _farmedPerToken(infos[farm_], farm_);
         _checkpoint(farm_, fpt);
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] += balance;
-        userCorrection[farm_][msg.sender] = int256(balance * fpt) - userCorrection[farm_][msg.sender] * 1e18;
-        require(_userFarms[msg.sender].add(address(farm_)), "ERC20Farmable: already farming");
+        _joinFarm(infos[farm_], msg.sender, balance, fpt);
+
+        require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
     }
 
-    function exit(IERC20Farm farm_) external override {
-        uint256 fpt = farmedPerToken(farm_);
+    function exit(address farm_) external override {
+        uint256 fpt = _farmedPerToken(infos[farm_], farm_);
         _checkpoint(farm_, fpt);
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] -= balance;
-        userCorrection[farm_][msg.sender] = int256(_farmed(farm_, msg.sender, balance, fpt));
+        _exitFarm(infos[farm_], msg.sender, balance, fpt);
+
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
     }
 
-    function claim(IERC20Farm farm_) external override {
-        uint256 fpt = farmedPerToken(farm_);
+    function claim(address farm_) external override {
+        uint256 fpt = _farmedPerToken(infos[farm_], farm_);
         uint256 balance = balanceOf(msg.sender);
 
-        farm_.claimFor(msg.sender, _farmed(farm_, msg.sender, balance, fpt));
-        if (_userFarms[msg.sender].contains(address(farm_))) {
-            userCorrection[farm_][msg.sender] = int256(balance * fpt);
-        }
-        else {
-            userCorrection[farm_][msg.sender] = 0;
+        uint256 amount = _farmed(infos[farm_], msg.sender, balance, fpt);
+        if (amount > 0) {
+            _eraseFarmed(infos[farm_], msg.sender, balance, fpt);
+            IERC20Farm(farm_).claimFor(msg.sender, amount);
         }
     }
 
-    function checkpoint(IERC20Farm farm_) external override {
-        _checkpoint(farm_, farmedPerToken(farm_));
+    function checkpoint(address farm_) external override {
+        _checkpoint(farm_, _farmedPerToken(infos[farm_], farm_));
     }
 
-    function _checkpoint(IERC20Farm farm_, uint256 fpt) private {
-        farming[farm_] = FarmingData({
-            updated: uint40(block.timestamp),
-            perToken: uint216(fpt)
-        });
+    function _checkpoint(address farm_, uint256 fpt) internal {
+        super._checkpoint(infos[farm_], fpt);
 
-        try farm_.farmingCheckpoint() {}
+        try IERC20Farm(farm_).farmingCheckpoint() {}
         catch {
             emit Error("farm.farmingCheckpoint() failed");
         }
@@ -113,13 +115,13 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
             address[] memory b = _userFarms[to].items.get();
 
             for (uint256 i = 0; i < a.length; i++) {
-                IERC20Farm farm_ = IERC20Farm(a[i]);
+                address farm_ = a[i];
 
                 uint256 j;
                 for (j = 0; j < b.length; j++) {
-                    if (farm_ == IERC20Farm(b[j])) {
+                    if (farm_ == b[j]) {
                         // Both parties are farming the same token
-                        _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), true, true);
+                        _beforeBalancesChanged(infos[farm_], farm_, from, to, amount, true, true);
                         b[j] = address(0);
                         break;
                     }
@@ -127,34 +129,18 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
                 if (j == b.length) {
                     // Sender is farming a token, but receiver is not
-                    _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), true, false);
+                    _beforeBalancesChanged(infos[farm_], farm_, from, to, amount, true, false);
+                    farmTotalSupply[farm_] -= amount;
                 }
             }
 
             for (uint256 j = 0; j < b.length; j++) {
-                IERC20Farm farm_ = IERC20Farm(b[j]);
-                if (farm_ != IERC20Farm(address(0))) {
+                address farm_ = b[j];
+                if (farm_ != address(0)) {
                     // Receiver is farming a token, but sender is not
-                    _beforeTokenTransferForFarm(farm_, from, to, amount, farmedPerToken(farm_), false, true);
+                    _beforeBalancesChanged(infos[farm_], farm_, from, to, amount, false, true);
+                    farmTotalSupply[farm_] += amount;
                 }
-            }
-        }
-    }
-
-    function _beforeTokenTransferForFarm(IERC20Farm farm_, address from, address to, uint256 amount, uint256 fpt, bool inFrom, bool inTo) internal {
-        if (inFrom) {
-            userCorrection[farm_][from] -= int256(amount * fpt);
-            if (!inTo) {
-                _checkpoint(farm_, fpt);
-                farmTotalSupply[farm_] -= amount;
-            }
-        }
-
-        if (inTo) {
-            userCorrection[farm_][to] += int256(amount * fpt);
-            if (!inFrom) {
-                _checkpoint(farm_, fpt);
-                farmTotalSupply[farm_] += amount;
             }
         }
     }

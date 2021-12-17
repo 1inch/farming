@@ -23,6 +23,6 @@ contract ERC20Farm is IERC20Farm, FarmAccounting {
     }
 
     function _updateFarmingState() internal override {
-        IERC20Farmable(address(stakingToken)).checkpoint(this);
+        IERC20Farmable(address(stakingToken)).checkpoint(address(this));
     }
 }

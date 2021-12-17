@@ -13,14 +13,14 @@ interface IERC20Farmable is IERC20 {
     }
 
     // function farming(IERC20Farm farm_) external view returns(FarmingData memory);
-    function farmTotalSupply(IERC20Farm farm_) external view returns(uint256);
-    function userCorrection(IERC20Farm farm_, address account) external view returns(int256);
+    function farmTotalSupply(address farm_) external view returns(uint256);
+    function userCorrection(address farm_, address account) external view returns(int256);
     function userFarms(address account) external view returns(address[] memory);
-    function farmedPerToken(IERC20Farm farm_) external view returns (uint256 fpt);
-    function farmed(IERC20Farm farm_, address account) external view returns (uint256);
+    function farmedPerToken(address farm_) external view returns (uint256 fpt);
+    function farmed(address farm_, address account) external view returns (uint256);
 
-    function farm(IERC20Farm farm_) external;
-    function exit(IERC20Farm farm_) external;
-    function claim(IERC20Farm farm_) external;
-    function checkpoint(IERC20Farm farm_) external;
+    function farm(address farm_) external;
+    function exit(address farm_) external;
+    function claim(address farm_) external;
+    function checkpoint(address farm_) external;
 }
