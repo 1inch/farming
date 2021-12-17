@@ -22,13 +22,6 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     mapping(address => uint256) public override farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
 
-    function _balanceOf(address farm_, address user) internal view returns(uint256) {
-        if (_userFarms[user].contains(farm_)) {
-            return balanceOf(user);
-        }
-        return 0;
-    }
-
     function userFarms(address account) external view returns(address[] memory) {
         return _userFarms[account].items.get();
     }
@@ -42,7 +35,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function farmed(address farm_, address account) external view returns (uint256) {
-        return infos[farm_].farmed(account, _balanceOf(farm_, account), farmedPerToken(farm_));
+        uint256 balance = _userFarms[account].contains(farm_) ? balanceOf(account) : 0;
+        return infos[farm_].farmed(account, balance, farmedPerToken(farm_));
     }
 
     function farm(address farm_) external override {
