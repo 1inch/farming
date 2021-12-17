@@ -1,7 +1,7 @@
 const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
 
 const ERC20FarmableMock = artifacts.require('ERC20FarmableMock');
-const ERC20Farm = artifacts.require('ERC20Farm');
+const Farm = artifacts.require('Farm');
 const TokenMock = artifacts.require('TokenMock');
 
 async function timeIncreaseTo (seconds) {
@@ -40,7 +40,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
     beforeEach(async function () {
         this.token = await ERC20FarmableMock.new('1INCH', '1INCH');
         this.gift = await TokenMock.new('UDSC', 'USDC');
-        this.farm = await ERC20Farm.new(this.token.address, this.gift.address);
+        this.farm = await Farm.new(this.token.address, this.gift.address);
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
             await this.gift.mint(wallet, '1000000000');

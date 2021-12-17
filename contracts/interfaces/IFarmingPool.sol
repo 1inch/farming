@@ -2,9 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./IFarmAccounting.sol";
-
-interface IFarmingPool is IFarmAccounting {
+interface IFarmingPool {
     function farmed(address account) external view returns (uint256);
     function farmedPerToken() external view returns (uint256);
 

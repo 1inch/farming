@@ -48,21 +48,21 @@ contract AMMPoolToken is ERC20Farmable {
 ### Optimizations
 
 - Storage access:
-    - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/FarmAccounting.sol#L20-L22) for farming params, updated only on farming restarting:
+    - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L9-L11) for farming params, updated only on farming restarting:
         ```solidity
         uint40 public finished;
         uint40 public duration;
         uint176 public reward;
         ```
-    - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/FarmingPool.sol#L16-L17) for farming state, updated only on changing number of farming tokens:
+    - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L9-L10) for farming state, updated only on changing number of farming tokens:
         ```solidity
-        uint40 public farmedPerTokenUpdated;
+        uint40 public updateTime;
         uint216 public farmedPerTokenStored;
         ```
-    - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/FarmingPool.sol#L18) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
+    - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L11) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
 
         ```solidity
-        mapping(address => int256) public userCorrection;
+        mapping(address => int256) public corrections;
         ```
 - Compact address array is used for storing farms per user/wallet. Array length is stored in high bits of the first array item:
     - [@1inch/solidity-utils/AddressArray.sol](https://github.com/1inch/solidity-utils/blob/master/contracts/libraries/AddressArray.sol)
