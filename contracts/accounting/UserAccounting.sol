@@ -39,7 +39,7 @@ library UserAccounting {
         (info.farmedPerTokenUpdated, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
-    function beforeBalancesChanged(UserInfo storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
+    function updateBalances(UserInfo storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
         if (amount > 0 && (inFrom || inTo)) {
             if (!inFrom || !inTo) {
                 userCheckpoint(info, fpt);

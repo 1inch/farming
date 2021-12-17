@@ -45,7 +45,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] += balance;
-        infos[farm_].beforeBalancesChanged(fpt, address(0), msg.sender, balance, false, true);
+        infos[farm_].updateBalances(fpt, address(0), msg.sender, balance, false, true);
 
         require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
     }
@@ -56,7 +56,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] -= balance;
-        infos[farm_].beforeBalancesChanged(fpt, msg.sender, address(0), balance, true, false);
+        infos[farm_].updateBalances(fpt, msg.sender, address(0), balance, true, false);
 
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
     }
@@ -97,7 +97,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
                 for (j = 0; j < b.length; j++) {
                     if (farm_ == b[j]) {
                         // Both parties are farming the same token
-                        infos[farm_].beforeBalancesChanged(farmedPerToken(farm_), from, to, amount, true, true);
+                        infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, true);
                         b[j] = address(0);
                         break;
                     }
@@ -105,7 +105,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
                 if (j == b.length) {
                     // Sender is farming a token, but receiver is not
-                    infos[farm_].beforeBalancesChanged(farmedPerToken(farm_), from, to, amount, true, false);
+                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, false);
                     farmTotalSupply[farm_] -= amount;
                 }
             }
@@ -114,7 +114,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
                 address farm_ = b[j];
                 if (farm_ != address(0)) {
                     // Receiver is farming a token, but sender is not
-                    infos[farm_].beforeBalancesChanged(farmedPerToken(farm_), from, to, amount, false, true);
+                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, false, true);
                     farmTotalSupply[farm_] += amount;
                 }
             }
