@@ -12,9 +12,10 @@ import "./interfaces/IFarmingPool.sol";
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
 
-contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting {
+contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
     using UserAccounting for UserAccounting.UserInfo;
+    using FarmAccounting for FarmAccounting.FarmInfo;
 
     event RewardAdded(uint256 reward, uint256 duration);
 
@@ -24,7 +25,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting {
     IERC20 public immutable rewardsToken;
 
     UserAccounting.UserInfo public info;
-    FarmInfo public farmInfo;
+    FarmAccounting.FarmInfo public farmInfo;
     address public distributor;
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
@@ -81,24 +82,24 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting {
     /// @dev Use block.timestamp for checkpoint if needed, try not to revert
     function farmingCheckpoint() public virtual override {
         info.userCheckpoint(farmedPerToken());
-        _farmingCheckpoint(farmInfo);
+        farmInfo.farmingCheckpoint();
     }
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(uint256 updated) public view virtual override returns(uint256 amount) {
-        return _farmedSinceCheckpointScaled(farmInfo, updated);
+        return farmInfo.farmedSinceCheckpointScaled(updated);
     }
 
     function startFarming(uint256 amount, uint256 period) external {
         require(msg.sender == distributor, "FA: access denied");
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 reward = _startFarming(farmInfo, amount, period);
+        uint256 reward = farmInfo.startFarming(amount, period, _updateFarmingState);
 
         emit RewardAdded(reward, period);
     }
 
-    function _updateFarmingState() internal override {
+    function _updateFarmingState() internal {
         info.userCheckpoint(farmedPerToken());
     }
 
@@ -115,6 +116,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting {
     }
 
     function _getFarmedSinceCheckpointScaled(address /* farm */, uint256 updated) internal view returns(uint256) {
-        return _farmedSinceCheckpointScaled(farmInfo, updated);
+        return farmInfo.farmedSinceCheckpointScaled(updated);
     }
 }

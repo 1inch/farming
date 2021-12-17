@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-abstract contract FarmAccounting {
+library FarmAccounting {
     struct FarmInfo {
         uint40 finished;
         uint40 duration;
@@ -12,19 +12,24 @@ abstract contract FarmAccounting {
     }
 
     /// @dev Use block.timestamp for checkpoint if needed, try not to revert
-    function _farmingCheckpoint(FarmInfo storage info) internal {}
+    function farmingCheckpoint(FarmInfo storage info) internal {}
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
-    function _farmedSinceCheckpointScaled(FarmInfo storage info, uint256 checkpoint) internal view returns(uint256 amount) {
+    function farmedSinceCheckpointScaled(FarmInfo storage info, uint256 updated) internal view returns(uint256 amount) {
         FarmInfo memory local = info;
         if (local.duration > 0) {
-            return (Math.min(block.timestamp, local.finished) - checkpoint) * local.reward * 1e18 / local.duration;
+            return (Math.min(block.timestamp, local.finished) - updated) * local.reward * 1e18 / local.duration;
         }
     }
 
-    function _startFarming(FarmInfo storage info, uint256 amount, uint256 period) internal returns(uint256 reward){
+    function startFarming(
+        FarmInfo storage info,
+        uint256 amount,
+        uint256 period,
+        function() internal updateFarmingState
+    ) internal returns(uint256 reward){
         // Update farming state
-        _updateFarmingState();
+        updateFarmingState();
 
         // If something left from prev farming add it to the new farming
         FarmInfo memory prev = info;
@@ -39,6 +44,4 @@ abstract contract FarmAccounting {
 
         return amount;
     }
-
-    function _updateFarmingState() internal virtual;
 }
