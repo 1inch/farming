@@ -7,12 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IERC20Farm.sol";
 
 interface IERC20Farmable is IERC20 {
-    struct FarmingData {
-        uint40 updated;
-        uint216 perToken;
-    }
-
-    // function farming(IERC20Farm farm_) external view returns(FarmingData memory);
     function farmTotalSupply(address farm_) external view returns(uint256);
     function userCorrection(address farm_, address account) external view returns(int256);
     function userFarms(address account) external view returns(address[] memory);

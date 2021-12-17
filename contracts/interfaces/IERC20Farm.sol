@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "./IFarmAccounting.sol";
+import "./IFarm.sol";
 
-interface IERC20Farm is IFarmAccounting {
+interface IERC20Farm is IFarm {
     function claimFor(address account, uint256 amount) external;
 }

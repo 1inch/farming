@@ -3,25 +3,13 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
-import "./interfaces/IFarmingPool.sol";
-import "./FarmAccounting.sol";
 
 abstract contract UserAccounting {
-    using SafeERC20 for IERC20;
-
     struct UserInfo {
         uint40 farmedPerTokenUpdated;
         uint216 farmedPerTokenStored;
         mapping(address => int256) corrections;
     }
-
-    function _balanceOf(address farm, address user) internal view virtual returns(uint256);
-    function _totalSupply(address farm) internal view virtual returns(uint256);
-    function _farmedSinceCheckpointScaled(address farm, uint256 updated) internal view virtual returns(uint256);
 
     function _farmed(UserInfo storage info, address farm, address account) internal view returns(uint256) {
         return _farmed(info, account, _balanceOf(farm, account), _farmedPerToken(info, farm));
@@ -66,7 +54,7 @@ abstract contract UserAccounting {
         return fpt;
     }
 
-    function _checkpoint(UserInfo storage info, uint256 fpt) internal {
+    function _userCheckpoint(UserInfo storage info, uint256 fpt) internal {
         (info.farmedPerTokenUpdated, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
@@ -81,16 +69,20 @@ abstract contract UserAccounting {
             if (inFrom) {
                 info.corrections[from] -= int256(amount * fpt);
                 if (!inTo) {
-                    _checkpoint(info, fpt);
+                    _userCheckpoint(info, fpt);
                 }
             }
 
             if (inTo) {
                 info.corrections[to] += int256(amount * fpt);
                 if (!inFrom) {
-                    _checkpoint(info, fpt);
+                    _userCheckpoint(info, fpt);
                 }
             }
         }
     }
+
+    function _balanceOf(address farm, address user) internal view virtual returns(uint256);
+    function _totalSupply(address farm) internal view virtual returns(uint256);
+    function _farmedSinceCheckpointScaled(address farm, uint256 updated) internal view virtual returns(uint256);
 }

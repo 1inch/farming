@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
 
 import "./interfaces/IERC20Farmable.sol";
-import "./UserAccounting.sol";
+import "./accounting/UserAccounting.sol";
 
 abstract contract ERC20Farmable is ERC20, IERC20Farmable, UserAccounting {
     using AddressArray for AddressArray.Data;
@@ -65,7 +65,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable, UserAccounting {
 
     function farm(address farm_) external override {
         uint256 fpt = _farmedPerToken(infos[farm_], farm_);
-        _checkpoint(farm_, fpt);
+        _userCheckpoint(farm_, fpt);
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] += balance;
@@ -76,7 +76,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable, UserAccounting {
 
     function exit(address farm_) external override {
         uint256 fpt = _farmedPerToken(infos[farm_], farm_);
-        _checkpoint(farm_, fpt);
+        _userCheckpoint(farm_, fpt);
 
         uint256 balance = balanceOf(msg.sender);
         farmTotalSupply[farm_] -= balance;
@@ -97,11 +97,11 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable, UserAccounting {
     }
 
     function checkpoint(address farm_) external override {
-        _checkpoint(farm_, _farmedPerToken(infos[farm_], farm_));
+        _userCheckpoint(farm_, _farmedPerToken(infos[farm_], farm_));
     }
 
-    function _checkpoint(address farm_, uint256 fpt) internal {
-        super._checkpoint(infos[farm_], fpt);
+    function _userCheckpoint(address farm_, uint256 fpt) internal {
+        super._userCheckpoint(infos[farm_], fpt);
 
         try IERC20Farm(farm_).farmingCheckpoint() {}
         catch {
