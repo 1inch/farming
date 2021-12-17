@@ -16,9 +16,13 @@ library FarmAccounting {
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(Info storage info, uint256 updated) internal view returns(uint256 amount) {
-        Info memory local = info;
-        if (local.duration > 0) {
-            return (Math.min(block.timestamp, local.finished) - updated) * local.reward * 1e18 / local.duration;
+        return _farmedSinceCheckpointScaledMemory(info, updated);
+    }
+
+    function _farmedSinceCheckpointScaledMemory(Info memory info, uint256 updated) private view returns(uint256 amount) {
+        if (info.duration > 0) {
+            uint256 elpased = Math.min(block.timestamp, info.finished) - Math.max(updated, info.finished - info.duration);
+            return elpased * info.reward * 1e18 / info.duration;
         }
     }
 
@@ -26,8 +30,7 @@ library FarmAccounting {
         // If something left from prev farming add it to the new farming
         Info memory prev = info;
         if (block.timestamp < prev.finished) {
-            uint256 elapsed = prev.duration - (prev.finished - block.timestamp);
-            amount += prev.reward - prev.reward * elapsed / prev.duration;
+            amount += prev.reward - _farmedSinceCheckpointScaledMemory(prev, 0) / 1e18;
         }
 
         require(period < 2**40, "FA: Period too large");
