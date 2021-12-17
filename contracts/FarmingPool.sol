@@ -12,8 +12,9 @@ import "./interfaces/IFarmingPool.sol";
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
 
-contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting, UserAccounting {
+contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting {
     using SafeERC20 for IERC20;
+    using UserAccounting for UserAccounting.UserInfo;
 
     event RewardAdded(uint256 reward, uint256 duration);
 
@@ -22,7 +23,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting, UserAccoun
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardsToken;
 
-    UserInfo public info;
+    UserAccounting.UserInfo public info;
     FarmInfo public farmInfo;
     address public distributor;
 
@@ -44,12 +45,12 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting, UserAccoun
         return IERC20Metadata(address(stakingToken)).decimals();
     }
 
-    function farmed(address account) public view override returns (uint256) {
-        return _farmed(info, _FARM, account);
+    function farmedPerToken() public view override returns (uint256) {
+        return info.farmedPerToken(_FARM, _getTotalSupply, _getFarmedSinceCheckpointScaled);
     }
 
-    function farmedPerToken() external view override returns (uint256) {
-        return _farmedPerToken(info, _FARM);
+    function farmed(address account) public view override returns (uint256) {
+        return info.farmed(account, balanceOf(account), farmedPerToken());
     }
 
     function deposit(uint256 amount) external override {
@@ -63,11 +64,11 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting, UserAccoun
     }
 
     function claim() public override {
-        uint256 fpt = _farmedPerToken(info, _FARM);
-        uint256 balance = _balanceOf(_FARM, msg.sender);
-        uint256 amount = _farmed(info, msg.sender, balance, fpt);
+        uint256 fpt = farmedPerToken();
+        uint256 balance = balanceOf(msg.sender);
+        uint256 amount = info.farmed(msg.sender, balance, fpt);
         if (amount > 0) {
-            _eraseFarmed(info, msg.sender, balance, fpt);
+            info.eraseFarmed(msg.sender, balance, fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
@@ -79,7 +80,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting, UserAccoun
 
     /// @dev Use block.timestamp for checkpoint if needed, try not to revert
     function farmingCheckpoint() public virtual override {
-        _userCheckpoint(info, _farmedPerToken(info, _FARM));
+        info.userCheckpoint(farmedPerToken());
         _farmingCheckpoint(farmInfo);
     }
 
@@ -98,26 +99,22 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20, FarmAccounting, UserAccoun
     }
 
     function _updateFarmingState() internal override {
-        _userCheckpoint(info, _farmedPerToken(info, _FARM));
+        info.userCheckpoint(farmedPerToken());
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         if (amount > 0) {
-            _beforeBalancesChanged(info, _farmedPerToken(info, _FARM), from, to, amount, from != _FARM, to != _FARM);
+            info.beforeBalancesChanged(farmedPerToken(), from, to, amount, from != address(0), to != address(0));
         }
     }
 
-    // UserAccounting Overrides
+    // UserAccounting bindings
 
-    function _balanceOf(address /* farm */, address user) internal view override returns(uint256) {
-        return balanceOf(user);
-    }
-
-    function _totalSupply(address /* farm */) internal view override returns(uint256) {
+    function _getTotalSupply(address /* farm */) internal view returns(uint256) {
         return totalSupply();
     }
 
-    function _farmedSinceCheckpointScaled(address /* farm */, uint256 updated) internal view override returns(uint256) {
+    function _getFarmedSinceCheckpointScaled(address /* farm */, uint256 updated) internal view returns(uint256) {
         return _farmedSinceCheckpointScaled(farmInfo, updated);
     }
 }
