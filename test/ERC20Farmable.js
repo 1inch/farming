@@ -568,7 +568,6 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         });
 
         it('Transfer from one wallet to another, sender is farming, reciever is not farming', async function () {
-
             //
             // 1x: +-------+--------+   = 18k for 1w + 36k for 2w
             // 1x: +-------+            = 18k for 1w +  0k for 2w
@@ -598,7 +597,6 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         });
 
         it('Top up farming wallet', async function () {
-
             await this.token.mint(wallet1, '1');
             await this.token.mint(wallet2, '1');
             await this.token.mint(wallet3, '2');
