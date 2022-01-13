@@ -496,4 +496,40 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('8250');
         });
     });
+
+    describe('transfer', async function () {
+        it('should not be transfered from non-farm user to non-farm user', async function () {
+            expectRevert(
+                this.token.transfer(wallet2, '1000', { from: wallet1 }),
+                'ERC20: transfer amount exceeds balance',
+            );
+            expect(await this.token.balanceOf(wallet1)).to.be.bignumber.equal('0');
+            expect(await this.token.balanceOf(wallet2)).to.be.bignumber.equal('0');
+        });
+
+        it('should be transfered from farm user to non-farm user', async function () {
+            await this.token.mint(wallet1, '1000');
+            await this.token.transfer(wallet2, '500', { from: wallet1 });
+            expect(await this.token.balanceOf(wallet1)).to.be.bignumber.equal('500');
+            expect(await this.token.balanceOf(wallet2)).to.be.bignumber.equal('500');
+        });
+
+        it('should not be transfered from non-farm user to farm user', async function () {
+            await this.token.mint(wallet1, '1000');
+            expectRevert(
+                this.token.transfer(wallet2, '1000', { from: wallet2 }),
+                'ERC20: transfer amount exceeds balance',
+            );
+            expect(await this.token.balanceOf(wallet1)).to.be.bignumber.equal('1000');
+            expect(await this.token.balanceOf(wallet2)).to.be.bignumber.equal('0');
+        });
+
+        it('should be transfered from farm user to farm user', async function () {
+            await this.token.mint(wallet1, '1000');
+            await this.token.mint(wallet2, '1000');
+            await this.token.transfer(wallet2, '500', { from: wallet1 });
+            expect(await this.token.balanceOf(wallet1)).to.be.bignumber.equal('500');
+            expect(await this.token.balanceOf(wallet2)).to.be.bignumber.equal('1500');
+        });
+    });
 });
