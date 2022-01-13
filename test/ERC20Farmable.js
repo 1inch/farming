@@ -499,6 +499,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
     describe('transfer', async function () {
         it('should not be transfered from non-farm user to non-farm user', async function () {
+            await this.farm.startFarming('72000', time.duration.weeks(2), { from: wallet1 });
             expectRevert(
                 this.token.transfer(wallet2, '1000', { from: wallet1 }),
                 'ERC20: transfer amount exceeds balance',
@@ -509,6 +510,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
         it('should be transfered from farm user to non-farm user', async function () {
             await this.token.mint(wallet1, '1000');
+            await this.farm.startFarming('72000', time.duration.weeks(2), { from: wallet1 });
             await this.token.transfer(wallet2, '500', { from: wallet1 });
             expect(await this.token.balanceOf(wallet1)).to.be.bignumber.equal('500');
             expect(await this.token.balanceOf(wallet2)).to.be.bignumber.equal('500');
@@ -516,6 +518,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
         it('should not be transfered from non-farm user to farm user', async function () {
             await this.token.mint(wallet1, '1000');
+            await this.farm.startFarming('72000', time.duration.weeks(2), { from: wallet1 });
             expectRevert(
                 this.token.transfer(wallet2, '1000', { from: wallet2 }),
                 'ERC20: transfer amount exceeds balance',
@@ -527,6 +530,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         it('should be transfered from farm user to farm user', async function () {
             await this.token.mint(wallet1, '1000');
             await this.token.mint(wallet2, '1000');
+            await this.farm.startFarming('72000', time.duration.weeks(2), { from: wallet1 });
             await this.token.transfer(wallet2, '500', { from: wallet1 });
             expect(await this.token.balanceOf(wallet1)).to.be.bignumber.equal('500');
             expect(await this.token.balanceOf(wallet2)).to.be.bignumber.equal('1500');
