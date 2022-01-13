@@ -437,7 +437,6 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
             await this.token.exit(this.farm.address, { from: wallet2 });
 
-                        // expect(await this.token.farmedPerToken()).to.be.bignumber.almostEqual('26000'); // 18k + 8k
             expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('26000');
             expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('78000');
             expect(await this.token.farmed(this.farm.address, wallet3)).to.be.bignumber.almostEqual('40000');
