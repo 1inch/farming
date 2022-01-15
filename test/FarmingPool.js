@@ -376,9 +376,9 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             await this.farm.deposit(wallet3Amount, { from: wallet3 });
             await this.farm.transfer(wallet1, wallet3Amount, { from: wallet3 });
 
-            let balanceWallet1 = await this.farm.balanceOf(wallet1);
-            let balanceWallet2 = await this.farm.balanceOf(wallet2);
-            let balanceWallet3 = await this.farm.balanceOf(wallet3);
+            const balanceWallet1 = await this.farm.balanceOf(wallet1);
+            const balanceWallet2 = await this.farm.balanceOf(wallet2);
+            const balanceWallet3 = await this.farm.balanceOf(wallet3);
             expect(balanceWallet1).to.be.bignumber.equal(wallet1Amount.add(wallet3Amount));
             expect(balanceWallet2).to.be.bignumber.equal(wallet2Amount);
             expect(balanceWallet3).to.be.bignumber.equal('0');
@@ -404,12 +404,12 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             const farmedWallet1PerWeek = farmingAmount.divn(2);
             const farmedWallet2PerWeek = new BN('0');
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual(farmedWallet1PerWeek);
-            expect(await this.farm.farmed(wallet3)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
+            expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
 
             await this.farm.transfer(wallet2, wallet2Amount, { from: wallet1 });
 
-            let balanceWallet1 = await this.farm.balanceOf(wallet1);
-            let balanceWallet2 = await this.farm.balanceOf(wallet2);
+            const balanceWallet1 = await this.farm.balanceOf(wallet1);
+            const balanceWallet2 = await this.farm.balanceOf(wallet2);
             expect(balanceWallet1).to.be.bignumber.equal(wallet1Amount);
             expect(balanceWallet2).to.be.bignumber.equal(wallet2Amount);
 
@@ -440,7 +440,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             const farmedWallet2PerWeek = farmingAmount.divn(2).mul(wallet2Amount).div(wallet1Amount.add(wallet2Amount));
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual(farmedWallet1PerWeek);
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
-            console.log(`farmed after week {wallet1, wallet2} = {0, 0}`);
+            console.log('farmed after week {wallet1, wallet2} = {0, 0}');
             console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
         });
 
@@ -458,8 +458,8 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
 
             await this.farm.transfer(wallet1, wallet1Amount, { from: wallet2 });
 
-            let balanceWallet1 = await this.farm.balanceOf(wallet1);
-            let balanceWallet2 = await this.farm.balanceOf(wallet2);
+            const balanceWallet1 = await this.farm.balanceOf(wallet1);
+            const balanceWallet2 = await this.farm.balanceOf(wallet2);
             expect(balanceWallet1).to.be.bignumber.equal(wallet1Amount.add(wallet1Amount));
             expect(balanceWallet2).to.be.bignumber.equal(wallet2Amount.sub(wallet1Amount));
 
