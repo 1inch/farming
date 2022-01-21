@@ -71,7 +71,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
 
     // ERC20 overrides
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override virtual {
         super._beforeTokenTransfer(from, to, amount);
 
         if (amount > 0) {
