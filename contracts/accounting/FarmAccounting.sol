@@ -21,8 +21,8 @@ library FarmAccounting {
 
     function _farmedSinceCheckpointScaledMemory(Info memory info, uint256 updated) private view returns(uint256 amount) {
         if (info.duration > 0) {
-            uint256 elpased = Math.min(block.timestamp, info.finished) - Math.max(updated, info.finished - info.duration);
-            return elpased * info.reward * 1e18 / info.duration;
+            uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.max(updated, info.finished - info.duration);
+            return elapsed * info.reward * 1e18 / info.duration;
         }
     }
 
