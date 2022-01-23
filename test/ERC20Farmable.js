@@ -601,7 +601,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await this.token.mint(wallet2, '1');
             await this.token.mint(wallet3, '2');
 
-            // 72000 UDSC per week for 2 weeks
+            // 36000 UDSC per week for 2 weeks
             await this.farm.startFarming('72000', time.duration.weeks(2), { from: wallet1 });
 
             await this.token.farm(this.farm.address, { from: wallet1 });
