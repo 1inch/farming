@@ -620,4 +620,142 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('27000');
         });
     });
+
+    describe('transfer', async function () {
+        const farmingAmount = new BN('72000');
+        const wallet1Amount = new BN('1');
+        const wallet2Amount = new BN('3');
+        const wallet3Amount = new BN('1');
+
+        it('should be correct farming after transfered from non-farm user to farm user', async function () {
+            await this.token.mint(wallet1, wallet1Amount);
+            await this.token.mint(wallet2, wallet2Amount);
+
+            await this.farm.startFarming(farmingAmount, time.duration.weeks(2), { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet2 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+
+            // farmedWalletPerWeek = farmingAmount / 2 * wallet1Amount / (wallet1Amount + wallet2Amount)
+            const farmedWallet1PerWeek = farmingAmount.divn(2).mul(wallet1Amount).div(wallet1Amount.add(wallet2Amount));
+            const farmedWallet2PerWeek = farmingAmount.divn(2).mul(wallet2Amount).div(wallet1Amount.add(wallet2Amount));
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual(farmedWallet1PerWeek);
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
+            expect(await this.token.farmed(this.farm.address, wallet3)).to.be.bignumber.almostEqual('0');
+
+            await this.token.mint(wallet3, wallet3Amount);
+            await this.token.transfer(wallet1, wallet3Amount, { from: wallet3 });
+            await this.token.farm(this.farm.address, { from: wallet3 });
+
+            const balanceWallet1 = await this.token.balanceOf(wallet1);
+            const balanceWallet2 = await this.token.balanceOf(wallet2);
+            const balanceWallet3 = await this.token.balanceOf(wallet3);
+            expect(balanceWallet1).to.be.bignumber.equal(wallet1Amount.add(wallet3Amount));
+            expect(balanceWallet2).to.be.bignumber.equal(wallet2Amount);
+            expect(balanceWallet3).to.be.bignumber.equal('0');
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
+
+            // farmedWalletPer2Week = farmedWalletPerWeek + farmingAmount / 2 * balanceWallet2 / (balanceWallet1 + balanceWallet2);
+            const farmedWallet1Per2Week = farmedWallet1PerWeek.add(farmingAmount.divn(2).mul(balanceWallet1).div(balanceWallet1.add(balanceWallet2)));
+            const farmedWallet2Per2Week = farmedWallet2PerWeek.add(farmingAmount.divn(2).mul(balanceWallet2).div(balanceWallet1.add(balanceWallet2)));
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual(farmedWallet1Per2Week);
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual(farmedWallet2Per2Week);
+            expect(await this.token.farmed(this.farm.address, wallet3)).to.be.bignumber.almostEqual('0');
+            console.log(`farmed after week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
+            console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1Per2Week.toString()}, ${farmedWallet2Per2Week.toString()}}`);
+        });
+
+        it('should be correct farming after transfered from farm user to non-farm user', async function () {
+            await this.token.mint(wallet1, wallet1Amount.add(wallet2Amount));
+
+            await this.farm.startFarming(farmingAmount, time.duration.weeks(2), { from: wallet1 });
+
+            await this.token.farm(this.farm.address, { from: wallet1 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+
+            const farmedWallet1PerWeek = farmingAmount.divn(2);
+            const farmedWallet2PerWeek = new BN('0');
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual(farmedWallet1PerWeek);
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
+
+            await this.token.transfer(wallet2, wallet2Amount, { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet2 });
+
+            const balanceWallet1 = await this.token.balanceOf(wallet1);
+            const balanceWallet2 = await this.token.balanceOf(wallet2);
+            expect(balanceWallet1).to.be.bignumber.equal(wallet1Amount);
+            expect(balanceWallet2).to.be.bignumber.equal(wallet2Amount);
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
+
+            const farmedWallet1Per2Week = farmedWallet1PerWeek.add(farmingAmount.divn(2).mul(balanceWallet1).div(balanceWallet1.add(balanceWallet2)));
+            const farmedWallet2Per2Week = farmedWallet2PerWeek.add(farmingAmount.divn(2).mul(balanceWallet2).div(balanceWallet1.add(balanceWallet2)));
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual(farmedWallet1Per2Week);
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual(farmedWallet2Per2Week);
+            console.log(`farmed after week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
+            console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1Per2Week.toString()}, ${farmedWallet2Per2Week.toString()}}`);
+        });
+
+        it('should be correct farming after transfered from non-farm user to non-farm user', async function () {
+            await this.farm.startFarming(farmingAmount, time.duration.weeks(2), { from: wallet1 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual('0');
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual('0');
+
+            await this.token.mint(wallet1, wallet1Amount.add(wallet2Amount));
+            await this.token.transfer(wallet2, wallet2Amount, { from: wallet1 });
+
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet2 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
+
+            const farmedWallet1PerWeek = farmingAmount.divn(2).mul(wallet1Amount).div(wallet1Amount.add(wallet2Amount));
+            const farmedWallet2PerWeek = farmingAmount.divn(2).mul(wallet2Amount).div(wallet1Amount.add(wallet2Amount));
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual(farmedWallet1PerWeek);
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
+            console.log('farmed after week {wallet1, wallet2} = {0, 0}');
+            console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
+        });
+
+        it('should be correct farming after transfered from farm user to farm user', async function () {
+            await this.token.mint(wallet1, wallet1Amount);
+            await this.token.mint(wallet2, wallet2Amount);
+
+            await this.farm.startFarming(farmingAmount, time.duration.weeks(2), { from: wallet1 });
+
+            await this.token.farm(this.farm.address, { from: wallet1 });
+            await this.token.farm(this.farm.address, { from: wallet2 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
+
+            const farmedWallet1PerWeek = farmingAmount.divn(2).mul(wallet1Amount).div(wallet1Amount.add(wallet2Amount));
+            const farmedWallet2PerWeek = farmingAmount.divn(2).mul(wallet2Amount).div(wallet1Amount.add(wallet2Amount));
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual(farmedWallet1PerWeek);
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
+
+            await this.token.transfer(wallet1, wallet1Amount, { from: wallet2 });
+
+            const balanceWallet1 = await this.token.balanceOf(wallet1);
+            const balanceWallet2 = await this.token.balanceOf(wallet2);
+            expect(balanceWallet1).to.be.bignumber.equal(wallet1Amount.add(wallet1Amount));
+            expect(balanceWallet2).to.be.bignumber.equal(wallet2Amount.sub(wallet1Amount));
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(2)));
+
+            const farmedWallet1Per2Week = farmedWallet1PerWeek.add(farmingAmount.divn(2).mul(balanceWallet1).div(balanceWallet1.add(balanceWallet2)));
+            const farmedWallet2Per2Week = farmedWallet2PerWeek.add(farmingAmount.divn(2).mul(balanceWallet2).div(balanceWallet1.add(balanceWallet2)));
+            expect(await this.token.farmed(this.farm.address, wallet1)).to.be.bignumber.almostEqual(farmedWallet1Per2Week);
+            expect(await this.token.farmed(this.farm.address, wallet2)).to.be.bignumber.almostEqual(farmedWallet2Per2Week);
+            console.log(`farmed after week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
+            console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1Per2Week.toString()}, ${farmedWallet2Per2Week.toString()}}`);
+
+            expect(farmedWallet1Per2Week.sub(farmedWallet1PerWeek)).to.be.bignumber.equal(farmedWallet2Per2Week.sub(farmedWallet2PerWeek));
+        });
+    });
 });
