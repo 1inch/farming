@@ -13,11 +13,14 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
     using AddressSet for AddressSet.Data;
     using UserAccounting for UserAccounting.Info;
 
-    event Error(string error);
-
     mapping(address => UserAccounting.Info) public infos;
     mapping(address => uint256) public override farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
+
+    /// @dev Use this method for signaling on bad farms even in static calls (for stats)
+    function onError(string memory /* error */) external view {
+        require(msg.sender == address(this), "Access denied");
+    }
 
     function farmBalanceOf(address farm_, address account) public view returns (uint256) {
         return _userFarms[account].contains(farm_) ? balanceOf(account) : 0;
@@ -69,7 +72,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
         infos[farm_].updateCheckpoint(fpt);
         try IFarm(farm_).onCheckpointUpdate() {}
         catch {
-            emit Error("farm.onCheckpointUpdate() failed");
+            this.onError("farm.onCheckpointUpdate() failed");
         }
     }
 
@@ -125,11 +128,11 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
                 return amount;
             }
             else {
-                // emit Error("farm.farmedSinceCheckpoint() result overflowed");
+                this.onError("farm.farmedSinceCheckpoint() result overflowed");
             }
         }
         catch {
-            // emit Error("farm.farmedSinceCheckpoint() failed");
+            this.onError("farm.farmedSinceCheckpoint() failed");
         }
         return 0;
     }
