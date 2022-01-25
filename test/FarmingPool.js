@@ -59,7 +59,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with rewards distribution access denied ', async function () {
             await expectRevert(
                 this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                'FA: access denied',
+                'FP: Access denied',
             );
         });
     });

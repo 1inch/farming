@@ -13,8 +13,8 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
     using AddressSet for AddressSet.Data;
     using UserAccounting for UserAccounting.Info;
 
-    mapping(address => UserAccounting.Info) public infos;
-    mapping(address => uint256) public override farmTotalSupply;
+    mapping(address => UserAccounting.Info) private _userInfo;
+    mapping(address => uint256) private _farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
 
     /// @dev Use this method for signaling on bad farms even in static calls (for stats)
@@ -22,50 +22,58 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
         require(msg.sender == address(this), "Access denied");
     }
 
-    function farmBalanceOf(address farm_, address account) public view returns (uint256) {
+    function farmTotalSupply(address farm_) public view virtual returns(uint256) {
+        return _farmTotalSupply[farm_];
+    }
+
+    function farmBalanceOf(address farm_, address account) public view virtual returns (uint256) {
         return _userFarms[account].contains(farm_) ? balanceOf(account) : 0;
     }
 
-    function userFarms(address account) external view returns(address[] memory) {
+    function userIsFarming(address account, address farm_) public view virtual returns(bool) {
+        return _userFarms[account].contains(farm_);
+    }
+
+    function userFarms(address account) public view virtual returns(address[] memory) {
         return _userFarms[account].items.get();
     }
 
-    function farmedPerToken(address farm_) public view returns (uint256 fpt) {
-        return infos[farm_].farmedPerToken(farm_, _getTotalSupply, _getFarmedSinceCheckpointScaled);
+    function farmedPerToken(address farm_) public view virtual returns(uint256 fpt) {
+        return _userInfo[farm_].farmedPerToken(farm_, _lazyGetSupply, _lazyGetFarmed);
     }
 
-    function farmed(address farm_, address account) external view returns (uint256) {
-        return infos[farm_].farmed(account, farmBalanceOf(farm_, account), farmedPerToken(farm_));
+    function farmed(address farm_, address account) public view virtual returns(uint256) {
+        return _userInfo[farm_].farmed(account, farmBalanceOf(farm_, account), farmedPerToken(farm_));
     }
 
-    function farm(address farm_) external override {
+    function farm(address farm_) public virtual {
         require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
 
         uint256 balance = balanceOf(msg.sender);
-        infos[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
-        farmTotalSupply[farm_] += balance;
+        _userInfo[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
+        _farmTotalSupply[farm_] += balance;
     }
 
-    function exit(address farm_) external override {
+    function exit(address farm_) public virtual {
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
 
         uint256 balance = balanceOf(msg.sender);
-        infos[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
-        farmTotalSupply[farm_] -= balance;
+        _userInfo[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
+        _farmTotalSupply[farm_] -= balance;
     }
 
-    function claim(address farm_) external override {
+    function claim(address farm_) public virtual {
         uint256 fpt = farmedPerToken(farm_);
         uint256 balance = farmBalanceOf(farm_, msg.sender);
-        uint256 amount = infos[farm_].farmed(msg.sender, balance, fpt);
+        uint256 amount = _userInfo[farm_].farmed(msg.sender, balance, fpt);
         if (amount > 0) {
-            infos[farm_].eraseFarmed(msg.sender, balance, fpt);
+            _userInfo[farm_].eraseFarmed(msg.sender, balance, fpt);
             IFarm(farm_).claimFor(msg.sender, amount);
         }
     }
 
-    function updateCheckpoint(address farm_) external override {
-        infos[farm_].updateCheckpoint(farmedPerToken(farm_));
+    function updateCheckpoint() public virtual {
+        _userInfo[msg.sender].updateCheckpoint(farmedPerToken(msg.sender));
     }
 
     // ERC20 overrides
@@ -84,7 +92,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
                 for (j = 0; j < b.length; j++) {
                     if (farm_ == b[j]) {
                         // Both parties are farming the same token
-                        infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, true);
+                        _userInfo[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, true);
                         b[j] = address(0);
                         break;
                     }
@@ -92,8 +100,8 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
 
                 if (j == b.length) {
                     // Sender is farming a token, but receiver is not
-                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, false);
-                    farmTotalSupply[farm_] -= amount;
+                    _userInfo[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, false);
+                    _farmTotalSupply[farm_] -= amount;
                 }
             }
 
@@ -101,8 +109,8 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
                 address farm_ = b[j];
                 if (farm_ != address(0)) {
                     // Receiver is farming a token, but sender is not
-                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, false, true);
-                    farmTotalSupply[farm_] += amount;
+                    _userInfo[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, false, true);
+                    _farmTotalSupply[farm_] += amount;
                 }
             }
         }
@@ -110,11 +118,11 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
 
     // UserAccounting bindings
 
-    function _getTotalSupply(address farm_) internal view returns(uint256) {
-        return farmTotalSupply[farm_];
+    function _lazyGetSupply(address farm_) internal view returns(uint256) {
+        return _farmTotalSupply[farm_];
     }
 
-    function _getFarmedSinceCheckpointScaled(address farm_, uint256 updated) internal view returns(uint256) {
+    function _lazyGetFarmed(address farm_, uint256 updated) internal view returns(uint256) {
         try IFarm(farm_).farmedSinceCheckpointScaled(updated) returns(uint256 amount) {
             if (amount <= 1e54) {
                 return amount;
