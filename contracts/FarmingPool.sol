@@ -67,7 +67,7 @@ contract FarmingPool is IFarmingPool, BaseFarm, ERC20 {
         super._beforeTokenTransfer(from, to, amount);
 
         if (amount > 0) {
-            userInfo.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0), address(0), _triggerCheckpoint);
+            userInfo.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0));
         }
     }
 
@@ -81,18 +81,9 @@ contract FarmingPool is IFarmingPool, BaseFarm, ERC20 {
         return farmInfo.farmedSinceCheckpointScaled(updated);
     }
 
-    function _triggerCheckpoint(address /* context */, uint256 fpt) internal {
-        _updateCheckpoint(fpt);
-    }
-
     // BaseFarm overrides
 
     function _updateCheckpoint() internal override {
-        _updateCheckpoint(farmedPerToken());
-    }
-
-    function _updateCheckpoint(uint256 fpt) private {
-        userInfo.updateCheckpoint(fpt);
-        farmInfo.onCheckpointUpdate();
+        userInfo.updateCheckpoint(farmedPerToken());
     }
 }

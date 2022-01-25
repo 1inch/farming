@@ -40,20 +40,10 @@ library UserAccounting {
         }
     }
 
-    function updateBalances(
-        Info storage info,
-        uint256 fpt,
-        address from,
-        address to,
-        uint256 amount,
-        bool inFrom,
-        bool inTo,
-        address context,
-        function(address,uint256) internal triggerCheckpoint
-    ) internal {
+    function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
         if (amount > 0 && (inFrom || inTo)) {
             if (!inFrom || !inTo) {
-                triggerCheckpoint(context, fpt);
+                updateCheckpoint(info, fpt);
             }
             if (inFrom) {
                 info.corrections[from] -= int256(amount * fpt);

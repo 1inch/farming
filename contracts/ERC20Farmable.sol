@@ -42,7 +42,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
         require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
 
         uint256 balance = balanceOf(msg.sender);
-        infos[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true, farm_, _updateCheckpoint);
+        infos[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
         farmTotalSupply[farm_] += balance;
     }
 
@@ -50,7 +50,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
 
         uint256 balance = balanceOf(msg.sender);
-        infos[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false, farm_, _updateCheckpoint);
+        infos[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
         farmTotalSupply[farm_] -= balance;
     }
 
@@ -65,15 +65,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
     }
 
     function updateCheckpoint(address farm_) external override {
-        _updateCheckpoint(farm_, farmedPerToken(farm_));
-    }
-
-    function _updateCheckpoint(address farm_, uint256 fpt) internal {
-        infos[farm_].updateCheckpoint(fpt);
-        try IFarm(farm_).onCheckpointUpdate() {}
-        catch {
-            this.onError("farm.onCheckpointUpdate() failed");
-        }
+        infos[farm_].updateCheckpoint(farmedPerToken(farm_));
     }
 
     // ERC20 overrides
@@ -92,7 +84,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
                 for (j = 0; j < b.length; j++) {
                     if (farm_ == b[j]) {
                         // Both parties are farming the same token
-                        infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, true, farm_, _updateCheckpoint);
+                        infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, true);
                         b[j] = address(0);
                         break;
                     }
@@ -100,7 +92,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
 
                 if (j == b.length) {
                     // Sender is farming a token, but receiver is not
-                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, false, farm_, _updateCheckpoint);
+                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, true, false);
                     farmTotalSupply[farm_] -= amount;
                 }
             }
@@ -109,7 +101,7 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
                 address farm_ = b[j];
                 if (farm_ != address(0)) {
                     // Receiver is farming a token, but sender is not
-                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, false, true, farm_, _updateCheckpoint);
+                    infos[farm_].updateBalances(farmedPerToken(farm_), from, to, amount, false, true);
                     farmTotalSupply[farm_] += amount;
                 }
             }

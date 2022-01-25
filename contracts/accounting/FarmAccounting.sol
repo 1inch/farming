@@ -11,9 +11,6 @@ library FarmAccounting {
         uint176 reward;
     }
 
-    /// @dev Use block.timestamp for checkpoint if needed, try not to revert
-    function onCheckpointUpdate(Info storage info) internal {}
-
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
         require(checkpoint >= info.finished - info.duration, "Checkpoint must be >= started");
