@@ -29,7 +29,7 @@ contract FarmingPool is IFarmingPool, BaseFarm, ERC20 {
     }
 
     function farmedPerToken() public view override returns (uint256) {
-        return userInfo.farmedPerToken(address(0), _getTotalSupply, _getFarmedSinceCheckpointScaled);
+        return userInfo.farmedPerToken(address(0), _lazyGetSupply, _lazyGetFarmed);
     }
 
     function farmed(address account) public view override returns (uint256) {
@@ -67,24 +67,32 @@ contract FarmingPool is IFarmingPool, BaseFarm, ERC20 {
         super._beforeTokenTransfer(from, to, amount);
 
         if (amount > 0) {
-            userInfo.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0));
+            userInfo.updateBalances(farmedPerToken(), from, to, amount, from != address(0), to != address(0), address(0), _triggerCheckpoint);
         }
     }
 
     // UserAccounting bindings
 
-    function _getTotalSupply(address /* farm */) internal view returns(uint256) {
+    function _lazyGetSupply(address /* context */) internal view returns(uint256) {
         return totalSupply();
     }
 
-    function _getFarmedSinceCheckpointScaled(address /* farm */, uint256 updated) internal view returns(uint256) {
+    function _lazyGetFarmed(address /* context */, uint256 updated) internal view returns(uint256) {
         return farmInfo.farmedSinceCheckpointScaled(updated);
+    }
+
+    function _triggerCheckpoint(address /* context */, uint256 fpt) internal {
+        _updateCheckpoint(fpt);
     }
 
     // BaseFarm overrides
 
     function _updateCheckpoint() internal override {
-        userInfo.updateCheckpoint(farmedPerToken());
+        _updateCheckpoint(farmedPerToken());
+    }
+
+    function _updateCheckpoint(uint256 fpt) private {
+        userInfo.updateCheckpoint(fpt);
         farmInfo.onCheckpointUpdate();
     }
 }

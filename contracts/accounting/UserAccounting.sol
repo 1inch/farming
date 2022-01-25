@@ -11,15 +11,15 @@ library UserAccounting {
 
     function farmedPerToken(
         Info storage info,
-        address farm,
-        function(address) internal view returns(uint256) getSupply,
-        function(address, uint256) internal view returns(uint256) getFarmedSinceCheckpointScaled
+        address context,
+        function(address) internal view returns(uint256) lazyGetSupply,
+        function(address, uint256) internal view returns(uint256) lazyGetFarmed
     ) internal view returns(uint256) {
         (uint256 upd, uint256 fpt) = (info.updateTime, info.farmedPerTokenStored);
         if (block.timestamp != upd) {
-            uint256 supply = getSupply(farm);
+            uint256 supply = lazyGetSupply(context);
             if (supply > 0) {
-                fpt += getFarmedSinceCheckpointScaled(farm, upd) / supply;
+                fpt += lazyGetFarmed(context, upd) / supply;
             }
         }
         return fpt;
@@ -40,10 +40,20 @@ library UserAccounting {
         }
     }
 
-    function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
+    function updateBalances(
+        Info storage info,
+        uint256 fpt,
+        address from,
+        address to,
+        uint256 amount,
+        bool inFrom,
+        bool inTo,
+        address context,
+        function(address,uint256) internal triggerCheckpoint
+    ) internal {
         if (amount > 0 && (inFrom || inTo)) {
             if (!inFrom || !inTo) {
-                updateCheckpoint(info, fpt);
+                triggerCheckpoint(context, fpt);
             }
             if (inFrom) {
                 info.corrections[from] -= int256(amount * fpt);
