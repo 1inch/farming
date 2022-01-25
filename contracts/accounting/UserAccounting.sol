@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 library UserAccounting {
     struct Info {
-        uint40 updateTime;
+        uint40 checkpoint;
         uint216 farmedPerTokenStored;
         mapping(address => int256) corrections;
     }
@@ -15,11 +15,11 @@ library UserAccounting {
         function(address) internal view returns(uint256) lazyGetSupply,
         function(address, uint256) internal view returns(uint256) lazyGetFarmed
     ) internal view returns(uint256) {
-        (uint256 upd, uint256 fpt) = (info.updateTime, info.farmedPerTokenStored);
-        if (block.timestamp != upd) {
+        (uint256 checkpoint, uint256 fpt) = (info.checkpoint, info.farmedPerTokenStored);
+        if (block.timestamp != checkpoint) {
             uint256 supply = lazyGetSupply(context);
             if (supply > 0) {
-                fpt += lazyGetFarmed(context, upd) / supply;
+                fpt += lazyGetFarmed(context, checkpoint) / supply;
             }
         }
         return fpt;
@@ -34,9 +34,9 @@ library UserAccounting {
     }
 
     function updateCheckpoint(Info storage info, uint256 fpt) internal {
-        (uint256 prevUpd, uint256 prevFpt) = (info.updateTime, info.farmedPerTokenStored);
-        if (block.timestamp != prevUpd || fpt != prevFpt) {
-            (info.updateTime, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
+        (uint256 prevCheckpoint, uint256 prevFpt) = (info.checkpoint, info.farmedPerTokenStored);
+        if (block.timestamp != prevCheckpoint || fpt != prevFpt) {
+            (info.checkpoint, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
         }
     }
 
