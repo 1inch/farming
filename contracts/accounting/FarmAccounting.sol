@@ -13,9 +13,9 @@ library FarmAccounting {
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
-        require(checkpoint >= info.finished - info.duration, "Checkpoint must be >= started");
+        require(checkpoint >= info.finished - info.duration, "FA: Checkpoint >= started");
         if (info.duration > 0) {
-            uint256 elapsed = Math.min(block.timestamp, info.finished) - checkpoint;
+            uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
             return elapsed * info.reward * 1e18 / info.duration;
         }
     }
