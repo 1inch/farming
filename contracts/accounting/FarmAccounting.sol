@@ -20,8 +20,9 @@ library FarmAccounting {
     }
 
     function _farmedSinceCheckpointScaledMemory(Info memory info, uint256 checkpoint) private view returns(uint256 amount) {
+        require(checkpoint >= info.finished - info.duration, "Checkpoint must be >= started");
         if (info.duration > 0) {
-            uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.max(checkpoint, info.finished - info.duration);
+            uint256 elapsed = Math.min(block.timestamp, info.finished) - checkpoint;
             return elapsed * info.reward * 1e18 / info.duration;
         }
     }
@@ -30,7 +31,7 @@ library FarmAccounting {
         // If something left from prev farming add it to the new farming
         Info memory prev = info;
         if (block.timestamp < prev.finished) {
-            amount += prev.reward - _farmedSinceCheckpointScaledMemory(prev, 0) / 1e18;
+            amount += prev.reward - _farmedSinceCheckpointScaledMemory(prev, prev.finished - prev.duration) / 1e18;
         }
 
         require(period < 2**40, "FA: Period too large");
