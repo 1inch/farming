@@ -61,11 +61,11 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
         }
     }
 
-    function checkpoint(address farm_) external override {
-        infos[farm_].checkpoint(farmedPerToken(farm_));
-        try IFarm(farm_).farmingCheckpoint() {}
+    function updateCheckpoint(address farm_) external override {
+        infos[farm_].updateCheckpoint(farmedPerToken(farm_));
+        try IFarm(farm_).onCheckpointUpdate() {}
         catch {
-            emit Error("farm.farmingCheckpoint() failed");
+            emit Error("farm.onCheckpointUpdate() failed");
         }
     }
 

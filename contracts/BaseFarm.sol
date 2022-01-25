@@ -32,10 +32,10 @@ abstract contract BaseFarm is Ownable {
         require(msg.sender == distributor, "FA: access denied");
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        _updateFarmingState();
+        _updateCheckpoint();
         uint256 reward = farmInfo.startFarming(amount, period);
         emit RewardAdded(reward, period);
     }
 
-    function _updateFarmingState() internal virtual;
+    function _updateCheckpoint() internal virtual;
 }

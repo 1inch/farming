@@ -83,8 +83,8 @@ contract FarmingPool is IFarmingPool, BaseFarm, ERC20 {
 
     // BaseFarm overrides
 
-    function _updateFarmingState() internal override {
-        userInfo.checkpoint(farmedPerToken());
-        farmInfo.farmingCheckpoint();
+    function _updateCheckpoint() internal override {
+        userInfo.updateCheckpoint(farmedPerToken());
+        farmInfo.onCheckpointUpdate();
     }
 }

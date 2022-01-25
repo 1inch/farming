@@ -12,16 +12,16 @@ library FarmAccounting {
     }
 
     /// @dev Use block.timestamp for checkpoint if needed, try not to revert
-    function farmingCheckpoint(Info storage info) internal {}
+    function onCheckpointUpdate(Info storage info) internal {}
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
-    function farmedSinceCheckpointScaled(Info storage info, uint256 updated) internal view returns(uint256 amount) {
-        return _farmedSinceCheckpointScaledMemory(info, updated);
+    function farmedSinceCheckpointScaled(Info storage info, uint256 checkpoint) internal view returns(uint256 amount) {
+        return _farmedSinceCheckpointScaledMemory(info, checkpoint);
     }
 
-    function _farmedSinceCheckpointScaledMemory(Info memory info, uint256 updated) private view returns(uint256 amount) {
+    function _farmedSinceCheckpointScaledMemory(Info memory info, uint256 checkpoint) private view returns(uint256 amount) {
         if (info.duration > 0) {
-            uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.max(updated, info.finished - info.duration);
+            uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.max(checkpoint, info.finished - info.duration);
             return elapsed * info.reward * 1e18 / info.duration;
         }
     }
