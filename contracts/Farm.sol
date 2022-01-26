@@ -39,11 +39,11 @@ contract Farm is IFarm, Ownable {
     }
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
-    function farmedSinceCheckpointScaled(uint256 checkpoint) public view override returns(uint256 amount) {
+    function farmedSinceCheckpointScaled(uint256 checkpoint) external view returns(uint256 amount) {
         return farmInfo.farmedSinceCheckpointScaled(checkpoint);
     }
 
-    function claimFor(address account, uint256 amount) external override {
+    function claimFor(address account, uint256 amount) external {
         require(msg.sender == address(farmableToken), "ERC20: Access denied");
         rewardsToken.safeTransfer(account, amount);
     }
