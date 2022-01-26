@@ -122,8 +122,8 @@ abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
         return _farmTotalSupply[farm_];
     }
 
-    function _lazyGetFarmed(address farm_, uint256 updated) internal view returns(uint256) {
-        try IFarm(farm_).farmedSinceCheckpointScaled(updated) returns(uint256 amount) {
+    function _lazyGetFarmed(address farm_, uint256 checkpoint) internal view returns(uint256) {
+        try IFarm(farm_).farmedSinceCheckpointScaled(checkpoint) returns(uint256 amount) {
             if (amount <= 1e54) {
                 return amount;
             }

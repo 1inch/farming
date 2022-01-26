@@ -100,8 +100,8 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         return totalSupply();
     }
 
-    function _lazyGetFarmed(address /* context */, uint256 updated) private view returns(uint256) {
-        return farmInfo.farmedSinceCheckpointScaled(updated);
+    function _lazyGetFarmed(address /* context */, uint256 checkpoint) private view returns(uint256) {
+        return farmInfo.farmedSinceCheckpointScaled(checkpoint);
     }
 
     // FarmAccounting bindings
