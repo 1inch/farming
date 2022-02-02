@@ -54,7 +54,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         return _userInfo[farm_].farmed(account, farmBalanceOf(farm_, account), farmedPerToken(farm_));
     }
 
-    function farm(address farm_) public virtual returns(uint256) {
+    function join(address farm_) public virtual returns(uint256) {
         require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
 
         uint256 balance = balanceOf(msg.sender);
@@ -63,13 +63,28 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         return _userFarms[msg.sender].length();
     }
 
-    function exit(address farm_) public virtual returns(uint256) {
+    function quitAll() public virtual {
+        address[] memory farms = _userFarms[msg.sender].items.get();
+        for (uint256 i = 0; i < farms.length; i++) {
+            quit(farms[i]);
+        }
+    }
+
+    function quit(address farm_) public virtual returns(uint256) {
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
         _farmTotalSupply[farm_] -= balance;
         return _userFarms[msg.sender].length();
+    }
+
+    function claimAll() public virtual returns(uint256[] memory amounts) {
+        address[] memory farms = _userFarms[msg.sender].items.get();
+        amounts = new uint256[](farms.length);
+        for (uint256 i = 0; i < farms.length; i++) {
+            amounts[i] = claim(farms[i]);
+        }
     }
 
     function claim(address farm_) public virtual returns(uint256) {
