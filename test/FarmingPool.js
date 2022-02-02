@@ -59,7 +59,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with rewards distribution access denied ', async function () {
             await expectRevert(
                 this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                'FA: access denied',
+                'FP: Access denied',
             );
         });
     });
@@ -226,6 +226,28 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
 
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('72000');
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('0');
+        });
+
+        it('Three stakers with the different (1:3:5) stakes wait 3 weeks + 1 second', async function () {
+            //
+            // 1x: +----------------+--------+ = 18k for 1w +  8k for 2w + 12k for 3w
+            // 3x: +----------------+          = 54k for 1w + 24k for 2w +  0k for 3w
+            // 5x:         +-----------------+ =  0k for 1w + 40k for 2w + 60k for 3w
+            //
+
+            // 72000 UDSC per week for 3 weeks
+            await this.farm.startFarming('72000', time.duration.weeks(1), { from: wallet1 });
+
+            await this.farm.deposit('1', { from: wallet1 });
+            await this.farm.deposit('3', { from: wallet2 });
+
+            await timeIncreaseTo(this.started.add(time.duration.weeks(1).addn(1)));
+
+            await this.farm.deposit('5', { from: wallet3 });
+
+            expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual('18000');
+            expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual('54000');
+            expect(await this.farm.farmed(wallet3)).to.be.bignumber.almostEqual('0');
         });
 
         it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async function () {
