@@ -44,7 +44,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function startFarming(uint256 amount, uint256 period) external {
-        require(msg.sender == distributor, "FP: Access denied");
+        require(msg.sender == distributor, "FP: access denied");
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);

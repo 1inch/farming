@@ -35,7 +35,7 @@ contract Farm is IFarm, Ownable {
     }
 
     function startFarming(uint256 amount, uint256 period) external {
-        require(msg.sender == distributor, "F: Access denied");
+        require(msg.sender == distributor, "F: access denied");
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
@@ -48,7 +48,7 @@ contract Farm is IFarm, Ownable {
     }
 
     function claimFor(address account, uint256 amount) external {
-        require(msg.sender == address(farmableToken), "ERC20: Access denied");
+        require(msg.sender == address(farmableToken), "ERC20: access denied");
         rewardsToken.safeTransfer(account, amount);
     }
 
