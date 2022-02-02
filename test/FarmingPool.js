@@ -59,7 +59,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with rewards distribution access denied ', async function () {
             await expectRevert(
                 this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                'FP: Access denied',
+                'FP: access denied',
             );
         });
     });
@@ -337,7 +337,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('Thrown with Period too large', async function () {
             await expectRevert(
                 this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
-                'Period too large',
+                'FA: period too large',
             );
         });
 
@@ -347,7 +347,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             await this.gift.approve(this.farm.address, largeAmount, { from: wallet1 });
             await expectRevert(
                 this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
-                'Amount too large',
+                'FA: amount too large',
             );
         });
 

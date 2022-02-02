@@ -57,7 +57,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with rewards distribution access denied ', async function () {
             await expectRevert(
                 this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                'F: Access denied',
+                'F: access denied',
             );
         });
     });
@@ -107,7 +107,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with access denied', async function () {
             await expectRevert(
                 this.farm.claimFor(wallet1, '1000', { from: wallet1 }),
-                'ERC20: Access denied',
+                'ERC20: access denied',
             );
         });
     });
@@ -499,7 +499,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
         it('Thrown with Period too large', async function () {
             await expectRevert(
                 this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
-                'Period too large',
+                'FA: period too large',
             );
         });
 
@@ -509,7 +509,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await this.gift.approve(this.farm.address, largeAmount, { from: wallet1 });
             await expectRevert(
                 this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
-                'Amount too large',
+                'FA: amount too large',
             );
         });
 
