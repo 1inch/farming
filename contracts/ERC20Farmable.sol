@@ -8,7 +8,7 @@ import "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
 import "./interfaces/IERC20Farmable.sol";
 import "./accounting/UserAccounting.sol";
 
-abstract contract ERC20Farmable is IERC20Farmable, ERC20 {
+abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;
     using UserAccounting for UserAccounting.Info;
