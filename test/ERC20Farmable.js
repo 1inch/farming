@@ -1,4 +1,5 @@
 const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
+const { expect } = require('chai');
 
 const ERC20FarmableMock = artifacts.require('ERC20FarmableMock');
 const Farm = artifacts.require('Farm');

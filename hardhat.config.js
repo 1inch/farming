@@ -9,10 +9,13 @@ const networks = require('./hardhat.networks');
 
 module.exports = {
     etherscan: {
-        apiKey: process.env.ETHERSCAN_KEY,
+        apiKey: {
+            mainnet: process.env.MAINNET_ETHERSCAN_KEY,
+            avalanche: process.env.AVAX_ETHERSCAN_KEY,
+        },
     },
     solidity: {
-        version: '0.8.9',
+        version: '0.8.11',
         settings: {
             optimizer: {
                 enabled: true,
