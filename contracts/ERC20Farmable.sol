@@ -34,6 +34,14 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         return _userFarms[account].contains(farm_);
     }
 
+    function userFarmsCount(address account) public view virtual returns(uint256) {
+        return _userFarms[account].length();
+    }
+
+    function userFarmsAt(address account, uint256 index) public view virtual returns(address) {
+        return _userFarms[account].at(index);
+    }
+
     function userFarms(address account) public view virtual returns(address[] memory) {
         return _userFarms[account].items.get();
     }
@@ -46,23 +54,25 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         return _userInfo[farm_].farmed(account, farmBalanceOf(farm_, account), farmedPerToken(farm_));
     }
 
-    function farm(address farm_) public virtual {
+    function farm(address farm_) public virtual returns(uint256) {
         require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
         _farmTotalSupply[farm_] += balance;
+        return _userFarms[msg.sender].length();
     }
 
-    function exit(address farm_) public virtual {
+    function exit(address farm_) public virtual returns(uint256) {
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
         _farmTotalSupply[farm_] -= balance;
+        return _userFarms[msg.sender].length();
     }
 
-    function claim(address farm_) public virtual {
+    function claim(address farm_) public virtual returns(uint256) {
         uint256 fpt = farmedPerToken(farm_);
         uint256 balance = farmBalanceOf(farm_, msg.sender);
         uint256 amount = _userInfo[farm_].farmed(msg.sender, balance, fpt);
@@ -70,6 +80,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
             _userInfo[farm_].eraseFarmed(msg.sender, balance, fpt);
             IFarm(farm_).claimFor(msg.sender, amount);
         }
+        return amount;
     }
 
     function updateCheckpoint() public virtual {
