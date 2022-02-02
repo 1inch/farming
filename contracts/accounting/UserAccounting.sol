@@ -34,10 +34,7 @@ library UserAccounting {
     }
 
     function updateCheckpoint(Info storage info, uint256 fpt) internal {
-        (uint256 prevCheckpoint, uint256 prevFpt) = (info.checkpoint, info.farmedPerTokenStored);
-        if (block.timestamp != prevCheckpoint || fpt != prevFpt) {
-            (info.checkpoint, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
-        }
+        (info.checkpoint, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
     function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
