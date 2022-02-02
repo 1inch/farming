@@ -13,6 +13,7 @@ contract Farm is IFarm, Ownable {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
 
+    event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
 
     IERC20Farmable public immutable farmableToken;
@@ -27,6 +28,9 @@ contract Farm is IFarm, Ownable {
     }
 
     function setDistributor(address distributor_) external onlyOwner {
+        address oldDistributor = distributor;
+        require(distributor_ != oldDistributor, "FP: distributor is already set");
+        emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }
 

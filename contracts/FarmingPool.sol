@@ -16,6 +16,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;
 
+    event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
 
     IERC20 public immutable stakingToken;
@@ -36,6 +37,9 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function setDistributor(address distributor_) external onlyOwner {
+        address oldDistributor = distributor;
+        require(distributor_ != oldDistributor, "FP: distributor is already set");
+        emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }
 
