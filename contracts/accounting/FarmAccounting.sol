@@ -28,8 +28,8 @@ library FarmAccounting {
         }
 
         updateCheckpoint();
-        require(period < 2**40, "FA: Period too large");
-        require(amount < 2**176, "FA: Amount too large");
+        require(period + block.timestamp <= type(uint40).max, "FA: Period too large");
+        require(amount <= type(uint176).max, "FA: Amount too large");
         (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
         return amount;
     }
