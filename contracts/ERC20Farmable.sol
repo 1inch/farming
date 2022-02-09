@@ -150,7 +150,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function _lazyGetFarmed(address farm_, uint256 checkpoint) internal view returns(uint256) {
         try IFarm(farm_).farmedSinceCheckpointScaled{ gas: 200_000 }(checkpoint) returns(uint256 amount) {
-            if (amount <= 1e54) {
+            if (amount <= 2e55) {
                 return amount;
             }
             else {

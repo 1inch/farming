@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 library FarmAccounting {
     struct Info {
         uint40 finished;
-        uint40 duration;
-        uint176 reward;
+        uint32 duration;
+        uint184 reward;
     }
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
@@ -29,8 +29,8 @@ library FarmAccounting {
 
         updateCheckpoint();
         require(period + block.timestamp <= type(uint40).max, "FA: period too large");
-        require(amount <= type(uint176).max, "FA: amount too large");
-        (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
+        require(amount <= type(uint184).max, "FA: amount too large");
+        (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint32(period), uint184(amount));
         return amount;
     }
 }
