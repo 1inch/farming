@@ -4,7 +4,7 @@ const timeIncreaseTo = async (seconds) => {
     const delay = 10 - new Date().getMilliseconds();
     await new Promise(resolve => setTimeout(resolve, delay));
     await time.increaseTo(seconds);
-}
+};
 
 const almostEqual = function (expected, actual) {
     this.assert(
