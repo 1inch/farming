@@ -33,7 +33,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
 
     describe('farming', async () => {
         beforeEach(async () => {
-            this.gift = await TokenMock.new('UDSC', 'USDC');
+            this.gift = await TokenMock.new('UDSC', 'USDC', '0');
             this.farm = await Farm.new(this.token.address, this.gift.address);
 
             for (const wallet of [wallet1, wallet2, wallet3]) {

@@ -21,8 +21,8 @@ require('chai').use(function (chai, utils) {
 
 contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
     beforeEach(async () => {
-        this.token = await TokenMock.new('1INCH', '1INCH');
-        this.gift = await TokenMock.new('UDSC', 'USDC');
+        this.token = await TokenMock.new('1INCH', '1INCH', '0');
+        this.gift = await TokenMock.new('UDSC', 'USDC', '0');
         this.farm = await FarmingPool.new(this.token.address, this.gift.address);
 
         for (const wallet of [wallet1, wallet2, wallet3]) {

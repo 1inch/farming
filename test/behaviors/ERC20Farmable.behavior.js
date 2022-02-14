@@ -22,7 +22,7 @@ require('chai').use(function (chai, utils) {
 function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anotherAccount) {
     describe('should behave like farmable', async () => {
         beforeEach(async () => {
-            this.gift = await TokenMock.new('UDSC', 'USDC');
+            this.gift = await TokenMock.new('UDSC', 'USDC', '0');
             this.farm = await Farm.new(this.token.address, this.gift.address);
 
             for (const wallet of [initialHolder, recipient, anotherAccount]) {
