@@ -1,26 +1,9 @@
 const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
+const { timeIncreaseTo, almostEqual } = require('./utils');
 
 const FarmingPool = artifacts.require('FarmingPool');
 const TokenMock = artifacts.require('TokenMock');
-
-async function timeIncreaseTo (seconds) {
-    const delay = 10 - new Date().getMilliseconds();
-    await new Promise(resolve => setTimeout(resolve, delay));
-    await time.increaseTo(seconds);
-}
-
-const almostEqual = function (expected, actual) {
-    this.assert(
-        expected.eq(actual) ||
-        expected.addn(1).eq(actual) || expected.addn(2).eq(actual) ||
-        actual.addn(1).eq(expected) || actual.addn(2).eq(expected),
-        'expected #{act} to be almost equal #{exp}',
-        'expected #{act} to be different from #{exp}',
-        expected.toString(),
-        actual.toString(),
-    );
-};
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', function (original) {
