@@ -24,15 +24,15 @@ require('chai').use(function (chai, utils) {
 contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
     const initialSupply = ether('1.0');
 
-    beforeEach(async function () {
+    beforeEach(async () => {
         this.token = await ERC20FarmableMock.new('1INCH', '1INCH');
         await this.token.mint(wallet1, initialSupply);
     });
 
     shouldBehaveLikeFarmable(initialSupply, wallet1, wallet2, wallet3);
 
-    describe('farming', async function () {
-        beforeEach(async function () {
+    describe('farming', async () => {
+        beforeEach(async () => {
             this.gift = await TokenMock.new('UDSC', 'USDC');
             this.farm = await Farm.new(this.token.address, this.gift.address);
 
@@ -47,22 +47,22 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             await timeIncreaseTo(this.started);
         });
 
-        describe('startFarming', async function () {
-            it('should thrown with rewards distribution access denied ', async function () {
+        describe('startFarming', async () => {
+            it('should thrown with rewards distribution access denied ', async () => {
                 await expectRevert(
                     this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
                     'F: access denied',
                 );
             });
 
-            it('Thrown with Period too large', async function () {
+            it('Thrown with Period too large', async () => {
                 await expectRevert(
                     this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
                     'FA: period too large',
                 );
             });
 
-            it('Thrown with Amount too large', async function () {
+            it('Thrown with Amount too large', async () => {
                 const largeAmount = (new BN(2)).pow(new BN(192));
                 await this.gift.mint(wallet1, largeAmount);
                 await this.gift.approve(this.farm.address, largeAmount);
@@ -73,8 +73,8 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             });
         });
 
-        describe('claim', async function () {
-            it('should claim tokens', async function () {
+        describe('claim', async () => {
+            it('should claim tokens', async () => {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
@@ -86,7 +86,7 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
                 expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equal(balanceBefore.addn(1000));
             });
 
-            it('should claim tokens for non-user farms wallet', async function () {
+            it('should claim tokens for non-user farms wallet', async () => {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
@@ -99,8 +99,8 @@ contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
             });
         });
 
-        describe('claimFor', async function () {
-            it('should thrown with access denied', async function () {
+        describe('claimFor', async () => {
+            it('should thrown with access denied', async () => {
                 await expectRevert(
                     this.farm.claimFor(wallet1, '1000', { from: wallet1 }),
                     'ERC20: access denied',

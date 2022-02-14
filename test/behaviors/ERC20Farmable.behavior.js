@@ -20,8 +20,8 @@ require('chai').use(function (chai, utils) {
 });
 
 function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anotherAccount) {
-    describe('should behave like farmable', async function () {
-        beforeEach(async function () {
+    describe('should behave like farmable', async () => {
+        beforeEach(async () => {
             this.gift = await TokenMock.new('UDSC', 'USDC');
             this.farm = await Farm.new(this.token.address, this.gift.address);
 
@@ -36,19 +36,19 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
             await timeIncreaseTo(this.started);
         });
 
-        describe('farm', async function () {
-            it('should update totalSupply', async function () {
+        describe('farm', async () => {
+            it('should update totalSupply', async () => {
                 await this.token.join(this.farm.address, { from: initialHolder });
                 expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.equal(initialSupply);
             });
 
-            it('should make totalSupply to decrease with balance', async function () {
+            it('should make totalSupply to decrease with balance', async () => {
                 await this.token.join(this.farm.address, { from: initialHolder });
                 await this.token.transfer(recipient, initialSupply.muln(6).divn(10), { from: initialHolder });
                 expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.equal(initialSupply.muln(4).divn(10));
             });
 
-            it('should make totalSupply to increase with balance', async function () {
+            it('should make totalSupply to increase with balance', async () => {
                 await this.token.transfer(recipient, initialSupply.divn(2), { from: initialHolder });
                 await this.token.join(this.farm.address, { from: initialHolder });
                 expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.equal(initialSupply.divn(2));
@@ -56,7 +56,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.equal(initialSupply);
             });
 
-            it('should make totalSupply ignore internal transfers', async function () {
+            it('should make totalSupply ignore internal transfers', async () => {
                 await this.token.join(this.farm.address, { from: initialHolder });
                 await this.token.join(this.farm.address, { from: recipient });
                 expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.equal(initialSupply);
@@ -64,7 +64,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.equal(initialSupply);
             });
 
-            it('should be thrown', async function () {
+            it('should be thrown', async () => {
                 await this.token.join(this.farm.address, { from: initialHolder });
                 await expectRevert(
                     this.token.join(this.farm.address, { from: initialHolder }),
@@ -73,8 +73,8 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
             });
         });
 
-        describe('userFarms', async function () {
-            it('should return user farms', async function () {
+        describe('userFarms', async () => {
+            it('should return user farms', async () => {
                 await this.token.join(this.farm.address, { from: initialHolder });
                 const initialHolderFarms = await this.token.userFarms(initialHolder);
                 expect(initialHolderFarms.length).to.be.equal(1);
@@ -82,14 +82,14 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
             });
         });
 
-        describe('exit', async function () {
-            it('should be burn', async function () {
+        describe('exit', async () => {
+            it('should be burn', async () => {
                 await this.token.join(this.farm.address, { from: initialHolder });
                 await this.token.quit(this.farm.address, { from: initialHolder });
                 expect(await this.token.farmTotalSupply(this.farm.address)).to.be.bignumber.equal('0');
             });
 
-            it('should be thrown', async function () {
+            it('should be thrown', async () => {
                 await expectRevert(
                     this.token.quit(this.farm.address, { from: initialHolder }),
                     'ERC20Farmable: already exited',
@@ -97,8 +97,8 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
             });
         });
 
-        describe('deposit', async function () {
-            it('Two stakers with the same stakes wait 1 w', async function () {
+        describe('deposit', async () => {
+            it('Two stakers with the same stakes wait 1 w', async () => {
                 await this.token.transfer(recipient, initialSupply.divn(2), { from: initialHolder });
 
                 // 72000 UDSC per week for 3 weeks
@@ -122,7 +122,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('36000');
             });
 
-            it('Two stakers with the different (1:3) stakes wait 1 w', async function () {
+            it('Two stakers with the different (1:3) stakes wait 1 w', async () => {
                 await this.token.transfer(recipient, initialSupply.divn(4), { from: initialHolder });
 
                 // 72000 UDSC per week
@@ -146,7 +146,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('18000');
             });
 
-            it('Two stakers with the different (1:3) stakes wait 2 weeks', async function () {
+            it('Two stakers with the different (1:3) stakes wait 2 weeks', async () => {
                 //
                 // 1x: +----------------+ = 72k for 1w + 18k for 2w
                 // 3x:         +--------+ =  0k for 1w + 54k for 2w
@@ -176,7 +176,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('54000');
             });
 
-            it('One staker on 1st and 3rd weeks farming with gap', async function () {
+            it('One staker on 1st and 3rd weeks farming with gap', async () => {
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
                 //
@@ -200,7 +200,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('0');
             });
 
-            it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async function () {
+            it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async () => {
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
                 //
@@ -226,7 +226,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('0');
             });
 
-            it('One staker on 1st and 3rd weeks farming with gap + exit/farm in the middle', async function () {
+            it('One staker on 1st and 3rd weeks farming with gap + exit/farm in the middle', async () => {
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
                 //
@@ -254,7 +254,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('0');
             });
 
-            it('One staker on 1st and 3rd weeks farming with gap + exit/claim in the middle', async function () {
+            it('One staker on 1st and 3rd weeks farming with gap + exit/claim in the middle', async () => {
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
                 //
@@ -284,7 +284,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('0');
             });
 
-            it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async function () {
+            it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async () => {
                 //
                 // 1x: +----------------+--------+ = 18k for 1w +  8k for 2w + 12k for 3w
                 // 3x: +----------------+          = 54k for 1w + 24k for 2w +  0k for 3w
@@ -328,7 +328,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, anotherAccount)).to.be.bignumber.almostEqual('100000');
             });
 
-            it('Three stakers with the different (1:3:5) stakes wait 3 weeks for 1 farming event', async function () {
+            it('Three stakers with the different (1:3:5) stakes wait 3 weeks for 1 farming event', async () => {
                 //
                 // 1x: +-------------------------+ = 18k for 1w +  8k for 2w + 12k for 3w
                 // 3x: +----------------+          = 54k for 1w + 24k for 2w +  0k for 3w
@@ -369,7 +369,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, anotherAccount)).to.be.bignumber.almostEqual('100000');
             });
 
-            it('One staker on 2 durations with gap', async function () {
+            it('One staker on 2 durations with gap', async () => {
                 // 72000 UDSC per week for 1 weeks
                 await this.farm.startFarming('72000', time.duration.weeks(1), { from: initialHolder });
 
@@ -389,7 +389,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, initialHolder)).to.be.bignumber.almostEqual('144000');
             });
 
-            it('Notify Reward Amount from mocked distribution to 10,000', async function () {
+            it('Notify Reward Amount from mocked distribution to 10,000', async () => {
                 await this.token.transfer(recipient, initialSupply.divn(4), { from: initialHolder });
 
                 // 10000 UDSC per week for 1 weeks
@@ -413,7 +413,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('2500');
             });
 
-            it('Notify Reward Amount before prev farming finished', async function () {
+            it('Notify Reward Amount before prev farming finished', async () => {
                 await this.token.transfer(recipient, initialSupply.divn(4), { from: initialHolder });
 
                 // 10000 UDSC per week for 1 weeks
@@ -437,8 +437,8 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
             });
         });
 
-        describe('transfers', async function () {
-            it('Transfer from one wallet to another, both farming', async function () {
+        describe('transfers', async () => {
+            it('Transfer from one wallet to another, both farming', async () => {
                 //
                 // 2x: +-------+ 1х+--------+   = 9k  for 1w + 27k for 2w = 36
                 // 1x: +-------+ 2x+--------+   = 27k for 1w +  9k for 2w = 36
@@ -464,7 +464,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('36000');
             });
 
-            it('Transfer from one wallet to another, sender is farming, reciever is not farming', async function () {
+            it('Transfer from one wallet to another, sender is farming, reciever is not farming', async () => {
                 //
                 // 1x: +-------+--------+   = 18k for 1w + 36k for 2w
                 // 1x: +-------+            = 18k for 1w +  0k for 2w
@@ -491,7 +491,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 expect(await this.token.farmed(this.farm.address, recipient)).to.be.bignumber.almostEqual('18000');
             });
 
-            it('Top up farming wallet', async function () {
+            it('Top up farming wallet', async () => {
                 await this.token.transfer(recipient, initialSupply.divn(4), { from: initialHolder });
                 await this.token.transfer(anotherAccount, initialSupply.divn(2), { from: initialHolder });
 
@@ -515,13 +515,13 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
             });
         });
 
-        describe('transfer', async function () {
+        describe('transfer', async () => {
             const farmingAmount = new BN('72000');
             const initialHolderAmount = initialSupply.divn(5);
             const recipientAmount = initialSupply.muln(3).divn(5);
             const anotherAccountAmount = initialSupply.divn(5);
 
-            it('should be correct farming after transfered from non-farm user to farm user', async function () {
+            it('should be correct farming after transfered from non-farm user to farm user', async () => {
                 await this.token.transfer(recipient, recipientAmount, { from: initialHolder });
                 await this.token.transfer(anotherAccount, anotherAccountAmount, { from: initialHolder });
 
@@ -560,7 +560,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 console.log(`farmed after transfer and additional week {initialHolder, recipient} = {${farmedinitialHolderPer2Week.toString()}, ${farmedrecipientPer2Week.toString()}}`);
             });
 
-            it('should be correct farming after transfered from farm user to non-farm user', async function () {
+            it('should be correct farming after transfered from farm user to non-farm user', async () => {
                 await this.token.transfer(anotherAccount, anotherAccountAmount, { from: initialHolder });
 
                 await this.farm.startFarming(farmingAmount, time.duration.weeks(2), { from: initialHolder });
@@ -592,7 +592,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 console.log(`farmed after transfer and additional week {initialHolder, recipient} = {${farmedinitialHolderPer2Week.toString()}, ${farmedrecipientPer2Week.toString()}}`);
             });
 
-            it('should be correct farming after transfered from non-farm user to non-farm user', async function () {
+            it('should be correct farming after transfered from non-farm user to non-farm user', async () => {
                 await this.farm.startFarming(farmingAmount, time.duration.weeks(2), { from: initialHolder });
 
                 await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
@@ -616,7 +616,7 @@ function shouldBehaveLikeFarmable (initialSupply, initialHolder, recipient, anot
                 console.log(`farmed after transfer and additional week {initialHolder, recipient} = {${farmedinitialHolderPerWeek.toString()}, ${farmedrecipientPerWeek.toString()}}`);
             });
 
-            it('should be correct farming after transfered from farm user to farm user', async function () {
+            it('should be correct farming after transfered from farm user to farm user', async () => {
                 await this.token.transfer(anotherAccount, anotherAccountAmount, { from: initialHolder });
                 await this.token.transfer(recipient, recipientAmount, { from: initialHolder });
 

@@ -1,6 +1,6 @@
 const { time } = require('@openzeppelin/test-helpers');
 
-async function timeIncreaseTo (seconds) {
+const timeIncreaseTo = async (seconds) => {
     const delay = 10 - new Date().getMilliseconds();
     await new Promise(resolve => setTimeout(resolve, delay));
     await time.increaseTo(seconds);
