@@ -6,7 +6,7 @@ const FarmingPool = artifacts.require('FarmingPool');
 const TokenMock = artifacts.require('TokenMock');
 
 require('chai').use(function (chai, utils) {
-    chai.Assertion.overwriteMethod('almostEqual', function (original) {
+    chai.Assertion.overwriteMethod('almostEqual', (original) => {
         return function (value) {
             if (utils.flag(this, 'bignumber')) {
                 const expected = new BN(value);
