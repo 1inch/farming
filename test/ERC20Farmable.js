@@ -37,17 +37,15 @@ describe('ERC20Farmable', function () {
         this.farm = await Farm.new(this.token.address, this.gift.address);
     });
 
-    shouldBehaveLikeFarmable(() => {
-        return {
-            initialSupply,
-            initialHolder: wallet1,
-            recipient: wallet2,
-            anotherAccount: wallet3,
-            token: this.token,
-            farm: this.farm,
-            gift: this.gift,
-        };
-    });
+    shouldBehaveLikeFarmable(() => ({
+        initialSupply,
+        initialHolder: wallet1,
+        recipient: wallet2,
+        anotherAccount: wallet3,
+        token: this.token,
+        farm: this.farm,
+        gift: this.gift,
+    }));
 
     describe('farming', async () => {
         beforeEach(async () => {
