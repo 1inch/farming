@@ -21,15 +21,33 @@ require('chai').use(function (chai, utils) {
     });
 });
 
-contract('ERC20Farmable', function ([wallet1, wallet2, wallet3]) {
+describe('ERC20Farmable', function () {
+    let wallet1, wallet2, wallet3;
     const initialSupply = ether('1.0');
+
+    before(async () => {
+        [wallet1, wallet2, wallet3] = await web3.eth.getAccounts();
+    });
 
     beforeEach(async () => {
         this.token = await ERC20FarmableMock.new('1INCH', '1INCH');
         await this.token.mint(wallet1, initialSupply);
+
+        this.gift = await TokenMock.new('UDSC', 'USDC', '0');
+        this.farm = await Farm.new(this.token.address, this.gift.address);
     });
 
-    shouldBehaveLikeFarmable(initialSupply, wallet1, wallet2, wallet3);
+    shouldBehaveLikeFarmable(() => {
+        return {
+            initialSupply,
+            initialHolder: wallet1,
+            recipient: wallet2,
+            anotherAccount: wallet3,
+            token: this.token,
+            farm: this.farm,
+            gift: this.gift,
+        };
+    });
 
     describe('farming', async () => {
         beforeEach(async () => {
