@@ -320,7 +320,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('Thrown with Period too large', async () => {
             await expectRevert(
                 this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
-                'FA: period too large',
+                'FA: duration too large',
             );
         });
 

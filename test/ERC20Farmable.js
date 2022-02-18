@@ -98,7 +98,7 @@ describe('ERC20Farmable', function () {
             it('Thrown with Period too large', async () => {
                 await expectRevert(
                     this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
-                    'FA: period too large',
+                    'FA: duration too large',
                 );
             });
 
@@ -131,7 +131,7 @@ describe('ERC20Farmable', function () {
                 ***Initial setup**
                 - `farm` started farming for 1 day with 1000 units reward
                 - `wallet1` has 1000 unit of farmable token and joined the farm
-                
+
                 ***Test Steps**
                 1. Fast-forward time to 1 day and 1 hour
                 2. Claim reward for `wallet1`
@@ -158,7 +158,7 @@ describe('ERC20Farmable', function () {
                 - `farm` started farming for 1 day with 1000 units reward
                 - `wallet1` has 1000 unit of farmable token and joined the farm
                 - `wallet2` hasn't joined the farm
-                
+
                 ***Test Steps**
                 1. Fast-forward time to 1 day and 1 hour
                 2. Claim reward for `wallet2`
