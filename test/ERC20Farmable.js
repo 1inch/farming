@@ -47,6 +47,7 @@ describe('ERC20Farmable', function () {
         gift: this.gift,
     }));
 
+    // Generic farming scenarios
     describe('farming', async () => {
         beforeEach(async () => {
             this.gift = await TokenMock.new('UDSC', 'USDC', '0');
@@ -63,7 +64,20 @@ describe('ERC20Farmable', function () {
             await timeIncreaseTo(this.started);
         });
 
+        // Farm initialization scenarios
         describe('startFarming', async () => {
+            /*
+                ***Test Scenario**
+                Checks that only distributor may launch farming. "Distributor" is the only account that offers farming reward.
+                ***Initial setup**
+                - `wallet1` - distributor account
+                - `wallet2` - non-distributor account
+
+                ***Test Steps**
+                Start farming using `wallet2`
+                ***Expected results**
+                Revert with error `'F: access denied'`.
+            */
             it('should thrown with rewards distribution access denied ', async () => {
                 await expectRevert(
                     this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
@@ -71,6 +85,16 @@ describe('ERC20Farmable', function () {
                 );
             });
 
+            /*
+                ***Test Scenario**
+                Check that farming period is of `uint40` size.
+
+                ***Test Steps**
+                Start farming using 2^40^ as farming period.
+
+                ***Expected results**
+                Revert with error `'FA: period too large'`.
+            */
             it('Thrown with Period too large', async () => {
                 await expectRevert(
                     this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
@@ -78,6 +102,16 @@ describe('ERC20Farmable', function () {
                 );
             });
 
+            /*
+                ***Test Scenario**
+                Check that farming amount is under `uint192`
+
+                ***Test Steps**
+                Start farming using 2^192^ as farming reward.
+
+                ***Expected results**
+                Revert with error `'FA: amount too large'`.
+            */
             it('Thrown with Amount too large', async () => {
                 const largeAmount = (new BN(2)).pow(new BN(192));
                 await this.gift.mint(wallet1, largeAmount);
@@ -89,7 +123,22 @@ describe('ERC20Farmable', function () {
             });
         });
 
+        // Token's claim scenarios
         describe('claim', async () => {
+            /*
+                ***Test Scenario**
+                Checks that farming reward can be claimed with the regular scenario 'join - farm - claim'.
+                ***Initial setup**
+                - `farm` started farming for 1 day with 1000 units reward
+                - `wallet1` has 1000 unit of farmable token and joined the farm
+                
+                ***Test Steps**
+                1. Fast-forward time to 1 day and 1 hour
+                2. Claim reward for `wallet1`
+
+                ***Expected results**
+                `wallet1` reward token balance equals 1000
+            */
             it('should claim tokens', async () => {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
@@ -102,6 +151,21 @@ describe('ERC20Farmable', function () {
                 expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equal(balanceBefore.addn(1000));
             });
 
+            /*
+                ***Test Scenario**
+                Checks that non-farming wallet doesn't get a reward
+                ***Initial setup**
+                - `farm` started farming for 1 day with 1000 units reward
+                - `wallet1` has 1000 unit of farmable token and joined the farm
+                - `wallet2` hasn't joined the farm
+                
+                ***Test Steps**
+                1. Fast-forward time to 1 day and 1 hour
+                2. Claim reward for `wallet2`
+
+                ***Expected results**
+                `wallet2` gift token balance doesn't change after claim
+            */
             it('should claim tokens for non-user farms wallet', async () => {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
@@ -115,7 +179,21 @@ describe('ERC20Farmable', function () {
             });
         });
 
+        // Farm's claim scenarios
         describe('claimFor', async () => {
+            /*
+                ***Test Scenario**
+                Ensure that `claimFor` can be called only by farmable token contract
+                ***Initial setup**
+                - `wallet1` has 1000 unit of farmable token and joined the farm
+                - `wallet2` has 1000 unit of farmable token and joined the farm
+
+                ***Test Steps**
+                Call farm's `claimFor` for `wallet1`
+
+                ***Expected results**
+                Revert with error `'ERC20: access denied'`
+            */
             it('should thrown with access denied', async () => {
                 await expectRevert(
                     this.farm.claimFor(wallet1, '1000', { from: wallet1 }),
