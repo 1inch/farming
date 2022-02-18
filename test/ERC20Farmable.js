@@ -47,7 +47,6 @@ describe('ERC20Farmable', function () {
         gift: this.gift,
     }));
 
-
     // Generic farming scenarios
     describe('farming', async () => {
         beforeEach(async () => {
@@ -113,7 +112,7 @@ describe('ERC20Farmable', function () {
                 ***Expected results**
                 Revert with error `'FA: amount too large'`.
             */
-            it ('Thrown with Amount too large', async () => {
+            it('Thrown with Amount too large', async () => {
                 const largeAmount = (new BN(2)).pow(new BN(192));
                 await this.gift.mint(wallet1, largeAmount);
                 await this.gift.approve(this.farm.address, largeAmount);

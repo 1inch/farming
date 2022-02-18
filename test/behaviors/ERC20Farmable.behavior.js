@@ -960,11 +960,11 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(4), { from: ctx.initialHolder });
 
-                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
-                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
+                await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
+                await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
-                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
-                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
+                expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
+                expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
 
                 await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
 
