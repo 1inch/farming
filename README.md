@@ -51,8 +51,8 @@ contract AMMPoolToken is ERC20Farmable {
     - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L9-L11) for farming params, updated only on farming restarting:
         ```solidity
         uint40 public finished;
-        uint40 public duration;
-        uint176 public reward;
+        uint32 public duration;
+        uint184 public reward;
         ```
     - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L7-L8) for farming state, updated only on changing number of farming tokens:
         ```solidity
