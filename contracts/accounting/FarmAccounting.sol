@@ -7,9 +7,11 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 library FarmAccounting {
     struct Info {
         uint40 finished;
-        uint40 duration;
-        uint176 reward;
+        uint32 duration;
+        uint184 reward;
     }
+
+    uint256 constant internal _MAX_REWARD_AMOUNT = 1e42;
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
@@ -28,9 +30,10 @@ library FarmAccounting {
         }
 
         updateCheckpoint();
-        require(period + block.timestamp <= type(uint40).max, "FA: period too large");
-        require(amount <= type(uint176).max, "FA: amount too large");
-        (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint40(period), uint176(amount));
+        require(period <= type(uint32).max, "FA: duration too large");
+        require(block.timestamp + period <= type(uint40).max, "FA: period too large");
+        require(amount <= _MAX_REWARD_AMOUNT, "FA: amount too large");
+        (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint32(period), uint184(amount));
         return amount;
     }
 }
