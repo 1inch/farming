@@ -11,6 +11,8 @@ library FarmAccounting {
         uint184 reward;
     }
 
+    uint256 constant internal _MAX_REWARD_AMOUNT = 1e42;
+
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
         require(checkpoint >= info.finished - info.duration, "FA: checkpoint >= started");
@@ -29,7 +31,7 @@ library FarmAccounting {
 
         updateCheckpoint();
         require(period + block.timestamp <= type(uint40).max, "FA: period too large");
-        require(amount <= type(uint184).max, "FA: amount too large");
+        require(amount <= _MAX_REWARD_AMOUNT, "FA: amount too large");
         (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint32(period), uint184(amount));
         return amount;
     }

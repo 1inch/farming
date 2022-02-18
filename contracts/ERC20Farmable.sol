@@ -7,6 +7,7 @@ import "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
 
 import "./interfaces/IERC20Farmable.sol";
 import "./accounting/UserAccounting.sol";
+import "./accounting/FarmAccounting.sol";
 
 abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressArray for AddressArray.Data;
@@ -150,7 +151,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function _lazyGetFarmed(address farm_, uint256 checkpoint) internal view returns(uint256) {
         try IFarm(farm_).farmedSinceCheckpointScaled{ gas: 200_000 }(checkpoint) returns(uint256 amount) {
-            if (amount <= 2e55) {
+            if (amount <= FarmAccounting._MAX_REWARD_AMOUNT * 1e18) {
                 return amount;
             }
             else {
