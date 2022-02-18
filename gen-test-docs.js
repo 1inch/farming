@@ -10,6 +10,7 @@
 // Settings
 const filesForGen = [
     'test/ERC20Farmable.js',
+    'test/behaviors/ERC20Farmable.behavior.js',
     'test/FarmingPool.js',
 ];
 
