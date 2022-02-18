@@ -150,7 +150,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
                 ***Initial setup**
                 `wallet1` has 1000 unit of farmable token and joined the only farm
-                
+
                 ***Test Steps**
                 Get all farms for `wallet1`
 
@@ -258,10 +258,10 @@ const shouldBehaveLikeFarmable = (getContext) => {
             it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
                 await ctx.farm.startFarming('72000', time.duration.weeks(2), { from: ctx.initialHolder });
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
-                
+
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
-                
+
                 await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
 
@@ -427,7 +427,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 |2. |Fast-forward => **week 2**                 |72k|
                 |3. |`farm` starts new farming 72k for 1 week   |72k|
                 |4. |Fast-forward => **week 3**                 |144k|
-                
+
             */
             it('One staker on 1st and 3rd weeks farming with gap', async () => {
                 //
@@ -953,7 +953,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 |4. |Fast-forward => **week 2**                             |27k|9k|
 
             */
-            it.only('Transfer from one wallet to another, both are not farming', async function () {
+            it('Transfer from one wallet to another, both are not farming', async function () {
                 await ctx.farm.startFarming('72000', time.duration.weeks(2), { from: ctx.initialHolder });
 
                 await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
