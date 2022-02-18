@@ -14,13 +14,15 @@ const filesForGen = [
     'test/FarmingPool.js',
 ];
 
-const outputMdFile = 'TESTS.md';
+const outputMdFile = 'TESTS-vc.md';
+
+const includeCode = true;
 
 // Script
 const acquitMd = require('acquit')();
 const acquitJson = require('acquit')();
 const fs = require('fs');
-require('acquit-markdown')(acquitMd, { code: false, it: true });
+require('acquit-markdown')(acquitMd, { code: includeCode, it: true });
 
 const legend = {};
 let content;
