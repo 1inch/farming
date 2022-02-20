@@ -1,7 +1,9 @@
 {
     "name": "@1inch/farming",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "description": "Set of contracts for farming incentives",
+    "homepage": "https://github.com/1inch/farming#readme",
+    "author": "1inch",
     "repository": {
         "type": "git",
         "url": "git@github.com:1inch/farming.git"
@@ -39,6 +41,7 @@
         "test": "hardhat test --show-stack-traces",
         "clean": "rimraf artifacts cache coverage",
         "deploy": "hardhat deploy --network",
+        "build": "rimraf ./dist && mkdir dist && cp package.json ./dist && cp README.md ./dist && cp -R ./contracts ./dist/contracts",
         "coverage": "hardhat coverage",
         "lint:js": "eslint .",
         "lint:js:fix": "eslint . --fix",
