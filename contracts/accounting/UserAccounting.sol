@@ -39,7 +39,7 @@ library UserAccounting {
 
     function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
         if (amount > 0 && (inFrom || inTo)) {
-            if (!inFrom || !inTo) {
+            if (inFrom != inTo) {
                 updateCheckpoint(info, fpt);
             }
             if (inFrom) {
