@@ -137,7 +137,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await expectRevert(
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
-                    'ERC20Farmable: already farming',
+                    'ERC20F: already farming',
                 );
             });
         });
@@ -204,7 +204,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
             it('should be thrown', async () => {
                 await expectRevert(
                     ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder }),
-                    'ERC20Farmable: already exited',
+                    'ERC20F: already exited',
                 );
             });
 
@@ -228,7 +228,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
                 await expectRevert(
                     ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder }),
-                    'ERC20Farmable: already exited',
+                    'ERC20F: already exited',
                 );
             });
         });

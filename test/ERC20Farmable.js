@@ -81,7 +81,7 @@ describe('ERC20Farmable', function () {
             it('should thrown with rewards distribution access denied ', async () => {
                 await expectRevert(
                     this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                    'F: access denied',
+                    'F: start access denied',
                 );
             });
 
@@ -197,7 +197,7 @@ describe('ERC20Farmable', function () {
             it('should thrown with access denied', async () => {
                 await expectRevert(
                     this.farm.claimFor(wallet1, '1000', { from: wallet1 }),
-                    'ERC20: access denied',
+                    'F: claimFor access denied',
                 );
             });
         });

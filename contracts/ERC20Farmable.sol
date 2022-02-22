@@ -20,7 +20,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     /// @dev Use this method for signaling on bad farms even in static calls (for stats)
     function onError(string memory /* error */) external view {
-        require(msg.sender == address(this), "Access denied");
+        require(msg.sender == address(this), "ERC20F: access denied");
     }
 
     function farmTotalSupply(address farm_) public view virtual returns(uint256) {
@@ -56,7 +56,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function join(address farm_) public virtual returns(uint256) {
-        require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
+        require(farm_ != address(0), "ERC20F: farm is zero");
+        require(_userFarms[msg.sender].add(farm_), "ERC20F: already farming");
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
@@ -72,7 +73,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function quit(address farm_) public virtual returns(uint256) {
-        require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
+        require(farm_ != address(0), "ERC20F: farm is zero");
+        require(_userFarms[msg.sender].remove(address(farm_)), "ERC20F: already exited");
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
