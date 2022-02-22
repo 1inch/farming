@@ -64,11 +64,13 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function deposit(uint256 amount) external override {
+        require(amount > 0, "FP: zero deposit");
         _mint(msg.sender, amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public override {
+        require(amount > 0, "FP: zero withdraw");
         _burn(msg.sender, amount);
         stakingToken.safeTransfer(msg.sender, amount);
     }

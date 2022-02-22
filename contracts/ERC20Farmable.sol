@@ -56,6 +56,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function join(address farm_) public virtual returns(uint256) {
+        require(farm_ != address(0), "ERC20F: farm is zero");
         require(_userFarms[msg.sender].add(farm_), "ERC20Farmable: already farming");
 
         uint256 balance = balanceOf(msg.sender);
@@ -72,6 +73,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function quit(address farm_) public virtual returns(uint256) {
+        require(farm_ != address(0), "ERC20F: farm is zero");
         require(_userFarms[msg.sender].remove(address(farm_)), "ERC20Farmable: already exited");
 
         uint256 balance = balanceOf(msg.sender);

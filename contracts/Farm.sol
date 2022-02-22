@@ -23,6 +23,8 @@ contract Farm is IFarm, Ownable {
     FarmAccounting.Info public farmInfo;
 
     constructor(IERC20Farmable farmableToken_, IERC20 rewardsToken_) {
+        require(address(farmableToken_) != address(0), "F: farmableToken is zero");
+        require(address(rewardsToken_) != address(0), "F: rewardsToken is zero");
         farmableToken = farmableToken_;
         rewardsToken = rewardsToken_;
     }
