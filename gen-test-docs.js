@@ -46,9 +46,9 @@ console.log('done');
 function buildLegend (block, depth) {
     // console.log(depth, block.contents);
     const url = block.contents.toLowerCase().trim()
-                    .split(' ').join('-')
-                    .split(/\,|\+|\/|\:|\(|\)/).join('')
-                    .replace('--', '-');
+        .split(' ').join('-')
+        .split(/,|\+|\/|:|\(|\)/).join('')
+        .replace('--', '-');
     let legend = Array(depth).join('    ') + '* [' + block.contents + '](#' + url + ')\n';
     if (block.blocks) {
         legend += block.blocks.map(function (child) {
