@@ -7,6 +7,7 @@
     "files": [
         "/contracts/**/*.sol",
         "/artifacts/contracts/**/*.json",
+        "/test/utils.js",
         "/test/behaviors/*.js"
     ],
     "repository": {
