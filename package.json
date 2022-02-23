@@ -4,6 +4,11 @@
     "description": "Set of contracts for farming incentives",
     "homepage": "https://github.com/1inch/farming#readme",
     "author": "1inch",
+    "files": [
+        "/contracts/**/*.sol",
+        "/artifacts/contracts/**/*.json",
+        "/test/behaviors/*.js"
+    ],
     "repository": {
         "type": "git",
         "url": "git@github.com:1inch/farming.git"
