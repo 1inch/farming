@@ -1,6 +1,6 @@
 {
     "name": "@1inch/farming",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Set of contracts for farming incentives",
     "homepage": "https://github.com/1inch/farming#readme",
     "author": "1inch",
