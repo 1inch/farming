@@ -1,6 +1,8 @@
-<p align="center">
-  <img src="https://app.1inch.io/assets/images/logo.svg" width="200" alt="1inch network" />
-</p>
+<div align="center">
+<img width="200px" src="https://app.1inch.io/assets/images/logo.svg#gh-light-mode-only">
+<img width="200px" src="https://landing-1inch-staging.1inch.io/img/logo.svg#gh-dark-mode-only">
+</div>
+
 
 # Farming contracts
 
