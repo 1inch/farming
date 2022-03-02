@@ -1,6 +1,6 @@
 <div align="center">
-    <img src="https://github.com/1inch/farming/blob/master/.github/logo_1inch-light.png#gh-light-mode-only">
-    <img src="https://github.com/1inch/farming/blob/master/.github/logo_1inch-dark.png#gh-dark-mode-only">
+    <img src="https://github.com/1inch/farming/blob/master/.github/1inch_github_b.png#gh-light-mode-only">
+    <img src="https://github.com/1inch/farming/blob/master/.github/1inch_github_w.png#gh-dark-mode-only">
 </div>
 
 # Farming contracts
