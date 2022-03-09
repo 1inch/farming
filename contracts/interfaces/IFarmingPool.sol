@@ -10,4 +10,10 @@ interface IFarmingPool {
     function withdraw(uint256 amount) external;
     function claim() external;
     function exit() external;
+
+    // only owner functions
+    function setDistributor(address distributor_) external;
+
+    // only distributor functions
+    function startFarming(uint256 amount, uint256 period) external;
 }
