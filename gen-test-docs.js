@@ -14,9 +14,9 @@ const filesForGen = [
     'test/FarmingPool.js',
 ];
 
-const outputMdFile = 'TESTS-vc.md';
+const outputMdFile = 'TESTS.md';
 
-const includeCode = true;
+const includeCode = false;
 
 // Script
 const acquitMd = require('acquit')();
@@ -45,7 +45,10 @@ console.log('done');
 
 function buildLegend (block, depth) {
     // console.log(depth, block.contents);
-    const url = block.contents.toLowerCase().trim().split(' ').join('-');
+    const url = block.contents.toLowerCase().trim()
+        .split(' ').join('-')
+        .split(/,|\+|\/|:|\(|\)/).join('')
+        .replace('--', '-');
     let legend = Array(depth).join('    ') + '* [' + block.contents + '](#' + url + ')\n';
     if (block.blocks) {
         legend += block.blocks.map(function (child) {
