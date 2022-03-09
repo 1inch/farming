@@ -112,7 +112,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     // FarmAccounting bindings
 
-    function _updateCheckpoint() private {
+    function _updateCheckpoint() internal {
         userInfo.updateCheckpoint(farmedPerToken());
     }
 }

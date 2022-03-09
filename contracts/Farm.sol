@@ -56,7 +56,7 @@ contract Farm is IFarm, Ownable {
 
     // FarmAccounting bindings
 
-    function _updateCheckpoint() private {
+    function _updateCheckpoint() internal {
         farmableToken.updateCheckpoint();
     }
 }
