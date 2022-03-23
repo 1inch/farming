@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
@@ -152,17 +152,27 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function _lazyGetFarmed(address farm_, uint256 checkpoint) private view returns(uint256) {
-        try IFarm(farm_).farmedSinceCheckpointScaled{ gas: 200_000 }(checkpoint) returns(uint256 amount) {
+        (bool success, uint256 amount) = _safeStaticCallReturnsUint256(farm_, abi.encodeCall(IFarm(farm_).farmedSinceCheckpointScaled, (checkpoint)), 200_000);
+        if (success) {
             if (amount <= FarmAccounting._MAX_REWARD_AMOUNT * 1e18) {
                 return amount;
             }
             else {
                 this.onError("farm.farmedSinceCheckpoint() result overflowed");
             }
-        }
-        catch {
+        } else {
             this.onError("farm.farmedSinceCheckpoint() failed");
         }
         return 0;
+    }
+
+    function _safeStaticCallReturnsUint256(address to, bytes memory data, uint256 gasLimit) private view returns(bool success, uint256 result) {
+        uint256 returnLength;
+        assembly {
+            success := staticcall(gasLimit, to, add(data, 0x20), mload(data), 0, 0x20)
+            result := mload(0)
+            returnLength := returndatasize()
+        }
+        require(returnLength == 32, "staticcall() failed");
     }
 }
