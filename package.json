@@ -16,7 +16,7 @@
     },
     "license": "MIT",
     "dependencies": {
-        "@1inch/solidity-utils": "2.0.5",
+        "@1inch/solidity-utils": "2.0.10",
         "@openzeppelin/contracts": "4.5.0"
     },
     "devDependencies": {
