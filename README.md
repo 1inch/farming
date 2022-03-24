@@ -79,7 +79,7 @@ When farming is started users holding farmable tokens may `join` the farm to acc
 
 If a user wants to stop participating in farming he should `exit` the farm with. Rewards for previous farming periods may be claimed any time with `claim` function regardless if a user is still farming or has already exited the farm.
 
-![ERC20Farmable and Farm concept](concept-ERC20Farmable.png)
+![ERC20Farmable and Farm concept](.github/concept-ERC20Farmable.png)
 
 A user may join several farms which provide rewards for the same token.
 
@@ -145,4 +145,4 @@ Storage access:
 
 The `FarmingPool` usage is almost the same but a farmer has to deposit farmable tokens to farm account and withdraw it after the farming is completed.
 
-![Farming pool concept](concept-FarmingPool.png)
+![Farming pool concept](.github/concept-FarmingPool.png)
