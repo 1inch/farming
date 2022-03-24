@@ -167,12 +167,10 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function _safeStaticCallReturnsUint256(address to, bytes memory data, uint256 gasLimit) private view returns(bool success, uint256 result) {
-        uint256 returnLength;
-        assembly {
+        assembly {  // solhint-disable-line no-inline-assembly
             success := staticcall(gasLimit, to, add(data, 0x20), mload(data), 0, 0x20)
+            success := and(success, eq(returndatasize(), 0x20))
             result := mload(0)
-            returnLength := returndatasize()
         }
-        require(returnLength == 32, "staticcall() failed");
     }
 }
