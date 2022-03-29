@@ -32,6 +32,8 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
     {
+        require(address(stakingToken_) != address(0), "FP: stakingToken is zero");
+        require(address(rewardsToken_) != address(0), "FP: rewardsToken is zero");
         stakingToken = stakingToken_;
         rewardsToken = rewardsToken_;
     }
