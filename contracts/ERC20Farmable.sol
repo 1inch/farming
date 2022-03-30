@@ -62,6 +62,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
         _farmTotalSupply[farm_] += balance;
+        emit Join(msg.sender, farm_);
         return _userFarms[msg.sender].length();
     }
 
@@ -79,6 +80,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
         _farmTotalSupply[farm_] -= balance;
+        emit Quit(msg.sender, farm_);
         return _userFarms[msg.sender].length();
     }
 

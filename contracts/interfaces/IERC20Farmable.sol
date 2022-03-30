@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IFarm.sol";
 
 interface IERC20Farmable is IERC20 {
+    event Join(address account, address farm);
+    event Quit(address account, address farm);
+
     function farmTotalSupply(address farm_) external view returns(uint256);
     function userIsFarming(address account, address farm_) external view returns(bool);
     function userFarmsCount(address account) external view returns(uint256);
