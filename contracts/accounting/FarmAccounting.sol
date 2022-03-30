@@ -31,6 +31,7 @@ library FarmAccounting {
         }
 
         updateCheckpoint();
+        require(period > 0, "FA: duration can not be 0");
         require(period <= type(uint32).max, "FA: duration too large");
         require(amount <= _MAX_REWARD_AMOUNT, "FA: amount too large");
         (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint32(period), uint184(amount));
