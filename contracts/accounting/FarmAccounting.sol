@@ -12,13 +12,14 @@ library FarmAccounting {
     }
 
     uint256 constant internal _MAX_REWARD_AMOUNT = 1e42;
+    uint256 constant internal _SCALE = 1e18;
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
         require(checkpoint >= info.finished - info.duration, "FA: checkpoint < started");
         if (info.duration > 0) {
             uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
-            return elapsed * info.reward * 1e18 / info.duration;
+            return elapsed * info.reward * _SCALE / info.duration;
         }
     }
 
@@ -26,7 +27,7 @@ library FarmAccounting {
         // If something left from prev farming add it to the new farming
         Info memory prev = info;
         if (block.timestamp < prev.finished) {
-            amount += prev.reward - farmedSinceCheckpointScaled(prev, prev.finished - prev.duration) / 1e18;
+            amount += prev.reward - farmedSinceCheckpointScaled(prev, prev.finished - prev.duration) / _SCALE;
         }
 
         updateCheckpoint();

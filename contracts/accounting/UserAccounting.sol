@@ -9,6 +9,8 @@ library UserAccounting {
         mapping(address => int256) corrections;
     }
 
+    uint256 constant internal _SCALE = 1e18;
+
     function farmedPerToken(
         Info storage info,
         address context,
@@ -26,7 +28,7 @@ library UserAccounting {
     }
 
     function farmed(Info storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
-        return uint256(int256(balance * fpt) - info.corrections[account]) / 1e18;
+        return uint256(int256(balance * fpt) - info.corrections[account]) / _SCALE;
     }
 
     function eraseFarmed(Info storage info, address account, uint256 balance, uint256 fpt) internal {

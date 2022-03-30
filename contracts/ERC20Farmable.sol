@@ -156,7 +156,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     function _lazyGetFarmed(address farm_, uint256 checkpoint) private view returns(uint256) {
         (bool success, uint256 amount) = _safeStaticCallReturnsUint256(farm_, abi.encodeCall(IFarm(farm_).farmedSinceCheckpointScaled, (checkpoint)), 200_000);
         if (success) {
-            if (amount <= FarmAccounting._MAX_REWARD_AMOUNT * 1e18) {
+            if (amount <= FarmAccounting._MAX_REWARD_AMOUNT * FarmAccounting._SCALE) {
                 return amount;
             }
             else {
