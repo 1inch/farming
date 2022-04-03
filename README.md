@@ -136,7 +136,9 @@ Storage access:
     
 - [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L9) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
     
-    `mapping(address => int256) public corrections;`
+    ```solidity
+    mapping(address => int256) public corrections;
+    ```
     
 - Compact address array is used for storing farms per user/wallet. Array length is stored in high bits of the first array item:
     - [@1inch/solidity-utils/AddressArray.sol](https://github.com/1inch/solidity-utils/blob/master/contracts/libraries/AddressArray.sol)
