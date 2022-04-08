@@ -782,6 +782,41 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('8250');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('2750');
             });
+
+            /*
+                ***Test Scenario**
+                Check that farm starts with max reward and check that all operations complete successfully
+
+                ***Test Steps**
+                1. Start farming using _MAX_REWARD_AMOUNT as farming reward.
+                2. Join farm.
+                3. Fast forward time for all reward.
+                4. Check reward.
+                5. Claim reward.
+
+                ***Expected results**
+                1. Operations completed succesfully.
+                2. Claim reward equals to _MAX_REWARD_AMOUNT.
+            */
+            it.only('Start farm with max reward', async () => {
+                const _MAX_REWARD_AMOUNT = (new BN(10)).pow(new BN(42));
+
+                await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
+                await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
+
+                await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
+                await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
+                await timeIncreaseTo(ctx.started.add(time.duration.days(7)).addn(3));
+                // -999998346560846560846560846560846560846560
+                // -999998346560846560846560846560846560846560
+                // -999993386243386243386243386243386243386243
+                console.log(_MAX_REWARD_AMOUNT.toString());
+                // expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual(_MAX_REWARD_AMOUNT);
+
+                const balanceBeforeClaim = await ctx.gift.balanceOf(ctx.initialHolder);
+                await ctx.token.claim(ctx.farm.address, { from: ctx.initialHolder });
+                // expect(await ctx.gift.balanceOf(ctx.initialHolder)).to.be.bignumber.almostEqual(balanceBeforeClaim.add(_MAX_REWARD_AMOUNT));
+            });
         });
 
         // Token transfer scenarios

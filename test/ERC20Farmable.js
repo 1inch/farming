@@ -104,20 +104,20 @@ describe('ERC20Farmable', function () {
 
             /*
                 ***Test Scenario**
-                Check that farming amount is under `uint192`
+                Check that farming amount is under _MAX_REWARD_AMOUNT
 
                 ***Test Steps**
-                Start farming using 2^192^ as farming reward.
+                Start farming using _MAX_REWARD_AMOUNT+1 as farming reward.
 
                 ***Expected results**
                 Revert with error `'FA: amount too large'`.
             */
-            it('Thrown with Amount too large', async () => {
-                const largeAmount = (new BN(2)).pow(new BN(192));
-                await this.gift.mint(wallet1, largeAmount);
-                await this.gift.approve(this.farm.address, largeAmount);
+            it('Thrown with Amount equals _MAX_REWARD_AMOUNT + 1', async () => {
+                const _MAX_REWARD_AMOUNT = (new BN(10)).pow(new BN(42));
+                await this.gift.mint(wallet1, _MAX_REWARD_AMOUNT.addn(1));
+                await this.gift.approve(this.farm.address, _MAX_REWARD_AMOUNT.addn(1));
                 await expectRevert(
-                    this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
+                    this.farm.startFarming(_MAX_REWARD_AMOUNT.addn(1), time.duration.weeks(1), { from: wallet1 }),
                     'FA: amount too large',
                 );
             });
@@ -202,4 +202,5 @@ describe('ERC20Farmable', function () {
             });
         });
     });
+
 });
