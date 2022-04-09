@@ -803,7 +803,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 1. Join, check reward and claim operations completed succesfully.
                 2. Claimed reward equals to _MAX_REWARD_AMOUNT.
             */
-            it.only('Operate farm with max allowed reward', async () => {
+            it('Operate farm with max allowed reward', async () => {
                 const _MAX_REWARD_AMOUNT = new BN(10).pow(new BN(42));
 
                 await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
@@ -812,14 +812,26 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await timeIncreaseTo(ctx.started.add(time.duration.days(7)).addn(3));
-                // -999998346560846560846560846560846560846560
-                // -999998346560846560846560846560846560846560
-                // -999993386243386243386243386243386243386243
-                // expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual(_MAX_REWARD_AMOUNT);
+                expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual(_MAX_REWARD_AMOUNT);
 
                 const balanceBeforeClaim = await ctx.gift.balanceOf(ctx.initialHolder);
                 await ctx.token.claim(ctx.farm.address, { from: ctx.initialHolder });
-                // expect(await ctx.gift.balanceOf(ctx.initialHolder)).to.be.bignumber.almostEqual(balanceBeforeClaim.add(_MAX_REWARD_AMOUNT));
+                expect(await ctx.gift.balanceOf(ctx.initialHolder)).to.be.bignumber.almostEqual(balanceBeforeClaim.add(_MAX_REWARD_AMOUNT));
+            });
+
+            it('Farm operation time', async () => {
+                const _MAX_REWARD_AMOUNT = new BN(10).pow(new BN(42));
+
+                await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
+                await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
+
+                await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
+                await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
+
+                for (let i = 0; i < 5; i++) {
+                    await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)).addn(i));
+                    console.log((await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).toString());
+                }
             });
         });
 
