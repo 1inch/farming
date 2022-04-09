@@ -785,21 +785,26 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
             /*
                 ***Test Scenario**
-                Check that farm starts with max reward and check that all operations complete successfully
+                Checks that a farm can successfully operate with the reward value equal to max allowed value.
+
+                Currently _MAX_REWARD_AMOUNT = 10^42^. Need to update test if contract changes this constant.
+
+                ***Initial setup**
+                - Mint and approve _MAX_REWARD_AMOUNT to `farm`
 
                 ***Test Steps**
-                1. Start farming using _MAX_REWARD_AMOUNT as farming reward.
-                2. Join farm.
-                3. Fast forward time for all reward.
-                4. Check reward.
-                5. Claim reward.
+                1. Start farming with _MAX_REWARD_AMOUNT as a reward for 1 week.
+                2. A wallet joins farm.
+                3. Fast forward time for 1 week.
+                4. Check the wallet's reward amount.
+                5. Claim the reward.
 
                 ***Expected results**
-                1. Operations completed succesfully.
-                2. Claim reward equals to _MAX_REWARD_AMOUNT.
+                1. Join, check reward and claim operations completed succesfully.
+                2. Claimed reward equals to _MAX_REWARD_AMOUNT.
             */
-            it.only('Start farm with max reward', async () => {
-                const _MAX_REWARD_AMOUNT = (new BN(10)).pow(new BN(42));
+            it.only('Operate farm with max allowed reward', async () => {
+                const _MAX_REWARD_AMOUNT = new BN(10).pow(new BN(42));
 
                 await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
                 await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
@@ -810,7 +815,6 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 // -999998346560846560846560846560846560846560
                 // -999998346560846560846560846560846560846560
                 // -999993386243386243386243386243386243386243
-                console.log(_MAX_REWARD_AMOUNT.toString());
                 // expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual(_MAX_REWARD_AMOUNT);
 
                 const balanceBeforeClaim = await ctx.gift.balanceOf(ctx.initialHolder);
