@@ -158,6 +158,19 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 );
             });
 
+            /*
+                ***Test Scenario**
+                Checks that a user cannot join more farms than allowed by token settings
+
+                ***Initial Setup**
+                A wallet has joined the maximum allowed number of farms
+
+                ***Test steps**
+                - The wallet joins one more farm
+
+                ***Expected results**
+                Reverts with error `'ERC20F: max user farms reached'`
+             */
             it('should be thrown when user join farms more then can', async () => {
                 await joinMaxFarms(ctx.initialHolder);
                 await expectRevert(
@@ -166,6 +179,20 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 );
             });
 
+            /*
+                ***Test Scenario**
+                Checks that a user can join farm if joined farm count equals the limit of allowed farms
+
+                ***Initial Setup**
+                A wallet has joined the maximum allowed number of farms
+
+                ***Test steps**
+                - The wallet exits one farm
+                - The wallet joins a farm
+
+                ***Expected results**
+                The join operation succeeds
+             */
             it('should be join farm after reached max and then exit from one', async () => {
                 const maxUserFarms = await joinMaxFarms(ctx.initialHolder);
                 let userFarms = await ctx.token.userFarms(ctx.initialHolder);
