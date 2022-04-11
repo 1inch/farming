@@ -17,6 +17,11 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     mapping(address => UserAccounting.Info) private _userInfo;
     mapping(address => uint256) private _farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
+    uint256 public immutable maxUserFarms;
+
+    constructor(string memory name_, string memory symbol_, uint256 maxUserFarms_) ERC20(name_, symbol_) {
+        maxUserFarms = maxUserFarms_;
+    }
 
     /// @dev Use this method for signaling on bad farms even in static calls (for stats)
     function onError(string memory /* error */) external view {
@@ -56,6 +61,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function join(address farm_) public virtual returns(uint256) {
+        require(_userFarms[msg.sender].length() + 1 <= maxUserFarms, "ERC20F: max user farms reached");
         require(farm_ != address(0), "ERC20F: farm is zero");
         require(_userFarms[msg.sender].add(farm_), "ERC20F: already farming");
 

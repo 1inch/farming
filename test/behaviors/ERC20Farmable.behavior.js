@@ -2,6 +2,9 @@ const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('../utils');
 
+const Farm = artifacts.require('Farm');
+const TokenMock = artifacts.require('TokenMock');
+
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', function (original) {
         return function (value) {
@@ -46,6 +49,20 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
         // Wallet joining scenarios
         describe('farm', async () => {
+            const createFarm = async () => {
+                const gift = await TokenMock.new('GIFT', 'GIFT', '0');
+                return await Farm.new(ctx.token.address, gift.address);
+            };
+
+            const joinMaxFarms = async (from) => {
+                const maxUserFarms = await ctx.token.maxUserFarms();
+                for (let i = 0; i < maxUserFarms; i++) {
+                    const farm = await createFarm();
+                    await ctx.token.join(farm.address, { from });
+                }
+                return maxUserFarms;
+            };
+
             /*
                 ***Test Scenario**
                 Checks if farm's total supply is updated after a wallet joins
@@ -139,6 +156,28 @@ const shouldBehaveLikeFarmable = (getContext) => {
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
                     'ERC20F: already farming',
                 );
+            });
+
+            it('should be thrown when user join farms more then can', async () => {
+                await joinMaxFarms(ctx.initialHolder);
+                await expectRevert(
+                    ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
+                    'ERC20F: max user farms reached',
+                );
+            });
+
+            it('should be join farm after reached max and then exit from one', async () => {
+                const maxUserFarms = await joinMaxFarms(ctx.initialHolder);
+                let userFarms = await ctx.token.userFarms(ctx.initialHolder);
+                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
+
+                await ctx.token.quit(userFarms[0]);
+                userFarms = await ctx.token.userFarms(ctx.initialHolder);
+                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms.subn(1));
+
+                await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
+                userFarms = await ctx.token.userFarms(ctx.initialHolder);
+                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
             });
         });
 

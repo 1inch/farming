@@ -24,13 +24,14 @@ require('chai').use(function (chai, utils) {
 describe('ERC20Farmable', function () {
     let wallet1, wallet2, wallet3;
     const initialSupply = ether('1.0');
+    const maxUserFarms = 10;
 
     before(async () => {
         [wallet1, wallet2, wallet3] = await web3.eth.getAccounts();
     });
 
     beforeEach(async () => {
-        this.token = await ERC20FarmableMock.new('1INCH', '1INCH');
+        this.token = await ERC20FarmableMock.new('1INCH', '1INCH', maxUserFarms);
         await this.token.mint(wallet1, initialSupply);
 
         this.gift = await TokenMock.new('UDSC', 'USDC', '0');
