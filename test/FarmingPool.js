@@ -1,4 +1,5 @@
-const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
+const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('./utils');
 
@@ -9,8 +10,8 @@ require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
         return function (value) {
             if (utils.flag(this, 'bignumber')) {
-                const expected = new BN(value);
-                const actual = new BN(this._obj);
+                const expected = toBN(value);
+                const actual = toBN(this._obj);
                 almostEqual.apply(this, [expected, actual]);
             } else {
                 original.apply(this, arguments);
@@ -319,13 +320,13 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
 
         it('Thrown with Period too large', async () => {
             await expectRevert(
-                this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
+                this.farm.startFarming('10000', (toBN(2)).pow(toBN(40)), { from: wallet1 }),
                 'FA: duration too large',
             );
         });
 
         it('Thrown with Amount too large', async () => {
-            const largeAmount = (new BN(2)).pow(new BN(192));
+            const largeAmount = (toBN(2)).pow(toBN(192));
             await this.gift.mint(wallet1, largeAmount, { from: wallet1 });
             await this.gift.approve(this.farm.address, largeAmount, { from: wallet1 });
             await expectRevert(
@@ -359,10 +360,10 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
     });
 
     describe('transfer', async () => {
-        const farmingAmount = new BN('72000');
-        const wallet1Amount = new BN('1');
-        const wallet2Amount = new BN('3');
-        const wallet3Amount = new BN('1');
+        const farmingAmount = toBN('72000');
+        const wallet1Amount = toBN('1');
+        const wallet2Amount = toBN('3');
+        const wallet3Amount = toBN('1');
 
         it('should be correct farming after transfered from non-farm user to farm user', async () => {
             await this.farm.startFarming(farmingAmount, time.duration.weeks(2), { from: wallet1 });
@@ -407,7 +408,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             await timeIncreaseTo(this.started.add(time.duration.weeks(1)));
 
             const farmedWallet1PerWeek = farmingAmount.divn(2);
-            const farmedWallet2PerWeek = new BN('0');
+            const farmedWallet2PerWeek = toBN('0');
             expect(await this.farm.farmed(wallet1)).to.be.bignumber.almostEqual(farmedWallet1PerWeek);
             expect(await this.farm.farmed(wallet2)).to.be.bignumber.almostEqual(farmedWallet2PerWeek);
 
