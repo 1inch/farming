@@ -14,12 +14,13 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressSet for AddressSet.Data;
     using UserAccounting for UserAccounting.Info;
 
+    uint256 public immutable maxUserFarms;
+
     mapping(address => UserAccounting.Info) private _userInfo;
     mapping(address => uint256) private _farmTotalSupply;
     mapping(address => AddressSet.Data) private _userFarms;
-    uint256 public immutable maxUserFarms;
 
-    constructor(string memory name_, string memory symbol_, uint256 maxUserFarms_) ERC20(name_, symbol_) {
+    constructor(uint256 maxUserFarms_) {
         maxUserFarms = maxUserFarms_;
     }
 
