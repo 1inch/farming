@@ -26,6 +26,11 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     FarmAccounting.Info public farmInfo;
     UserAccounting.Info public userInfo;
 
+    modifier onlyDistributor {
+        require(msg.sender == distributor, "FP: access denied");
+        _;
+    }
+
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
         ERC20(
             string(abi.encodePacked("Farming of ", stakingToken_.name())),
@@ -45,8 +50,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         distributor = distributor_;
     }
 
-    function startFarming(uint256 amount, uint256 period) external {
-        require(msg.sender == distributor, "FP: access denied");
+    function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
@@ -90,6 +94,14 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     function exit() external override {
         withdraw(balanceOf(msg.sender));
         claim();
+    }
+
+    function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
+        token.safeTransfer(distributor, amount);
+
+        if (address(stakingToken) == address(token)) {
+            require(stakingToken.balanceOf(address(this)) >= totalSupply(), "FP: not enough balance");
+        }
     }
 
     // ERC20 overrides

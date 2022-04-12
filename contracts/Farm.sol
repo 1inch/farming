@@ -22,6 +22,11 @@ contract Farm is IFarm, Ownable {
     address public distributor;
     FarmAccounting.Info public farmInfo;
 
+    modifier onlyDistributor {
+        require(msg.sender == distributor, "F: access denied");
+        _;
+    }
+
     constructor(IERC20Farmable farmableToken_, IERC20 rewardsToken_) {
         require(address(farmableToken_) != address(0), "F: farmableToken is zero");
         require(address(rewardsToken_) != address(0), "F: rewardsToken is zero");
@@ -36,8 +41,7 @@ contract Farm is IFarm, Ownable {
         distributor = distributor_;
     }
 
-    function startFarming(uint256 amount, uint256 period) external {
-        require(msg.sender == distributor, "F: start access denied");
+    function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
@@ -52,6 +56,10 @@ contract Farm is IFarm, Ownable {
     function claimFor(address account, uint256 amount) external {
         require(msg.sender == address(farmableToken), "F: claimFor access denied");
         rewardsToken.safeTransfer(account, amount);
+    }
+
+    function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
+        token.safeTransfer(distributor, amount);
     }
 
     // FarmAccounting bindings

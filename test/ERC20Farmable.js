@@ -83,7 +83,7 @@ describe('ERC20Farmable', function () {
             it('should thrown with rewards distribution access denied ', async () => {
                 await expectRevert(
                     this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                    'F: start access denied',
+                    'F: access denied',
                 );
             });
 
@@ -201,6 +201,55 @@ describe('ERC20Farmable', function () {
                     this.farm.claimFor(wallet1, '1000', { from: wallet1 }),
                     'F: claimFor access denied',
                 );
+            });
+        });
+
+        // Farm's rescueFunds scenarios
+        describe('rescueFunds', async () => {
+            /*
+                ***Test Scenario**
+                Ensure that `rescueFunds` cann't be called someone other than distributor
+
+                ***Test Steps**
+                - `wallet2` which is not distributor try to rescueFunds this tokens
+
+                ***Expected results**
+                - Revert with error `'F: access denied'`
+            */
+            it('should thrown with access denied', async () => {
+                const distributor = await this.farm.distributor();
+                expect(wallet2).to.be.not.equals(distributor);
+                await expectRevert(
+                    this.farm.rescueFunds(this.gift.address, '1000', { from: wallet2 }),
+                    'F: access denied',
+                );
+            });
+
+            /*
+                ***Test Scenario**
+                Ensure that `rescueFunds` can be called only by distributor
+
+                ***Initial setup**
+                - started farming
+
+                ***Test Steps**
+                - Distributor try to rescueFunds this tokens
+
+                ***Expected results**
+                - Tokens transfered from farm to distributor
+            */
+            it('should transfer tokens from farm to wallet', async () => {
+                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
+
+                const balanceWalletBefore = await this.gift.balanceOf(wallet1);
+                const balanceFarmBefore = await this.gift.balanceOf(this.farm.address);
+
+                const distributor = await this.farm.distributor();
+                expect(wallet1).to.be.equals(distributor);
+                await this.farm.rescueFunds(this.gift.address, '1000', { from: wallet1 });
+
+                expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equals(balanceWalletBefore.addn(1000));
+                expect(await this.gift.balanceOf(this.farm.address)).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
             });
         });
     });
