@@ -864,7 +864,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 2. Claimed reward equals to _MAX_REWARD_AMOUNT.
             */
             it('Operate farm with max allowed reward', async () => {
-                const _MAX_REWARD_AMOUNT = new BN(10).pow(new BN(42));
+                const _MAX_REWARD_AMOUNT = toBN(10).pow(toBN(42));
 
                 await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
                 await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
@@ -896,7 +896,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 1. Reward increase stops after 1 week from start farming.
             */
             it('Farm operation time', async () => {
-                const _MAX_REWARD_AMOUNT = new BN(10).pow(new BN(42));
+                const _MAX_REWARD_AMOUNT = toBN(10).pow(toBN(42));
 
                 await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
                 await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);

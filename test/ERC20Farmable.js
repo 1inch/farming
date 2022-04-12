@@ -112,7 +112,7 @@ describe('ERC20Farmable', function () {
                 Revert with error `'FA: amount too large'`.
             */
             it('Thrown with Amount equals _MAX_REWARD_AMOUNT + 1', async () => {
-                const _MAX_REWARD_AMOUNT = (new BN(10)).pow(new BN(42));
+                const _MAX_REWARD_AMOUNT = toBN(10).pow(toBN(42));
                 await this.gift.mint(wallet1, _MAX_REWARD_AMOUNT.addn(1));
                 await this.gift.approve(this.farm.address, _MAX_REWARD_AMOUNT.addn(1));
                 await expectRevert(

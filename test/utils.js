@@ -1,4 +1,5 @@
-const { time, BN } = require('@openzeppelin/test-helpers');
+const { time } = require('@openzeppelin/test-helpers');
+const { toBN } = require('@1inch/solidity-utils');
 
 const timeIncreaseTo = async (seconds) => {
     const delay = 10 - new Date().getMilliseconds();
@@ -20,7 +21,7 @@ const almostEqual = function (expected, actual) {
 
 const startFarming = async (farm, amount, period, from) => {
     const tx = await farm.startFarming(amount, period, { from });
-    return new BN((await web3.eth.getBlock(tx.receipt.blockHash)).timestamp);
+    return toBN((await web3.eth.getBlock(tx.receipt.blockHash)).timestamp);
 };
 
 module.exports = {
