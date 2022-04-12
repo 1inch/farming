@@ -62,7 +62,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function join(address farm_) public virtual returns(uint256) {
-        require(_userFarms[msg.sender].length() + 1 <= maxUserFarms, "ERC20F: max user farms reached");
+        require(_userFarms[msg.sender].length() < maxUserFarms, "ERC20F: max user farms reached");
         require(farm_ != address(0), "ERC20F: farm is zero");
         require(_userFarms[msg.sender].add(farm_), "ERC20F: already farming");
 
