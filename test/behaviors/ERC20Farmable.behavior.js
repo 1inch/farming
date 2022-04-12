@@ -2,6 +2,9 @@ const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('../utils');
 
+const Farm = artifacts.require('Farm');
+const TokenMock = artifacts.require('TokenMock');
+
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', function (original) {
         return function (value) {
@@ -46,6 +49,14 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
         // Wallet joining scenarios
         describe('farm', async () => {
+            const joinNewFarms = async (amount, from) => {
+                for (let i = 0; i < amount; i++) {
+                    const gift = await TokenMock.new('GIFT', 'GIFT', '0');
+                    const farm = await Farm.new(ctx.token.address, gift.address);
+                    await ctx.token.join(farm.address, { from });
+                }
+            };
+
             /*
                 ***Test Scenario**
                 Checks if farm's total supply is updated after a wallet joins
@@ -139,6 +150,57 @@ const shouldBehaveLikeFarmable = (getContext) => {
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
                     'ERC20F: already farming',
                 );
+            });
+
+            /*
+                ***Test Scenario**
+                Checks that a user cannot join more farms than allowed by token settings
+
+                ***Initial Setup**
+                A wallet has joined the maximum allowed number of farms
+
+                ***Test steps**
+                - The wallet joins one more farm
+
+                ***Expected results**
+                Reverts with error `'ERC20F: max user farms reached'`
+             */
+            it('should be thrown when user join farms more then can', async () => {
+                const maxUserFarms = await ctx.token.maxUserFarms();
+                await joinNewFarms(maxUserFarms, ctx.initialHolder);
+                await expectRevert(
+                    ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
+                    'ERC20F: max user farms reached',
+                );
+            });
+
+            /*
+                ***Test Scenario**
+                Checks that a user can join farm if one quit from 1 farm after have the maximum allowed farms
+
+                ***Initial Setup**
+                A wallet has joined the maximum allowed number of farms
+
+                ***Test steps**
+                - The wallet exits one farm
+                - The wallet joins a farm
+
+                ***Expected results**
+                The join operation succeeds
+             */
+            it('should be join farm after reached max and then exit from one', async () => {
+                const maxUserFarms = await ctx.token.maxUserFarms();
+                await joinNewFarms(maxUserFarms, ctx.initialHolder);
+                let userFarms = await ctx.token.userFarms(ctx.initialHolder);
+                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
+
+                await ctx.token.quit(userFarms[0]);
+                userFarms = await ctx.token.userFarms(ctx.initialHolder);
+                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms.subn(1));
+
+                await joinNewFarms(1, ctx.initialHolder);
+                userFarms = await ctx.token.userFarms(ctx.initialHolder);
+                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
             });
         });
 
