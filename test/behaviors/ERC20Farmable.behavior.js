@@ -1,4 +1,5 @@
-const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
+const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('../utils');
 
