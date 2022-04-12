@@ -15,8 +15,8 @@ const filesForGen = [
 ];
 
 const outputMdFile = 'TESTS.md';
-
 const includeCode = false;
+const listOnly = false;
 
 // Script
 const acquitMd = require('acquit')();
@@ -33,26 +33,30 @@ filesForGen.forEach((file) => {
     content = fs.readFileSync(file).toString();
     legend.blocks = acquitJson.parse(content);
     legend.contents = file;
-    legendMd += buildLegend(legend, 1);
+    legendMd += buildLegend(legend, 1, listOnly);
     markdown += acquitMd.parse(content).toString();
     markdown += '\n';
 });
 
-content = legendMd + markdown;
+content = listOnly ? legendMd : legendMd + markdown;
 
 fs.writeFileSync(outputMdFile, content);
 console.log('done');
 
-function buildLegend (block, depth) {
+function buildLegend (block, depth, listOnly) {
     // console.log(depth, block.contents);
-    const url = block.contents.toLowerCase().trim()
-        .split(' ').join('-')
-        .split(/,|\+|\/|:|\(|\)/).join('')
-        .replace('--', '-');
-    let legend = Array(depth).join('    ') + '* [' + block.contents + '](#' + url + ')\n';
+    const url = (block.contents == null)
+        ? ''
+        : block.contents.toLowerCase().trim()
+            .split(' ').join('-')
+            .split(/,|\+|\/|:|\(|\)/).join('')
+            .replace('--', '-');
+    let legend = listOnly
+        ? Array(depth).join('    ') + '* ' + block.contents + '\n'
+        : Array(depth).join('    ') + '* [' + block.contents + '](#' + url + ')\n';
     if (block.blocks) {
         legend += block.blocks.map(function (child) {
-            return buildLegend(child, depth + 1);
+            return buildLegend(child, depth + 1, listOnly);
         }).join('');
     }
     return legend;
