@@ -49,18 +49,12 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
         // Wallet joining scenarios
         describe('farm', async () => {
-            const createFarm = async () => {
-                const gift = await TokenMock.new('GIFT', 'GIFT', '0');
-                return await Farm.new(ctx.token.address, gift.address);
-            };
-
-            const joinMaxFarms = async (from) => {
-                const maxUserFarms = await ctx.token.maxUserFarms();
-                for (let i = 0; i < maxUserFarms; i++) {
-                    const farm = await createFarm();
+            const joinNewFarms = async (amount, from) => {
+                for (let i = 0; i < amount; i++) {
+                    const gift = await TokenMock.new('GIFT', 'GIFT', '0');
+                    const farm = await Farm.new(ctx.token.address, gift.address);
                     await ctx.token.join(farm.address, { from });
                 }
-                return maxUserFarms;
             };
 
             /*
@@ -172,7 +166,8 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 Reverts with error `'ERC20F: max user farms reached'`
              */
             it('should be thrown when user join farms more then can', async () => {
-                await joinMaxFarms(ctx.initialHolder);
+                const maxUserFarms = await ctx.token.maxUserFarms();
+                await joinNewFarms(maxUserFarms, ctx.initialHolder);
                 await expectRevert(
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
                     'ERC20F: max user farms reached',
@@ -181,7 +176,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
             /*
                 ***Test Scenario**
-                Checks that a user can join farm if joined farm count equals the limit of allowed farms
+                Checks that a user can join farm if one quit from 1 farm after have the maximum allowed farms
 
                 ***Initial Setup**
                 A wallet has joined the maximum allowed number of farms
@@ -194,7 +189,8 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 The join operation succeeds
              */
             it('should be join farm after reached max and then exit from one', async () => {
-                const maxUserFarms = await joinMaxFarms(ctx.initialHolder);
+                const maxUserFarms = await ctx.token.maxUserFarms();
+                await joinNewFarms(maxUserFarms, ctx.initialHolder);
                 let userFarms = await ctx.token.userFarms(ctx.initialHolder);
                 expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
 
@@ -202,7 +198,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 userFarms = await ctx.token.userFarms(ctx.initialHolder);
                 expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms.subn(1));
 
-                await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
+                await joinNewFarms(1, ctx.initialHolder);
                 userFarms = await ctx.token.userFarms(ctx.initialHolder);
                 expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
             });
