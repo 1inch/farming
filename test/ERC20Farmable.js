@@ -1,4 +1,5 @@
-const { expectRevert, time, BN, ether } = require('@openzeppelin/test-helpers');
+const { expectRevert, time, ether } = require('@openzeppelin/test-helpers');
+const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('./utils');
 const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
@@ -11,8 +12,8 @@ require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
         return function (value) {
             if (utils.flag(this, 'bignumber')) {
-                const expected = new BN(value);
-                const actual = new BN(this._obj);
+                const expected = toBN(value);
+                const actual = toBN(this._obj);
                 almostEqual.apply(this, [expected, actual]);
             } else {
                 original.apply(this, arguments);
@@ -98,7 +99,7 @@ describe('ERC20Farmable', function () {
             */
             it('Thrown with Period too large', async () => {
                 await expectRevert(
-                    this.farm.startFarming('10000', (new BN(2)).pow(new BN(40)), { from: wallet1 }),
+                    this.farm.startFarming('10000', (toBN(2)).pow(toBN(40)), { from: wallet1 }),
                     'FA: duration too large',
                 );
             });
@@ -114,7 +115,7 @@ describe('ERC20Farmable', function () {
                 Revert with error `'FA: amount too large'`.
             */
             it('Thrown with Amount too large', async () => {
-                const largeAmount = (new BN(2)).pow(new BN(192));
+                const largeAmount = (toBN(2)).pow(toBN(192));
                 await this.gift.mint(wallet1, largeAmount);
                 await this.gift.approve(this.farm.address, largeAmount);
                 await expectRevert(

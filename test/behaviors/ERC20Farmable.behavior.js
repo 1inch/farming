@@ -9,8 +9,8 @@ require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', function (original) {
         return function (value) {
             if (utils.flag(this, 'bignumber')) {
-                const expected = new BN(value);
-                const actual = new BN(this._obj);
+                const expected = toBN(value);
+                const actual = toBN(this._obj);
                 almostEqual.apply(this, [expected, actual]);
             } else {
                 original.apply(this, arguments);
@@ -192,15 +192,15 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 const maxUserFarms = await ctx.token.maxUserFarms();
                 await joinNewFarms(maxUserFarms, ctx.initialHolder);
                 let userFarms = await ctx.token.userFarms(ctx.initialHolder);
-                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
+                expect(toBN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
 
                 await ctx.token.quit(userFarms[0]);
                 userFarms = await ctx.token.userFarms(ctx.initialHolder);
-                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms.subn(1));
+                expect(toBN(userFarms.length)).to.be.bignumber.equals(maxUserFarms.subn(1));
 
                 await joinNewFarms(1, ctx.initialHolder);
                 userFarms = await ctx.token.userFarms(ctx.initialHolder);
-                expect(new BN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
+                expect(toBN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
             });
         });
 
