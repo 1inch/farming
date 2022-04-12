@@ -871,9 +871,10 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
                 await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
 
-                await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.days(7)).addn(3));
+                const tx = await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
+                const startedFarmingTime = new BN((await web3.eth.getBlock(tx.receipt.blockHash)).timestamp);
+                await timeIncreaseTo(startedFarmingTime.add(time.duration.weeks(1)));
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual(_MAX_REWARD_AMOUNT);
 
                 const balanceBeforeClaim = await ctx.gift.balanceOf(ctx.initialHolder);
