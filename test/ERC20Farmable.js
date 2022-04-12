@@ -1,6 +1,6 @@
 const { expectRevert, time, BN, ether } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
-const { timeIncreaseTo, almostEqual } = require('./utils');
+const { timeIncreaseTo, almostEqual, startFarming } = require('./utils');
 const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
 
 const ERC20FarmableMock = artifacts.require('ERC20FarmableMock');
@@ -60,9 +60,6 @@ describe('ERC20Farmable', function () {
             }
 
             await this.farm.setDistributor(wallet1);
-
-            this.started = (await time.latest()).addn(10);
-            await timeIncreaseTo(this.started);
         });
 
         // Farm initialization scenarios
@@ -144,8 +141,8 @@ describe('ERC20Farmable', function () {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
-                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
-                await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+                const started = await startFarming(this.farm, 1000, 60 * 60 * 24, wallet1);
+                await timeIncreaseTo(started.addn(60 * 60 * 25));
 
                 const balanceBefore = await this.gift.balanceOf(wallet1);
                 await this.token.claim(this.farm.address, { from: wallet1 });
@@ -171,8 +168,8 @@ describe('ERC20Farmable', function () {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
-                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
-                await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+                const started = await startFarming(this.farm, 1000, 60 * 60 * 24, wallet1);
+                await timeIncreaseTo(started.addn(60 * 60 * 25));
 
                 const balanceBefore = await this.gift.balanceOf(wallet2);
                 await this.token.claim(this.farm.address, { from: wallet2 });

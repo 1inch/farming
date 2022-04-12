@@ -1,6 +1,6 @@
 const { expectRevert, time, BN } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
-const { timeIncreaseTo, almostEqual } = require('../utils');
+const { timeIncreaseTo, almostEqual, startFarming } = require('../utils');
 
 const Farm = artifacts.require('Farm');
 const TokenMock = artifacts.require('TokenMock');
@@ -42,9 +42,6 @@ const shouldBehaveLikeFarmable = (getContext) => {
             }
 
             await ctx.farm.setDistributor(ctx.initialHolder);
-
-            ctx.started = (await time.latest()).addn(10);
-            await timeIncreaseTo(ctx.started);
         });
 
         // Wallet joining scenarios
@@ -318,17 +315,17 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 After step 3 - farmed reward = 36k
             */
             it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
-                await ctx.farm.startFarming('72000', time.duration.weeks(2), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(2), ctx.initialHolder);
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
 
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply, { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('36000');
             });
             /*
@@ -355,7 +352,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(2), { from: ctx.initialHolder });
 
                 // 72000 UDSC per week for 3 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.equal('0');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
@@ -368,7 +365,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('36000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('36000');
@@ -399,7 +396,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(4), { from: ctx.initialHolder });
 
                 // 72000 UDSC per week
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.equal('0');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
@@ -412,7 +409,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('18000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('54000');
@@ -450,12 +447,12 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.recipient, recipientAmount, { from: ctx.initialHolder });
 
                 // 72000 UDSC per week
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 expect(await ctx.token.farmTotalSupply(ctx.farm.address)).to.be.bignumber.almostEqual(ctx.initialSupply.sub(recipientAmount));
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
@@ -464,7 +461,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('0');
 
                 await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('90000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('90000');
@@ -497,19 +494,19 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 //
 
                 // 72000 UDSC per week for 1 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('72000');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 // 72000 UDSC per week for 1 weeks
                 await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(3)));
+                await timeIncreaseTo(started.add(time.duration.weeks(3)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('144000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('0');
@@ -542,21 +539,21 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 //
 
                 // 72000 UDSC per week for 1 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('72000');
                 await ctx.token.claim(ctx.farm.address, { from: ctx.initialHolder });
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('0');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 // 72000 UDSC per week for 1 weeks
                 await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(3)));
+                await timeIncreaseTo(started.add(time.duration.weeks(3)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('72000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('0');
@@ -590,11 +587,11 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 //
 
                 // 72000 UDSC per week for 1 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('72000');
                 await ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder });
@@ -602,11 +599,11 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('72000');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 // 72000 UDSC per week for 1 weeks
                 await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(3)));
+                await timeIncreaseTo(started.add(time.duration.weeks(3)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('144000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('0');
@@ -641,11 +638,11 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 //
 
                 // 72000 UDSC per week for 1 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('72000');
                 await ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder });
@@ -655,11 +652,11 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('0');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 // 72000 UDSC per week for 1 weeks
                 await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(3)));
+                await timeIncreaseTo(started.add(time.duration.weeks(3)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('72000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('0');
@@ -704,12 +701,12 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.anotherAccount, anotherAccountAmount, { from: ctx.initialHolder });
 
                 // 72000 UDSC per week for 3 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(1), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.anotherAccount });
 
@@ -718,7 +715,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('54000');
 
                 await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('26000'); // 18k + 8k
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('26000');
@@ -728,7 +725,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.quit(ctx.farm.address, { from: ctx.recipient });
 
                 await ctx.farm.startFarming('72000', time.duration.weeks(1), { from: ctx.initialHolder });
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(3)));
+                await timeIncreaseTo(started.add(time.duration.weeks(3)));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('38000'); // 18k + 8k + 12k
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('38000');
@@ -773,12 +770,12 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.anotherAccount, anotherAccountAmount, { from: ctx.initialHolder });
 
                 // 72000 UDSC per week for 3 weeks
-                await ctx.farm.startFarming('216000', time.duration.weeks(3), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '216000', time.duration.weeks(3), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.anotherAccount });
 
@@ -786,7 +783,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('18000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('54000');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 await ctx.token.quit(ctx.farm.address, { from: ctx.recipient });
 
@@ -794,7 +791,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('78000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.anotherAccount)).to.be.bignumber.almostEqual('40000');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(3)));
+                await timeIncreaseTo(started.add(time.duration.weeks(3)));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('38000'); // 18k + 8k + 12k
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('38000');
@@ -826,7 +823,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(4), { from: ctx.initialHolder });
 
                 // 10000 UDSC per week for 1 weeks
-                await ctx.farm.startFarming('10000', time.duration.weeks(1), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '10000', time.duration.weeks(1), ctx.initialHolder);
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.equal('0');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
@@ -838,7 +835,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)).addn(2));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)).addn(2));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('2750');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('8250');
@@ -872,9 +869,8 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
-                const tx = await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
-                const startedFarmingTime = new BN((await web3.eth.getBlock(tx.receipt.blockHash)).timestamp);
-                await timeIncreaseTo(startedFarmingTime.add(time.duration.weeks(1)));
+                const started = await startFarming(ctx.farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), ctx.initialHolder);
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual(_MAX_REWARD_AMOUNT);
 
                 const balanceBeforeClaim = await ctx.gift.balanceOf(ctx.initialHolder);
@@ -904,14 +900,13 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
                 await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
 
-                const tx = await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
-                const startedFarmingTime = new BN((await web3.eth.getBlock(tx.receipt.blockHash)).timestamp);
+                const started = await startFarming(ctx.farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), ctx.initialHolder);
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
 
-                await timeIncreaseTo(startedFarmingTime.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
                 const farmedAmount = await ctx.token.farmed(ctx.farm.address, ctx.initialHolder);
                 for (let i = 1; i < 5; i++) {
-                    await timeIncreaseTo(startedFarmingTime.add(time.duration.weeks(1)).addn(i));
+                    await timeIncreaseTo(started.add(time.duration.weeks(1)).addn(i));
                     expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equals(farmedAmount);
                 }
             });
@@ -948,19 +943,19 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(4), { from: ctx.initialHolder });
 
                 // 36000 UDSC per week for 2 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(2), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(2), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('27000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('9000');
 
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(2), { from: ctx.initialHolder });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('36000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('36000');
@@ -1000,19 +995,19 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(2), { from: ctx.initialHolder });
 
                 // 36000 UDSC per week for 2 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(2), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(2), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('18000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('18000');
 
                 await ctx.token.transfer(ctx.anotherAccount, ctx.initialSupply.divn(2), { from: ctx.recipient });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 // expect(await ctx.token.farmedPerToken()).to.be.bignumber.almostEqual('38000'); // 18k + 8k + 12k
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('54000');
@@ -1046,19 +1041,19 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.transfer(ctx.anotherAccount, ctx.initialSupply.divn(2), { from: ctx.initialHolder });
 
                 // 36000 UDSC per week for 2 weeks
-                await ctx.farm.startFarming('72000', time.duration.weeks(2), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(2), ctx.initialHolder);
 
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await ctx.token.join(ctx.farm.address, { from: ctx.recipient });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('18000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('18000');
 
                 await ctx.token.transfer(ctx.initialHolder, ctx.initialSupply.divn(2), { from: ctx.anotherAccount });
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('45000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('27000');
@@ -1087,9 +1082,9 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
             */
             it('Transfer from one wallet to another, both are not farming', async function () {
-                await ctx.farm.startFarming('72000', time.duration.weeks(2), { from: ctx.initialHolder });
+                const started = await startFarming(ctx.farm, '72000', time.duration.weeks(2), ctx.initialHolder);
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)));
+                await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
                 await ctx.token.transfer(ctx.recipient, ctx.initialSupply.divn(4), { from: ctx.initialHolder });
 
@@ -1099,7 +1094,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equal('0');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.equal('0');
 
-                await timeIncreaseTo(ctx.started.add(time.duration.weeks(2)));
+                await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.almostEqual('27000');
                 expect(await ctx.token.farmed(ctx.farm.address, ctx.recipient)).to.be.bignumber.almostEqual('9000');
