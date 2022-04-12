@@ -203,5 +203,4 @@ describe('ERC20Farmable', function () {
             });
         });
     });
-
 });

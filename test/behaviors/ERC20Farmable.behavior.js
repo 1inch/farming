@@ -881,18 +881,37 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 expect(await ctx.gift.balanceOf(ctx.initialHolder)).to.be.bignumber.almostEqual(balanceBeforeClaim.add(_MAX_REWARD_AMOUNT));
             });
 
+            /*
+                ***Test Scenario**
+                Checks that a farm not credited rewards after farming time expires.
+
+                ***Initial setup**
+                - Mint and approve _MAX_REWARD_AMOUNT to `farm`
+
+                ***Test Steps**
+                1. Start farming with _MAX_REWARD_AMOUNT as a reward for 1 week.
+                2. A wallet joins farm.
+                3. Fast forward time for 1 week.
+                4. Check the wallet's reward amount doesn't increase after this time.
+
+                ***Expected results**
+                1. Reward increase stops after 1 week from start farming.
+            */
             it('Farm operation time', async () => {
                 const _MAX_REWARD_AMOUNT = new BN(10).pow(new BN(42));
 
                 await ctx.gift.mint(ctx.initialHolder, _MAX_REWARD_AMOUNT);
                 await ctx.gift.approve(ctx.farm.address, _MAX_REWARD_AMOUNT);
 
-                await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
+                const tx = await ctx.farm.startFarming(_MAX_REWARD_AMOUNT, time.duration.weeks(1), { from: ctx.initialHolder });
+                const startedFarmingTime = new BN((await web3.eth.getBlock(tx.receipt.blockHash)).timestamp);
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
 
-                for (let i = 0; i < 5; i++) {
-                    await timeIncreaseTo(ctx.started.add(time.duration.weeks(1)).addn(i));
-                    console.log((await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).toString());
+                await timeIncreaseTo(startedFarmingTime.add(time.duration.weeks(1)));
+                const farmedAmount = await ctx.token.farmed(ctx.farm.address, ctx.initialHolder);
+                for (let i = 1; i < 5; i++) {
+                    await timeIncreaseTo(startedFarmingTime.add(time.duration.weeks(1)).addn(i));
+                    expect(await ctx.token.farmed(ctx.farm.address, ctx.initialHolder)).to.be.bignumber.equals(farmedAmount);
                 }
             });
         });
