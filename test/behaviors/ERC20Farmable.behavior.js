@@ -855,8 +855,8 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 - Mint and approve _MAX_REWARD_AMOUNT to `farm`
 
                 ***Test Steps**
-                1. Start farming with _MAX_REWARD_AMOUNT as a reward for 1 week.
-                2. A wallet joins farm.
+                1. A wallet joins farm.
+                2. Start farming with _MAX_REWARD_AMOUNT as a reward for 1 week.
                 3. Fast forward time for 1 week.
                 4. Check the wallet's reward amount.
                 5. Claim the reward.
