@@ -52,7 +52,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
       - run: yarn
-      - run: yarn test
+      - run: yarn test:ci
 
   coverage:
     runs-on: ubuntu-latest
