@@ -535,8 +535,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
 
         it('should transfer ethers from farm to wallet', async () => {
             // Transfer ethers to farm
-            const ethTransferMock = await EthTransferMock.new();
-            await ethTransferMock.transfer(this.farm.address, { from: wallet1, value: '1000' });
+            await EthTransferMock.new(this.farm.address, { from: wallet1, value: '1000' });
 
             // Check rescueFunds
             const balanceWalletBefore = toBN(await web3.eth.getBalance(wallet1));

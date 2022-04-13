@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IFarm.sol";
 import "./interfaces/IERC20Farmable.sol";
@@ -60,7 +61,7 @@ contract Farm is IFarm, Ownable {
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
         if(address(token) == address(0)) {
-            payable(distributor).transfer(amount);
+            Address.sendValue(payable(distributor), amount);
         } else {
             token.safeTransfer(distributor, amount);
         }

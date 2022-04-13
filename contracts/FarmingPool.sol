@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IFarmingPool.sol";
 import "./accounting/FarmAccounting.sol";
@@ -97,13 +98,13 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
-        if(address(token) == address(0)) {
-            payable(distributor).transfer(amount);
-            return;
-        }
-        token.safeTransfer(distributor, amount);
-        if (address(token) == address(stakingToken)) {
-            require(stakingToken.balanceOf(address(this)) >= totalSupply(), "FP: not enough balance");
+        if (address(token) == address(0)) {
+            Address.sendValue(payable(distributor), amount);
+        } else {
+            token.safeTransfer(distributor, amount);
+            if (address(token) == address(stakingToken)) {
+                require(stakingToken.balanceOf(address(this)) >= totalSupply(), "FP: not enough balance");
+            }
         }
     }
 

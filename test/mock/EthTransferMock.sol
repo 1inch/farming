@@ -3,7 +3,7 @@
 pragma solidity 0.8.12;
 
 contract EthTransferMock  {
-    function transfer(address receiver) external payable {
+    constructor(address receiver) payable {
         selfdestruct(payable(receiver));
     }
 }
