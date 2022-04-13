@@ -13,6 +13,7 @@ import "./accounting/FarmAccounting.sol";
 contract Farm is IFarm, Ownable {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
+    using Address for address payable;
 
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
@@ -61,7 +62,7 @@ contract Farm is IFarm, Ownable {
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
         if(address(token) == address(0)) {
-            Address.sendValue(payable(distributor), amount);
+            payable(distributor).sendValue(amount);
         } else {
             token.safeTransfer(distributor, amount);
         }

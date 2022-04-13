@@ -16,6 +16,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;
+    using Address for address payable;
 
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
@@ -99,7 +100,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
         if (address(token) == address(0)) {
-            Address.sendValue(payable(distributor), amount);
+            payable(distributor).sendValue(amount);
         } else {
             token.safeTransfer(distributor, amount);
             if (address(token) == address(stakingToken)) {
