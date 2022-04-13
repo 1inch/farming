@@ -9,6 +9,11 @@ import "./interfaces/IFarm.sol";
 import "./interfaces/IERC20Farmable.sol";
 import "./accounting/FarmAccounting.sol";
 
+error FarmableTokenZeroAddress();
+error RewardsTokenZeroAddress();
+error DistributorAlreadySet();
+error AccessDenied();
+
 contract Farm is IFarm, Ownable {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
@@ -23,21 +28,21 @@ contract Farm is IFarm, Ownable {
     FarmAccounting.Info public farmInfo;
 
     constructor(IERC20Farmable farmableToken_, IERC20 rewardsToken_) {
-        require(address(farmableToken_) != address(0), "F: farmableToken is zero");
-        require(address(rewardsToken_) != address(0), "F: rewardsToken is zero");
+        if (address(farmableToken_) == address(0)) revert FarmableTokenZeroAddress();
+        if (address(rewardsToken_) == address(0)) revert RewardsTokenZeroAddress();
         farmableToken = farmableToken_;
         rewardsToken = rewardsToken_;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
-        require(distributor_ != oldDistributor, "F: distributor is already set");
+        if (distributor_ == oldDistributor) revert DistributorAlreadySet();
         emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }
 
     function startFarming(uint256 amount, uint256 period) external {
-        require(msg.sender == distributor, "F: start access denied");
+        if (msg.sender != distributor) revert AccessDenied();
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
@@ -50,7 +55,7 @@ contract Farm is IFarm, Ownable {
     }
 
     function claimFor(address account, uint256 amount) external {
-        require(msg.sender == address(farmableToken), "F: claimFor access denied");
+        if (msg.sender != address(farmableToken)) revert AccessDenied();
         rewardsToken.safeTransfer(account, amount);
     }
 

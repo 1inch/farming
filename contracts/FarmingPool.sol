@@ -11,6 +11,13 @@ import "./interfaces/IFarmingPool.sol";
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
 
+error StakingTokenZeroAddress();
+error RewardsTokenZeroAddress();
+error DistributorAlreadySet();
+error AccessDenied();
+error ZeroDeposit();
+error ZeroWithdraw();
+
 contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
@@ -32,21 +39,21 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
     {
-        require(address(stakingToken_) != address(0), "FP: stakingToken is zero");
-        require(address(rewardsToken_) != address(0), "FP: rewardsToken is zero");
+        if (address(stakingToken_) == address(0)) revert StakingTokenZeroAddress();
+        if (address(rewardsToken_) == address(0)) revert RewardsTokenZeroAddress();
         stakingToken = stakingToken_;
         rewardsToken = rewardsToken_;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
-        require(distributor_ != oldDistributor, "FP: distributor is already set");
+        if (distributor_ == oldDistributor) revert DistributorAlreadySet();
         emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }
 
     function startFarming(uint256 amount, uint256 period) external {
-        require(msg.sender == distributor, "FP: access denied");
+        if (msg.sender != distributor) revert AccessDenied();
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
@@ -66,13 +73,13 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function deposit(uint256 amount) external override {
-        require(amount > 0, "FP: zero deposit");
+        if (amount == 0) revert ZeroDeposit();
         _mint(msg.sender, amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public override {
-        require(amount > 0, "FP: zero withdraw");
+        if (amount == 0) revert ZeroWithdraw();
         _burn(msg.sender, amount);
         stakingToken.safeTransfer(msg.sender, amount);
     }
