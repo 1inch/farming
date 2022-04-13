@@ -61,7 +61,7 @@ contract Farm is IFarm, Ownable {
     }
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
-        if(address(token) == address(0)) {
+        if(token == IERC20(address(0))) {
             payable(distributor).sendValue(amount);
         } else {
             token.safeTransfer(distributor, amount);
