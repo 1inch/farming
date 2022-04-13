@@ -1,4 +1,4 @@
-const { expectRevert, time, ether } = require('@openzeppelin/test-helpers');
+const { constants, expectRevert, time, ether } = require('@openzeppelin/test-helpers');
 const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('./utils');
@@ -7,6 +7,7 @@ const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior
 const ERC20FarmableMock = artifacts.require('ERC20FarmableMock');
 const Farm = artifacts.require('Farm');
 const TokenMock = artifacts.require('TokenMock');
+const EthTransferMock = artifacts.require('EthTransferMock');
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
@@ -250,6 +251,39 @@ describe('ERC20Farmable', function () {
 
                 expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equals(balanceWalletBefore.addn(1000));
                 expect(await this.gift.balanceOf(this.farm.address)).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
+            });
+
+            /*
+                ***Test Scenario**
+                Ensure that `rescueFunds` can transfer ethers to distributor
+
+                ***Initial setup**
+                - Transfer ethers to farm with special contract with `selfdestruct` method because farm has not fallback
+
+                ***Test Steps**
+                - Check balances of wallet and farm before rescueFunds
+                - Check rescueFunds
+                - Calculate rescueFunds blockchain fee
+
+                ***Expected results**
+                - Ethers transfered from farm to distributor
+            */
+            it('should transfer ethers from farm to wallet', async () => {
+                // Transfer ethers to farm
+                const ethTransferMock = await EthTransferMock.new();
+                await ethTransferMock.transfer(this.farm.address, { from: wallet1, value: '1000' });
+
+                // Check rescueFunds
+                const balanceWalletBefore = toBN(await web3.eth.getBalance(wallet1));
+                const balanceFarmBefore = toBN(await web3.eth.getBalance(this.farm.address));
+
+                const distributor = await this.farm.distributor();
+                expect(wallet1).to.be.equals(distributor);
+                const tx = await this.farm.rescueFunds(constants.ZERO_ADDRESS, '1000', { from: wallet1 });
+                const txCost = toBN(tx.receipt.gasUsed).mul(toBN(tx.receipt.effectiveGasPrice));
+
+                expect(toBN(await web3.eth.getBalance(wallet1))).to.be.bignumber.equals(balanceWalletBefore.sub(txCost).addn(1000));
+                expect(toBN(await web3.eth.getBalance(this.farm.address))).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
             });
         });
     });

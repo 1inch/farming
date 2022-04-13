@@ -1,10 +1,11 @@
-const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { constants, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('./utils');
 
 const FarmingPool = artifacts.require('FarmingPool');
 const TokenMock = artifacts.require('TokenMock');
+const EthTransferMock = artifacts.require('EthTransferMock');
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
@@ -530,6 +531,24 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
 
             await this.farm.rescueFunds(this.token.address, '500', { from: wallet1 });
             expect(await this.token.balanceOf(this.farm.address)).to.be.bignumber.equals(await this.farm.totalSupply());
+        });
+
+        it('should transfer ethers from farm to wallet', async () => {
+            // Transfer ethers to farm
+            const ethTransferMock = await EthTransferMock.new();
+            await ethTransferMock.transfer(this.farm.address, { from: wallet1, value: '1000' });
+
+            // Check rescueFunds
+            const balanceWalletBefore = toBN(await web3.eth.getBalance(wallet1));
+            const balanceFarmBefore = toBN(await web3.eth.getBalance(this.farm.address));
+
+            const distributor = await this.farm.distributor();
+            expect(wallet1).to.be.equals(distributor);
+            const tx = await this.farm.rescueFunds(constants.ZERO_ADDRESS, '1000', { from: wallet1 });
+            const txCost = toBN(tx.receipt.gasUsed).mul(toBN(tx.receipt.effectiveGasPrice));
+
+            expect(toBN(await web3.eth.getBalance(wallet1))).to.be.bignumber.equals(balanceWalletBefore.sub(txCost).addn(1000));
+            expect(toBN(await web3.eth.getBalance(this.farm.address))).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
         });
     });
 });

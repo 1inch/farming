@@ -97,9 +97,12 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
+        if(address(token) == address(0)) {
+            payable(distributor).transfer(amount);
+            return;
+        }
         token.safeTransfer(distributor, amount);
-
-        if (address(stakingToken) == address(token)) {
+        if (address(token) == address(stakingToken)) {
             require(stakingToken.balanceOf(address(this)) >= totalSupply(), "FP: not enough balance");
         }
     }
