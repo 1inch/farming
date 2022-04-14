@@ -18,8 +18,8 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using UserAccounting for UserAccounting.Info;
     using Address for address payable;
 
-    error StakingTokenZeroAddress();
-    error RewardsTokenZeroAddress();
+    error StakingTokenAddressIsZero();
+    error RewardsTokenAddressIsZero();
     error DistributorAlreadySet();
     error AccessDenied();
     error ZeroDeposit();
@@ -47,8 +47,8 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
     {
-        if (address(stakingToken_) == address(0)) revert StakingTokenZeroAddress();
-        if (address(rewardsToken_) == address(0)) revert RewardsTokenZeroAddress();
+        if (address(stakingToken_) == address(0)) revert StakingTokenAddressIsZero();
+        if (address(rewardsToken_) == address(0)) revert RewardsTokenAddressIsZero();
         stakingToken = stakingToken_;
         rewardsToken = rewardsToken_;
     }

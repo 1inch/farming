@@ -15,8 +15,8 @@ contract Farm is IFarm, Ownable {
     using FarmAccounting for FarmAccounting.Info;
     using Address for address payable;
 
-    error FarmableTokenZeroAddress();
-    error RewardsTokenZeroAddress();
+    error FarmableTokenAddressIsZero();
+    error RewardsTokenAddressIsZero();
     error DistributorAlreadySet();
     error AccessDenied();
 
@@ -35,8 +35,8 @@ contract Farm is IFarm, Ownable {
     }
 
     constructor(IERC20Farmable farmableToken_, IERC20 rewardsToken_) {
-        if (address(farmableToken_) == address(0)) revert FarmableTokenZeroAddress();
-        if (address(rewardsToken_) == address(0)) revert RewardsTokenZeroAddress();
+        if (address(farmableToken_) == address(0)) revert FarmableTokenAddressIsZero();
+        if (address(rewardsToken_) == address(0)) revert RewardsTokenAddressIsZero();
         farmableToken = farmableToken_;
         rewardsToken = rewardsToken_;
     }

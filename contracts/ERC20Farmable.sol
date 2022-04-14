@@ -16,7 +16,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     error AccessDenied();
     error MaxUserFarmsReached();
-    error FarmZeroAddress();
+    error FarmAddressIsZero();
     error AlreadyFarming();
     error AlreadyExited();
 
@@ -69,7 +69,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function join(address farm_) public virtual returns(uint256) {
         if (_userFarms[msg.sender].length() >= maxUserFarms) revert MaxUserFarmsReached();
-        if (farm_ == address(0)) revert FarmZeroAddress();
+        if (farm_ == address(0)) revert FarmAddressIsZero();
         if (!_userFarms[msg.sender].add(farm_)) revert AlreadyFarming();
 
         uint256 balance = balanceOf(msg.sender);
@@ -87,7 +87,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function quit(address farm_) public virtual returns(uint256) {
-        if (farm_ == address(0)) revert FarmZeroAddress();
+        if (farm_ == address(0)) revert FarmAddressIsZero();
         if (!_userFarms[msg.sender].remove(address(farm_))) revert AlreadyExited();
 
         uint256 balance = balanceOf(msg.sender);
