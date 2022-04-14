@@ -6,22 +6,25 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IFarmingPool.sol";
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
 
-error StakingTokenZeroAddress();
-error RewardsTokenZeroAddress();
-error DistributorAlreadySet();
-error AccessDenied();
-error ZeroDeposit();
-error ZeroWithdraw();
-
 contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;
+    using Address for address payable;
+
+    error StakingTokenZeroAddress();
+    error RewardsTokenZeroAddress();
+    error DistributorAlreadySet();
+    error AccessDenied();
+    error ZeroDeposit();
+    error ZeroWithdraw();
+    error NotEnoughBalance();
 
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
@@ -32,6 +35,11 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     address public distributor;
     FarmAccounting.Info public farmInfo;
     UserAccounting.Info public userInfo;
+
+    modifier onlyDistributor {
+        if (msg.sender != distributor) revert AccessDenied();
+        _;
+    }
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
         ERC20(
@@ -52,8 +60,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         distributor = distributor_;
     }
 
-    function startFarming(uint256 amount, uint256 period) external {
-        if (msg.sender != distributor) revert AccessDenied();
+    function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
@@ -97,6 +104,17 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     function exit() external override {
         withdraw(balanceOf(msg.sender));
         claim();
+    }
+
+    function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
+        if (token == IERC20(address(0))) {
+            payable(distributor).sendValue(amount);
+        } else {
+            token.safeTransfer(distributor, amount);
+            if (token == stakingToken) {
+                if (stakingToken.balanceOf(address(this)) < totalSupply()) revert NotEnoughBalance();
+            }
+        }
     }
 
     // ERC20 overrides

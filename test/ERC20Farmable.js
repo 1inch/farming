@@ -1,12 +1,13 @@
-const { expectRevert, time, ether } = require('@openzeppelin/test-helpers');
+const { constants, expectRevert, time, ether } = require('@openzeppelin/test-helpers');
 const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
-const { timeIncreaseTo, almostEqual } = require('./utils');
+const { timeIncreaseTo, almostEqual, startFarming } = require('./utils');
 const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
 
 const ERC20FarmableMock = artifacts.require('ERC20FarmableMock');
 const Farm = artifacts.require('Farm');
 const TokenMock = artifacts.require('TokenMock');
+const EthTransferMock = artifacts.require('EthTransferMock');
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
@@ -61,9 +62,6 @@ describe('ERC20Farmable', function () {
             }
 
             await this.farm.setDistributor(wallet1);
-
-            this.started = (await time.latest()).addn(10);
-            await timeIncreaseTo(this.started);
         });
 
         // Farm initialization scenarios
@@ -106,18 +104,18 @@ describe('ERC20Farmable', function () {
 
             /*
                 ***Test Scenario**
-                Check that farming amount is under `uint192`
+                Check that farming amount is under _MAX_REWARD_AMOUNT
 
                 ***Test Steps**
-                Start farming using 2^192^ as farming reward.
+                Start farming using _MAX_REWARD_AMOUNT+1 as farming reward.
 
                 ***Expected results**
                 Revert with error `'AmountTooLarge()'`.
             */
-            it('Thrown with Amount too large', async () => {
-                const largeAmount = (toBN(2)).pow(toBN(192));
-                await this.gift.mint(wallet1, largeAmount);
-                await this.gift.approve(this.farm.address, largeAmount);
+            it('Thrown with Amount equals _MAX_REWARD_AMOUNT + 1', async () => {
+                const _MAX_REWARD_AMOUNT = toBN(10).pow(toBN(42));
+                await this.gift.mint(wallet1, _MAX_REWARD_AMOUNT.addn(1));
+                await this.gift.approve(this.farm.address, _MAX_REWARD_AMOUNT.addn(1));
                 await expectRevert(
                     this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
                     'AmountTooLarge()',
@@ -145,8 +143,8 @@ describe('ERC20Farmable', function () {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
-                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
-                await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+                const started = await startFarming(this.farm, 1000, 60 * 60 * 24, wallet1);
+                await timeIncreaseTo(started.addn(60 * 60 * 25));
 
                 const balanceBefore = await this.gift.balanceOf(wallet1);
                 await this.token.claim(this.farm.address, { from: wallet1 });
@@ -172,8 +170,8 @@ describe('ERC20Farmable', function () {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
-                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
-                await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+                const started = await startFarming(this.farm, 1000, 60 * 60 * 24, wallet1);
+                await timeIncreaseTo(started.addn(60 * 60 * 25));
 
                 const balanceBefore = await this.gift.balanceOf(wallet2);
                 await this.token.claim(this.farm.address, { from: wallet2 });
@@ -201,6 +199,87 @@ describe('ERC20Farmable', function () {
                     this.farm.claimFor(wallet1, '1000', { from: wallet1 }),
                     'AccessDenied()',
                 );
+            });
+        });
+
+        // Farm's rescueFunds scenarios
+        describe('rescueFunds', async () => {
+            /*
+                ***Test Scenario**
+                Ensure that `rescueFunds` cann't be called someone other than distributor
+
+                ***Test Steps**
+                - `wallet2` which is not distributor try to rescueFunds this tokens
+
+                ***Expected results**
+                - Revert with error `'F: access denied'`
+            */
+            it('should thrown with access denied', async () => {
+                const distributor = await this.farm.distributor();
+                expect(wallet2).to.be.not.equals(distributor);
+                await expectRevert(
+                    this.farm.rescueFunds(this.gift.address, '1000', { from: wallet2 }),
+                    'F: access denied',
+                );
+            });
+
+            /*
+                ***Test Scenario**
+                Ensure that `rescueFunds` can be called only by distributor
+
+                ***Initial setup**
+                - started farming
+
+                ***Test Steps**
+                - Distributor try to rescueFunds this tokens
+
+                ***Expected results**
+                - Tokens transfered from farm to distributor
+            */
+            it('should transfer tokens from farm to wallet', async () => {
+                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
+
+                const balanceWalletBefore = await this.gift.balanceOf(wallet1);
+                const balanceFarmBefore = await this.gift.balanceOf(this.farm.address);
+
+                const distributor = await this.farm.distributor();
+                expect(wallet1).to.be.equals(distributor);
+                await this.farm.rescueFunds(this.gift.address, '1000', { from: wallet1 });
+
+                expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equals(balanceWalletBefore.addn(1000));
+                expect(await this.gift.balanceOf(this.farm.address)).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
+            });
+
+            /*
+                ***Test Scenario**
+                Ensure that `rescueFunds` can transfer ethers to distributor
+
+                ***Initial setup**
+                - Transfer ethers to farm with special contract with `selfdestruct` method because farm has not fallback
+
+                ***Test Steps**
+                - Check balances of wallet and farm before rescueFunds
+                - Check rescueFunds
+                - Calculate rescueFunds blockchain fee
+
+                ***Expected results**
+                - Ethers transfered from farm to distributor
+            */
+            it('should transfer ethers from farm to wallet', async () => {
+                // Transfer ethers to farm
+                await EthTransferMock.new(this.farm.address, { from: wallet1, value: '1000' });
+
+                // Check rescueFunds
+                const balanceWalletBefore = toBN(await web3.eth.getBalance(wallet1));
+                const balanceFarmBefore = toBN(await web3.eth.getBalance(this.farm.address));
+
+                const distributor = await this.farm.distributor();
+                expect(wallet1).to.be.equals(distributor);
+                const tx = await this.farm.rescueFunds(constants.ZERO_ADDRESS, '1000', { from: wallet1 });
+                const txCost = toBN(tx.receipt.gasUsed).mul(toBN(tx.receipt.effectiveGasPrice));
+
+                expect(toBN(await web3.eth.getBalance(wallet1))).to.be.bignumber.equals(balanceWalletBefore.sub(txCost).addn(1000));
+                expect(toBN(await web3.eth.getBalance(this.farm.address))).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
             });
         });
     });
