@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-error CheckpointLessThanStarted();
-error DurationZero();
-error DurationTooLarge();
-error AmountTooLarge();
-
 library FarmAccounting {
+    error CheckpointLessThanStarted();
+    error DurationZero();
+    error DurationTooLarge();
+    error AmountTooLarge();
+
     struct Info {
         uint40 finished;
         uint32 duration;

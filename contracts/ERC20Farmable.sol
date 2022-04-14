@@ -9,16 +9,16 @@ import "./interfaces/IERC20Farmable.sol";
 import "./accounting/UserAccounting.sol";
 import "./accounting/FarmAccounting.sol";
 
-error AccessDenied();
-error MaxUserFarmsReached();
-error FarmZeroAddress();
-error AlreadyFarming();
-error AlreadyExited();
-
 abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressArray for AddressArray.Data;
     using AddressSet for AddressSet.Data;
     using UserAccounting for UserAccounting.Info;
+
+    error AccessDenied();
+    error MaxUserFarmsReached();
+    error FarmZeroAddress();
+    error AlreadyFarming();
+    error AlreadyExited();
 
     uint256 public immutable maxUserFarms;
 
