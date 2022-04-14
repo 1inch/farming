@@ -1,7 +1,7 @@
 const { constants, expectRevert, time, ether } = require('@openzeppelin/test-helpers');
 const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
-const { timeIncreaseTo, almostEqual } = require('./utils');
+const { timeIncreaseTo, almostEqual, startFarming } = require('./utils');
 const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
 
 const ERC20FarmableMock = artifacts.require('ERC20FarmableMock');
@@ -62,9 +62,6 @@ describe('ERC20Farmable', function () {
             }
 
             await this.farm.setDistributor(wallet1);
-
-            this.started = (await time.latest()).addn(10);
-            await timeIncreaseTo(this.started);
         });
 
         // Farm initialization scenarios
@@ -107,20 +104,20 @@ describe('ERC20Farmable', function () {
 
             /*
                 ***Test Scenario**
-                Check that farming amount is under `uint192`
+                Check that farming amount is under _MAX_REWARD_AMOUNT
 
                 ***Test Steps**
-                Start farming using 2^192^ as farming reward.
+                Start farming using _MAX_REWARD_AMOUNT+1 as farming reward.
 
                 ***Expected results**
                 Revert with error `'FA: amount too large'`.
             */
-            it('Thrown with Amount too large', async () => {
-                const largeAmount = (toBN(2)).pow(toBN(192));
-                await this.gift.mint(wallet1, largeAmount);
-                await this.gift.approve(this.farm.address, largeAmount);
+            it('Thrown with Amount equals _MAX_REWARD_AMOUNT + 1', async () => {
+                const _MAX_REWARD_AMOUNT = toBN(10).pow(toBN(42));
+                await this.gift.mint(wallet1, _MAX_REWARD_AMOUNT.addn(1));
+                await this.gift.approve(this.farm.address, _MAX_REWARD_AMOUNT.addn(1));
                 await expectRevert(
-                    this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
+                    this.farm.startFarming(_MAX_REWARD_AMOUNT.addn(1), time.duration.weeks(1), { from: wallet1 }),
                     'FA: amount too large',
                 );
             });
@@ -146,8 +143,8 @@ describe('ERC20Farmable', function () {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
-                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
-                await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+                const started = await startFarming(this.farm, 1000, 60 * 60 * 24, wallet1);
+                await timeIncreaseTo(started.addn(60 * 60 * 25));
 
                 const balanceBefore = await this.gift.balanceOf(wallet1);
                 await this.token.claim(this.farm.address, { from: wallet1 });
@@ -173,8 +170,8 @@ describe('ERC20Farmable', function () {
                 await this.token.join(this.farm.address, { from: wallet1 });
                 await this.gift.transfer(this.farm.address, '1000', { from: wallet2 });
 
-                await this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
-                await timeIncreaseTo(this.started.addn(60 * 60 * 25));
+                const started = await startFarming(this.farm, 1000, 60 * 60 * 24, wallet1);
+                await timeIncreaseTo(started.addn(60 * 60 * 25));
 
                 const balanceBefore = await this.gift.balanceOf(wallet2);
                 await this.token.claim(this.farm.address, { from: wallet2 });
