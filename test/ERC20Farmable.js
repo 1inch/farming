@@ -117,7 +117,7 @@ describe('ERC20Farmable', function () {
                 await this.gift.mint(wallet1, _MAX_REWARD_AMOUNT.addn(1));
                 await this.gift.approve(this.farm.address, _MAX_REWARD_AMOUNT.addn(1));
                 await expectRevert(
-                    this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
+                    this.farm.startFarming(_MAX_REWARD_AMOUNT.addn(1), time.duration.weeks(1), { from: wallet1 }),
                     'AmountTooLarge()',
                 );
             });
@@ -212,14 +212,14 @@ describe('ERC20Farmable', function () {
                 - `wallet2` which is not distributor try to rescueFunds this tokens
 
                 ***Expected results**
-                - Revert with error `'F: access denied'`
+                - Revert with error `'AccessDenied()'`
             */
             it('should thrown with access denied', async () => {
                 const distributor = await this.farm.distributor();
                 expect(wallet2).to.be.not.equals(distributor);
                 await expectRevert(
                     this.farm.rescueFunds(this.gift.address, '1000', { from: wallet2 }),
-                    'F: access denied',
+                    'AccessDenied()',
                 );
             });
 

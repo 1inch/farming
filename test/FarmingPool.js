@@ -486,7 +486,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             expect(wallet2).to.be.not.equals(distributor);
             await expectRevert(
                 this.farm.rescueFunds(this.gift.address, '1000', { from: wallet2 }),
-                'FP: access denied',
+                'AccessDenied()',
             );
         });
 
@@ -512,7 +512,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             expect(wallet1).to.be.equals(distributor);
             await expectRevert(
                 this.farm.rescueFunds(this.token.address, '1000', { from: wallet1 }),
-                'FP: not enough balance',
+                'NotEnoughBalance()',
             );
         });
 
