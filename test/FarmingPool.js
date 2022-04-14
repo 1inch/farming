@@ -1,10 +1,11 @@
-const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { constants, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
 const { timeIncreaseTo, almostEqual } = require('./utils');
 
 const FarmingPool = artifacts.require('FarmingPool');
 const TokenMock = artifacts.require('TokenMock');
+const EthTransferMock = artifacts.require('EthTransferMock');
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
@@ -479,6 +480,74 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1Per2Week.toString()}, ${farmedWallet2Per2Week.toString()}}`);
 
             expect(farmedWallet1Per2Week.sub(farmedWallet1PerWeek)).to.be.bignumber.equal(farmedWallet2Per2Week.sub(farmedWallet2PerWeek));
+        });
+    });
+
+    describe('rescueFunds', async () => {
+        it('should thrown with access denied', async () => {
+            const distributor = await this.farm.distributor();
+            expect(wallet2).to.be.not.equals(distributor);
+            await expectRevert(
+                this.farm.rescueFunds(this.gift.address, '1000', { from: wallet2 }),
+                'FP: access denied',
+            );
+        });
+
+        it('should transfer tokens from farm to wallet', async () => {
+            await this.farm.startFarming(1000, time.duration.weeks(1), { from: wallet1 });
+
+            const balanceWalletBefore = await this.gift.balanceOf(wallet1);
+            const balanceFarmBefore = await this.gift.balanceOf(this.farm.address);
+
+            const distributor = await this.farm.distributor();
+            expect(wallet1).to.be.equals(distributor);
+            await this.farm.rescueFunds(this.gift.address, '1000', { from: wallet1 });
+
+            expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equals(balanceWalletBefore.addn(1000));
+            expect(await this.gift.balanceOf(this.farm.address)).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
+        });
+
+        it('should thrown with not enough balance for staking token', async () => {
+            await this.farm.deposit('1000', { from: wallet1 });
+            expect(await this.farm.totalSupply()).to.be.bignumber.gt('0');
+
+            const distributor = await this.farm.distributor();
+            expect(wallet1).to.be.equals(distributor);
+            await expectRevert(
+                this.farm.rescueFunds(this.token.address, '1000', { from: wallet1 }),
+                'FP: not enough balance',
+            );
+        });
+
+        it('should transfer staking token and leave balance of staking tokens more than (and equals to) totalBalance amount', async () => {
+            await this.token.transfer(this.farm.address, '1000', { from: wallet1 });
+            await this.farm.deposit('1000', { from: wallet1 });
+            expect(await this.farm.totalSupply()).to.be.bignumber.gt('0');
+
+            const distributor = await this.farm.distributor();
+            expect(wallet1).to.be.equals(distributor);
+            await this.farm.rescueFunds(this.token.address, '500', { from: wallet1 });
+            expect(await this.token.balanceOf(this.farm.address)).to.be.bignumber.gt(await this.farm.totalSupply());
+
+            await this.farm.rescueFunds(this.token.address, '500', { from: wallet1 });
+            expect(await this.token.balanceOf(this.farm.address)).to.be.bignumber.equals(await this.farm.totalSupply());
+        });
+
+        it('should transfer ethers from farm to wallet', async () => {
+            // Transfer ethers to farm
+            await EthTransferMock.new(this.farm.address, { from: wallet1, value: '1000' });
+
+            // Check rescueFunds
+            const balanceWalletBefore = toBN(await web3.eth.getBalance(wallet1));
+            const balanceFarmBefore = toBN(await web3.eth.getBalance(this.farm.address));
+
+            const distributor = await this.farm.distributor();
+            expect(wallet1).to.be.equals(distributor);
+            const tx = await this.farm.rescueFunds(constants.ZERO_ADDRESS, '1000', { from: wallet1 });
+            const txCost = toBN(tx.receipt.gasUsed).mul(toBN(tx.receipt.effectiveGasPrice));
+
+            expect(toBN(await web3.eth.getBalance(wallet1))).to.be.bignumber.equals(balanceWalletBefore.sub(txCost).addn(1000));
+            expect(toBN(await web3.eth.getBalance(this.farm.address))).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
         });
     });
 });
