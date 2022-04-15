@@ -41,7 +41,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('should thrown with rewards distribution access denied ', async () => {
             await expectRevert(
                 this.farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                'FP: access denied',
+                'AccessDenied()',
             );
         });
     });
@@ -319,7 +319,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
         it('Thrown with Period too large', async () => {
             await expectRevert(
                 this.farm.startFarming('10000', (toBN(2)).pow(toBN(40)), { from: wallet1 }),
-                'FA: duration too large',
+                'DurationTooLarge()',
             );
         });
 
@@ -329,7 +329,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             await this.gift.approve(this.farm.address, largeAmount, { from: wallet1 });
             await expectRevert(
                 this.farm.startFarming(largeAmount, time.duration.weeks(1), { from: wallet1 }),
-                'FA: amount too large',
+                'AmountTooLarge()',
             );
         });
 
@@ -486,7 +486,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             expect(wallet2).to.be.not.equals(distributor);
             await expectRevert(
                 this.farm.rescueFunds(this.gift.address, '1000', { from: wallet2 }),
-                'FP: access denied',
+                'AccessDenied()',
             );
         });
 
@@ -512,7 +512,7 @@ contract('FarmingPool', function ([wallet1, wallet2, wallet3]) {
             expect(wallet1).to.be.equals(distributor);
             await expectRevert(
                 this.farm.rescueFunds(this.token.address, '1000', { from: wallet1 }),
-                'FP: not enough balance',
+                'NotEnoughBalance()',
             );
         });
 

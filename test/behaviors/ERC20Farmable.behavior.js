@@ -140,13 +140,13 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 ***Test Steps**
                 Join `wallet1` to the farm
                 ***Expected results**
-                Reverts with error `'ERC20Farmable: already farming'`
+                Reverts with error `'AlreadyFarming()'`
             */
             it('should be thrown', async () => {
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await expectRevert(
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
-                    'ERC20F: already farming',
+                    'AlreadyJoined()',
                 );
             });
 
@@ -161,14 +161,14 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 - The wallet joins one more farm
 
                 ***Expected results**
-                Reverts with error `'ERC20F: max user farms reached'`
+                Reverts with error `'MaxUserFarmsReached()'`
              */
             it('should be thrown when user join farms more then can', async () => {
                 const maxUserFarms = await ctx.token.maxUserFarms();
                 await joinNewFarms(maxUserFarms, ctx.initialHolder);
                 await expectRevert(
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
-                    'ERC20F: max user farms reached',
+                    'MaxUserFarmsReached()',
                 );
             });
 
@@ -259,12 +259,12 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 Quit `wallet1` from the `farm`
 
                 ***Expected results**
-                Reverts with error `'ERC20Farmable: already exited'`
+                Reverts with error `'AlreadyExited()'`
             */
             it('should be thrown', async () => {
                 await expectRevert(
                     ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder }),
-                    'ERC20F: already exited',
+                    'AlreadyQuit()',
                 );
             });
 
@@ -280,7 +280,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 1. Quit `wallet1` from the `farm`
 
                 ***Expected results**
-                Reverts with error `'ERC20Farmable: already exited'`
+                Reverts with error `'AlreadyExited()'`
             */
             it('should not quit twice', async function () {
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
@@ -288,7 +288,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
                 await expectRevert(
                     ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder }),
-                    'ERC20F: already exited',
+                    'AlreadyQuit()',
                 );
             });
         });

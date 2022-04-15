@@ -15,6 +15,11 @@ contract Farm is IFarm, Ownable {
     using FarmAccounting for FarmAccounting.Info;
     using Address for address payable;
 
+    error ZeroFarmableTokenAddress();
+    error ZeroRewardsTokenAddress();
+    error SameDistributor();
+    error AccessDenied();
+
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
 
@@ -25,20 +30,20 @@ contract Farm is IFarm, Ownable {
     FarmAccounting.Info public farmInfo;
 
     modifier onlyDistributor {
-        require(msg.sender == distributor, "F: access denied");
+        if (msg.sender != distributor) revert AccessDenied();
         _;
     }
 
     constructor(IERC20Farmable farmableToken_, IERC20 rewardsToken_) {
-        require(address(farmableToken_) != address(0), "F: farmableToken is zero");
-        require(address(rewardsToken_) != address(0), "F: rewardsToken is zero");
+        if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
+        if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
         farmableToken = farmableToken_;
         rewardsToken = rewardsToken_;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
-        require(distributor_ != oldDistributor, "F: distributor is already set");
+        if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }
@@ -56,7 +61,7 @@ contract Farm is IFarm, Ownable {
     }
 
     function claimFor(address account, uint256 amount) external {
-        require(msg.sender == address(farmableToken), "F: claimFor access denied");
+        if (msg.sender != address(farmableToken)) revert AccessDenied();
         rewardsToken.safeTransfer(account, amount);
     }
 

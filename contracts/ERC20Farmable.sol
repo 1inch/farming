@@ -14,6 +14,12 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     using AddressSet for AddressSet.Data;
     using UserAccounting for UserAccounting.Info;
 
+    error AccessDenied();
+    error MaxUserFarmsReached();
+    error ZeroFarmAddress();
+    error AlreadyJoined();
+    error AlreadyQuit();
+
     uint256 public immutable maxUserFarms;
 
     mapping(address => UserAccounting.Info) private _userInfo;
@@ -26,7 +32,7 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     /// @dev Use this method for signaling on bad farms even in static calls (for stats)
     function onError(string memory /* error */) external view {
-        require(msg.sender == address(this), "ERC20F: access denied");
+        if (msg.sender != address(this)) revert AccessDenied();
     }
 
     function farmTotalSupply(address farm_) public view virtual returns(uint256) {
@@ -62,9 +68,9 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function join(address farm_) public virtual returns(uint256) {
-        require(_userFarms[msg.sender].length() < maxUserFarms, "ERC20F: max user farms reached");
-        require(farm_ != address(0), "ERC20F: farm is zero");
-        require(_userFarms[msg.sender].add(farm_), "ERC20F: already farming");
+        if (_userFarms[msg.sender].length() >= maxUserFarms) revert MaxUserFarmsReached();
+        if (farm_ == address(0)) revert ZeroFarmAddress();
+        if (!_userFarms[msg.sender].add(farm_)) revert AlreadyJoined();
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
@@ -81,8 +87,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function quit(address farm_) public virtual returns(uint256) {
-        require(farm_ != address(0), "ERC20F: farm is zero");
-        require(_userFarms[msg.sender].remove(address(farm_)), "ERC20F: already exited");
+        if (farm_ == address(0)) revert ZeroFarmAddress();
+        if (!_userFarms[msg.sender].remove(address(farm_))) revert AlreadyQuit();
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);

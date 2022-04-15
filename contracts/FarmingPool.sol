@@ -18,6 +18,14 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using UserAccounting for UserAccounting.Info;
     using Address for address payable;
 
+    error ZeroStakingTokenAddress();
+    error ZeroRewardsTokenAddress();
+    error SameDistributor();
+    error AccessDenied();
+    error ZeroDeposit();
+    error ZeroWithdraw();
+    error NotEnoughBalance();
+
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
 
@@ -29,7 +37,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     UserAccounting.Info public userInfo;
 
     modifier onlyDistributor {
-        require(msg.sender == distributor, "FP: access denied");
+        if (msg.sender != distributor) revert AccessDenied();
         _;
     }
 
@@ -39,15 +47,15 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
     {
-        require(address(stakingToken_) != address(0), "FP: stakingToken is zero");
-        require(address(rewardsToken_) != address(0), "FP: rewardsToken is zero");
+        if (address(stakingToken_) == address(0)) revert ZeroStakingTokenAddress();
+        if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
         stakingToken = stakingToken_;
         rewardsToken = rewardsToken_;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
-        require(distributor_ != oldDistributor, "FP: distributor is already set");
+        if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }
@@ -72,13 +80,13 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function deposit(uint256 amount) external override {
-        require(amount > 0, "FP: zero deposit");
+        if (amount == 0) revert ZeroDeposit();
         _mint(msg.sender, amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public override {
-        require(amount > 0, "FP: zero withdraw");
+        if (amount == 0) revert ZeroWithdraw();
         _burn(msg.sender, amount);
         stakingToken.safeTransfer(msg.sender, amount);
     }
@@ -104,7 +112,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         } else {
             token.safeTransfer(distributor, amount);
             if (token == stakingToken) {
-                require(stakingToken.balanceOf(address(this)) >= totalSupply(), "FP: not enough balance");
+                if (stakingToken.balanceOf(address(this)) < totalSupply()) revert NotEnoughBalance();
             }
         }
     }
