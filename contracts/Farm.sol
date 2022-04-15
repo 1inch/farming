@@ -15,9 +15,9 @@ contract Farm is IFarm, Ownable {
     using FarmAccounting for FarmAccounting.Info;
     using Address for address payable;
 
-    error FarmableTokenAddressIsZero();
-    error RewardsTokenAddressIsZero();
-    error DistributorAlreadySet();
+    error ZeroFarmableTokenAddress();
+    error ZeroRewardsTokenAddress();
+    error SameDistributor();
     error AccessDenied();
 
     event DistributorChanged(address oldDistributor, address newDistributor);
@@ -35,15 +35,15 @@ contract Farm is IFarm, Ownable {
     }
 
     constructor(IERC20Farmable farmableToken_, IERC20 rewardsToken_) {
-        if (address(farmableToken_) == address(0)) revert FarmableTokenAddressIsZero();
-        if (address(rewardsToken_) == address(0)) revert RewardsTokenAddressIsZero();
+        if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
+        if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
         farmableToken = farmableToken_;
         rewardsToken = rewardsToken_;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
-        if (distributor_ == oldDistributor) revert DistributorAlreadySet();
+        if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }

@@ -146,7 +146,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 await ctx.token.join(ctx.farm.address, { from: ctx.initialHolder });
                 await expectRevert(
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
-                    'AlreadyFarming()',
+                    'AlreadyJoined()',
                 );
             });
 
@@ -264,7 +264,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
             it('should be thrown', async () => {
                 await expectRevert(
                     ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder }),
-                    'AlreadyExited()',
+                    'AlreadyQuit()',
                 );
             });
 
@@ -288,7 +288,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
                 await expectRevert(
                     ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder }),
-                    'AlreadyExited()',
+                    'AlreadyQuit()',
                 );
             });
         });

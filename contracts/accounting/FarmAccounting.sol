@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 library FarmAccounting {
-    error CheckpointLessThanStarted();
-    error DurationZero();
+    error CheckpointBeforeStarted();
+    error ZeroDuration();
     error DurationTooLarge();
     error AmountTooLarge();
 
@@ -21,7 +21,7 @@ library FarmAccounting {
 
     /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
-        if (checkpoint < info.finished - info.duration) revert CheckpointLessThanStarted();
+        if (checkpoint < info.finished - info.duration) revert CheckpointBeforeStarted();
         if (info.duration > 0) {
             uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
             return elapsed * info.reward * _SCALE / info.duration;
@@ -36,7 +36,7 @@ library FarmAccounting {
         }
 
         updateCheckpoint();
-        if (period == 0) revert DurationZero();
+        if (period == 0) revert ZeroDuration();
         if (period > type(uint32).max) revert DurationTooLarge();
         if (amount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();
         (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint32(period), uint184(amount));

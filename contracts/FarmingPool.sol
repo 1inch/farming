@@ -18,9 +18,9 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using UserAccounting for UserAccounting.Info;
     using Address for address payable;
 
-    error StakingTokenAddressIsZero();
-    error RewardsTokenAddressIsZero();
-    error DistributorAlreadySet();
+    error ZeroStakingTokenAddress();
+    error ZeroRewardsTokenAddress();
+    error SameDistributor();
     error AccessDenied();
     error ZeroDeposit();
     error ZeroWithdraw();
@@ -47,15 +47,15 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
     {
-        if (address(stakingToken_) == address(0)) revert StakingTokenAddressIsZero();
-        if (address(rewardsToken_) == address(0)) revert RewardsTokenAddressIsZero();
+        if (address(stakingToken_) == address(0)) revert ZeroStakingTokenAddress();
+        if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
         stakingToken = stakingToken_;
         rewardsToken = rewardsToken_;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
-        if (distributor_ == oldDistributor) revert DistributorAlreadySet();
+        if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);
         distributor = distributor_;
     }

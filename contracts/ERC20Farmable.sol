@@ -16,9 +16,9 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     error AccessDenied();
     error MaxUserFarmsReached();
-    error FarmAddressIsZero();
-    error AlreadyFarming();
-    error AlreadyExited();
+    error ZeroFarmAddress();
+    error AlreadyJoined();
+    error AlreadyQuit();
 
     uint256 public immutable maxUserFarms;
 
@@ -69,8 +69,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function join(address farm_) public virtual returns(uint256) {
         if (_userFarms[msg.sender].length() >= maxUserFarms) revert MaxUserFarmsReached();
-        if (farm_ == address(0)) revert FarmAddressIsZero();
-        if (!_userFarms[msg.sender].add(farm_)) revert AlreadyFarming();
+        if (farm_ == address(0)) revert ZeroFarmAddress();
+        if (!_userFarms[msg.sender].add(farm_)) revert AlreadyJoined();
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), address(0), msg.sender, balance, false, true);
@@ -87,8 +87,8 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
     }
 
     function quit(address farm_) public virtual returns(uint256) {
-        if (farm_ == address(0)) revert FarmAddressIsZero();
-        if (!_userFarms[msg.sender].remove(address(farm_))) revert AlreadyExited();
+        if (farm_ == address(0)) revert ZeroFarmAddress();
+        if (!_userFarms[msg.sender].remove(address(farm_))) revert AlreadyQuit();
 
         uint256 balance = balanceOf(msg.sender);
         _userInfo[farm_].updateBalances(farmedPerToken(farm_), msg.sender, address(0), balance, true, false);
