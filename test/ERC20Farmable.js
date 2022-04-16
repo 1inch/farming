@@ -1,7 +1,7 @@
 const { constants, expectRevert, time, ether } = require('@openzeppelin/test-helpers');
 const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
-const { timeIncreaseTo, almostEqual, startFarming } = require('./utils');
+const { timeIncreaseTo, almostEqual, startFarming, joinNewFarms } = require('./utils');
 const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
 
 const ERC20FarmableMock = artifacts.require('ERC20FarmableMock');
@@ -179,7 +179,7 @@ describe('ERC20Farmable', function () {
             });
         });
 
-        // Farm's claim scenarios
+        // Farm's claimFor scenarios
         describe('claimFor', async () => {
             /*
                 ***Test Scenario**
@@ -199,6 +199,50 @@ describe('ERC20Farmable', function () {
                     this.farm.claimFor(wallet1, '1000', { from: wallet1 }),
                     'AccessDenied()',
                 );
+            });
+        });
+
+        // Farm's claimAll scenarios
+        describe('claimAll', async () => {
+            /*
+                ***Test Scenario**
+                Checks that farming reward can be claimed from all user's farms with the regular scenario 'join - farm - claim'.
+
+                ***Initial setup**
+                - create several additional farms and set it
+                - `wallet1` has 1000 unit of farmable token and joined all additional farms
+                - all `farms` started farming for 1 day with 1000 units reward
+
+                ***Test Steps**
+                1. Fast-forward time to finish all farmings
+                2. Claim rewards for `wallet2`
+
+                ***Expected results**
+                `wallet2` reward token balance equals 1000
+            */
+            it('should claim tokens from all farm', async () => {
+                // Create and set additional farms
+                const amountFarms = 10;
+                const farms = [];
+                let lastFarmStarted;
+                for (let i = 0; i < amountFarms; i++) {
+                    farms[i] = await Farm.new(this.token.address, this.gift.address);
+                    await farms[i].setDistributor(wallet1);
+                    await this.gift.transfer(farms[i].address, '100', { from: wallet2 });
+                }
+
+                // Join and start farming, then delay
+                for (let i = 0; i < amountFarms; i++) {
+                    await this.token.join(farms[i].address);
+                    await this.gift.approve(farms[i].address, '100');
+                    lastFarmStarted = await startFarming(farms[i], 100, time.duration.days(1), wallet1);
+                }
+                await timeIncreaseTo(lastFarmStarted.add(time.duration.days(1)));
+
+                // Check reward
+                const balanceBefore = await this.gift.balanceOf(wallet1);
+                await this.token.claimAll({ from: wallet1 });
+                expect(await this.gift.balanceOf(wallet1)).to.be.bignumber.equal(balanceBefore.addn(1000));
             });
         });
 
@@ -280,6 +324,93 @@ describe('ERC20Farmable', function () {
 
                 expect(toBN(await web3.eth.getBalance(wallet1))).to.be.bignumber.equals(balanceWalletBefore.sub(txCost).addn(1000));
                 expect(toBN(await web3.eth.getBalance(this.farm.address))).to.be.bignumber.equals(balanceFarmBefore.subn(1000));
+            });
+        });
+
+        // Farm's userFarms scenarios
+        describe('userIsFarming', async () => {
+            /*
+                ***Test Scenario**
+                Ensure that `userIsFarming` return correct account status about farm
+
+                ***Test Steps**
+                - `wallet2` joins to farm
+
+                ***Expected results**
+                - `wallet1` is the account which not farming
+                - `wallet2` is the account which farming
+            */
+            it('should return false when user does not farms and true when user farms', async () => {
+                await this.token.join(this.farm.address, { from: wallet2 });
+                expect(await this.token.userIsFarming(wallet1, this.farm.address)).to.be.equals(false);
+                expect(await this.token.userIsFarming(wallet2, this.farm.address)).to.be.equals(true);
+            });
+
+            /*
+                ***Test Scenario**
+                Ensure that `userIsFarming` return correct account status about farm after `quit`
+
+                ***Test Steps**
+                - `wallet2` join to farm
+                - `wallet2` quits from farm
+
+                ***Expected results**
+                - `wallet2` is the account which not farming
+            */
+            it('should return false when user quits from farm', async () => {
+                await this.token.join(this.farm.address, { from: wallet2 });
+                await this.token.quit(this.farm.address, { from: wallet2 });
+                expect(await this.token.userIsFarming(wallet1, this.farm.address)).to.be.equals(false);
+            });
+        });
+
+        describe('userFarmsCount', async () => {
+            /*
+                ***Test Scenario**
+                Ensure that `userFarmsCount` return amount of user's farms
+
+                ***Test Steps**
+                1. Account joins to several farms
+                2. Account quits from several farms
+
+                ***Expected results**
+                - amount of account's farms increase after step 1 and decrease after step 2
+            */
+            it('should return amount of user\'s farms', async () => {
+                const amount = toBN(10);
+                await joinNewFarms(this.token, amount, wallet1);
+                expect(await this.token.userFarmsCount(wallet1)).to.be.bignumber.equals(amount);
+
+                const farms = await this.token.userFarms(wallet1);
+                expect(toBN(farms.length)).to.be.bignumber.equals(amount);
+                for (let i = 0; i < amount; i++) {
+                    await this.token.quit(farms[i]);
+                    expect(await this.token.userFarmsCount(wallet1)).to.be.bignumber.equals(amount.subn(1 + i));
+                }
+            });
+        });
+
+        describe('userFarmsAt', async () => {
+            /*
+                ***Test Scenario**
+                Ensure that `userFarmsAt` return correct user's farm by index
+
+                ***Test Steps**
+                1. Account joins to several farms
+                2. Get account's farms via `userFarms`
+                3. Check `userFarmsAt` for all indexes
+
+                ***Expected results**
+                - farm addresses from `userFarmsAt` result are equal to farm addresses from `userFarms` with the same indexes
+            */
+            it('should return correct addresses', async () => {
+                const amount = toBN(10);
+                await joinNewFarms(this.token, amount, wallet1);
+                const farms = await this.token.userFarms(wallet1);
+                for (let i = 0; i < amount; i++) {
+                    const farmAddress = await this.token.userFarmsAt(wallet1, i);
+                    expect(farmAddress).to.be.equals(farms[i]);
+                }
             });
         });
     });
