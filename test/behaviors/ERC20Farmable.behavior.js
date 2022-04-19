@@ -289,7 +289,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 `wallet1` has joined the maximum allowed number of farms
 
                 ***Test Steps**
-                1. Call the `quiteAll` function to exit from all farms 
+                1. Call the `quiteAll` function to exit from all farms
                 2. Try to quit each farm separately
 
                 ***Expected results**
