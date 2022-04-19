@@ -283,18 +283,18 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
             /*
                 ***Test Scenario**
-                Checks that wallet cann't quit from farm after `quitAll`
+                Checks that a wallet can quit from all farms using the `quitAll` function
 
                 ***Initial setup**
-                `wallet1` has joined to several `farms`
+                `wallet1` has joined the maximum allowed number of farms
 
                 ***Test Steps**
-                1. Quit `wallet1` from the `farms` via `quiteAll`
-                2. Try to quit `wallet1` separately from the each `farm`
+                1. Call the `quiteAll` function to exit from all farms 
+                2. Try to quit each farm separately
 
                 ***Expected results**
-                - `wallet1` has no farms after step 1.
-                - Reverts with error `'AlreadyExited()'` for each attempt at step 2.
+                - `wallet1` has not joined any farms after step 1.
+                - Each exit attempt is reverted with an error `AlreadyExited()` at step 2.
             */
             it('should be quite all farms', async () => {
                 const maxUserFarms = await ctx.token.maxUserFarms();
