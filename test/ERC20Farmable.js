@@ -221,7 +221,7 @@ describe('ERC20Farmable', function () {
                 ***Expected results**
                 `wallet1` reward token balance equals 1000
             */
-            it('should claim tokens from all farm', async () => {
+            it('should claim tokens from all farms', async () => {
                 // Create and set additional farms
                 const amountFarms = 10;
                 const farms = [];
