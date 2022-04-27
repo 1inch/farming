@@ -152,7 +152,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 ***Expected results**
                 Reverts with error `'MaxUserFarmsReached()'`
              */
-            it('should be thrown when user join farms more then can', async () => {
+            it('should revert when user joins more than max allowed farms count', async () => {
                 const maxUserFarms = await ctx.token.maxUserFarms();
                 await joinNewFarms(ctx.token, maxUserFarms, ctx.initialHolder);
                 await expectRevert(
