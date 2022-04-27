@@ -296,7 +296,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 - `wallet1` has not joined any farms after step 1.
                 - Each exit attempt is reverted with an error `AlreadyExited()` at step 2.
             */
-            it('should be quite all farms', async () => {
+            it('should quit all farms', async () => {
                 const maxUserFarms = await ctx.token.maxUserFarms();
                 await joinNewFarms(ctx.token, maxUserFarms, ctx.initialHolder);
                 await ctx.token.quitAll({ from: ctx.initialHolder });
