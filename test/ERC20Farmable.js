@@ -348,7 +348,7 @@ describe('ERC20Farmable', function () {
                 - `wallet1` status: is not farming (false)
                 - `wallet2` status: is farming (true)
             */
-            it('should return false when user does not farms and true when user farms', async () => {
+            it('should return false when user does not farm and true when user farms', async () => {
                 await this.token.join(this.farm.address, { from: wallet2 });
                 expect(await this.token.userIsFarming(wallet1, this.farm.address)).to.be.equals(false);
                 expect(await this.token.userIsFarming(wallet2, this.farm.address)).to.be.equals(true);
