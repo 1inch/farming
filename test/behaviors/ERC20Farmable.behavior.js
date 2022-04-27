@@ -1,10 +1,7 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { toBN } = require('@1inch/solidity-utils');
 const { expect } = require('chai');
-const { timeIncreaseTo, almostEqual, startFarming } = require('../utils');
-
-const Farm = artifacts.require('Farm');
-const TokenMock = artifacts.require('TokenMock');
+const { timeIncreaseTo, almostEqual, startFarming, joinNewFarms } = require('../utils');
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', function (original) {
@@ -47,14 +44,6 @@ const shouldBehaveLikeFarmable = (getContext) => {
 
         // Wallet joining scenarios
         describe('farm', async () => {
-            const joinNewFarms = async (amount, from) => {
-                for (let i = 0; i < amount; i++) {
-                    const gift = await TokenMock.new('GIFT', 'GIFT', '0');
-                    const farm = await Farm.new(ctx.token.address, gift.address);
-                    await ctx.token.join(farm.address, { from });
-                }
-            };
-
             /*
                 ***Test Scenario**
                 Checks if farm's total supply is updated after a wallet joins
@@ -163,9 +152,9 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 ***Expected results**
                 Reverts with error `'MaxUserFarmsReached()'`
              */
-            it('should be thrown when user join farms more then can', async () => {
+            it('should revert when user joins more than max allowed farms count', async () => {
                 const maxUserFarms = await ctx.token.maxUserFarms();
-                await joinNewFarms(maxUserFarms, ctx.initialHolder);
+                await joinNewFarms(ctx.token, maxUserFarms, ctx.initialHolder);
                 await expectRevert(
                     ctx.token.join(ctx.farm.address, { from: ctx.initialHolder }),
                     'MaxUserFarmsReached()',
@@ -188,7 +177,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
              */
             it('should be join farm after reached max and then exit from one', async () => {
                 const maxUserFarms = await ctx.token.maxUserFarms();
-                await joinNewFarms(maxUserFarms, ctx.initialHolder);
+                await joinNewFarms(ctx.token, maxUserFarms, ctx.initialHolder);
                 let userFarms = await ctx.token.userFarms(ctx.initialHolder);
                 expect(toBN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
 
@@ -196,7 +185,7 @@ const shouldBehaveLikeFarmable = (getContext) => {
                 userFarms = await ctx.token.userFarms(ctx.initialHolder);
                 expect(toBN(userFarms.length)).to.be.bignumber.equals(maxUserFarms.subn(1));
 
-                await joinNewFarms(1, ctx.initialHolder);
+                await joinNewFarms(ctx.token, 1, ctx.initialHolder);
                 userFarms = await ctx.token.userFarms(ctx.initialHolder);
                 expect(toBN(userFarms.length)).to.be.bignumber.equals(maxUserFarms);
             });
@@ -290,6 +279,36 @@ const shouldBehaveLikeFarmable = (getContext) => {
                     ctx.token.quit(ctx.farm.address, { from: ctx.initialHolder }),
                     'AlreadyQuit()',
                 );
+            });
+
+            /*
+                ***Test Scenario**
+                Checks that a wallet can quit from all farms using the `quitAll` function
+
+                ***Initial setup**
+                `wallet1` has joined the maximum allowed number of farms
+
+                ***Test Steps**
+                1. Call the `quiteAll` function to exit from all farms
+                2. Try to quit each farm separately
+
+                ***Expected results**
+                - `wallet1` has not joined any farms after step 1.
+                - Each exit attempt is reverted with an error `AlreadyExited()` at step 2.
+            */
+            it('should quit all farms', async () => {
+                const maxUserFarms = await ctx.token.maxUserFarms();
+                await joinNewFarms(ctx.token, maxUserFarms, ctx.initialHolder);
+                await ctx.token.quitAll({ from: ctx.initialHolder });
+                expect(await ctx.token.userFarmsCount(ctx.initialHolder)).to.be.bignumber.equals('0');
+
+                const farms = await ctx.token.userFarms(ctx.initialHolder);
+                for (let i = 0; i < farms.length; i++) {
+                    await expectRevert(
+                        ctx.token.quit(farms[i].address, { from: ctx.initialHolder }),
+                        'AlreadyQuit()',
+                    );
+                }
             });
         });
 
