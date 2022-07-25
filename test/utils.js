@@ -29,7 +29,7 @@ const startFarming = async (farm, amount, period, from) => {
 
 const joinNewFarms = async (erc20farmableToken, amount, from) => {
     for (let i = 0; i < amount; i++) {
-        const gift = await TokenMock.new('GIFT', 'GIFT', '0');
+        const gift = await TokenMock.new('GIFT', 'GIFT');
         const farm = await Farm.new(erc20farmableToken.address, gift.address);
         await erc20farmableToken.join(farm.address, { from });
     }
