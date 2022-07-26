@@ -36,7 +36,7 @@ describe('ERC20Farmable', function () {
         this.token = await ERC20FarmableMock.new('1INCH', '1INCH', maxUserFarms);
         await this.token.mint(wallet1, initialSupply);
 
-        this.gift = await TokenMock.new('UDSC', 'USDC', '0');
+        this.gift = await TokenMock.new('UDSC', 'USDC');
         this.farm = await Farm.new(this.token.address, this.gift.address);
     });
 
@@ -53,7 +53,7 @@ describe('ERC20Farmable', function () {
     // Generic farming scenarios
     describe('farming', async () => {
         beforeEach(async () => {
-            this.gift = await TokenMock.new('UDSC', 'USDC', '0');
+            this.gift = await TokenMock.new('UDSC', 'USDC');
             this.farm = await Farm.new(this.token.address, this.gift.address);
 
             for (const wallet of [wallet1, wallet2, wallet3]) {
