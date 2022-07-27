@@ -9,7 +9,7 @@
 
 
 [![Build Status](https://github.com/1inch/farming/workflows/CI/badge.svg)](https://github.com/1inch/farming/actions)
-[![Coverage Status](https://coveralls.io/repos/github/1inch/farming/badge.svg?branch=master)](https://coveralls.io/github/1inch/farming?branch=master)
+[![Coverage Status](https://codecov.io/gh/1inch/farming/branch/master/graph/badge.svg?token=Z6DVAXACRF)](https://codecov.io/gh/1inch/farming)
 
 # Overview
 
