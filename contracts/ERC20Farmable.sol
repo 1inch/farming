@@ -81,8 +81,10 @@ abstract contract ERC20Farmable is ERC20, IERC20Farmable {
 
     function quitAll() public virtual {
         address[] memory farms = _userFarms[msg.sender].items.get();
-        for (uint256 i = 0; i < farms.length; i++) {
-            quit(farms[i]);
+        unchecked {
+            for (uint256 i = farms.length; i > 0; i--) {
+                quit(farms[i - 1]);
+            }
         }
     }
 
