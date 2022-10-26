@@ -1,4 +1,4 @@
-const { time } = require('@openzeppelin/test-helpers');
+const { time } = require('@1inch/solidity-utils');
 const { ethers } = require('hardhat');
 const { BigNumber: BN } = require('ethers');
 
@@ -11,8 +11,8 @@ const timeIncreaseTo = async (seconds) => {
 const almostEqual = function (expected, actual) {
     this.assert(
         expected.eq(actual) ||
-        expected.add(1).equal(actual) || expected.add(2).equal(actual) ||
-        actual.add(1).equal(expected) || actual.add(2).equal(expected),
+        expected.add(1).eq(actual) || expected.add(2).eq(actual) ||
+        actual.add(1).eq(expected) || actual.add(2).eq(expected),
         'expected #{act} to be almost equal #{exp}',
         'expected #{act} to be different from #{exp}',
         expected.toString(),
@@ -22,7 +22,8 @@ const almostEqual = function (expected, actual) {
 
 const startFarming = async (farm, amount, period, from) => {
     const tx = await farm.connect(from).startFarming(amount, period);
-    return BN.from((await ethers.provider.getBlock(tx.receipt.blockHash)).timestamp);
+    const receipt = await tx.wait();
+    return BN.from((await ethers.provider.getBlock(receipt.blockHash)).timestamp);
 };
 
 const joinNewFarms = async (erc20farmableToken, amount, from) => {

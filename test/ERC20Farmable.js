@@ -1,6 +1,5 @@
-const { constants, expectRevert, time, ether } = require('@openzeppelin/test-helpers');
+const { expect, constants, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber: BN } = require('ethers');
 const { timeIncreaseTo, almostEqual, startFarming, joinNewFarms } = require('./utils');
@@ -9,13 +8,9 @@ const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
         return function (value) {
-            if (utils.flag(this, 'bignumber')) {
-                const expected = BN.from(value);
-                const actual = BN.from(this._obj);
-                almostEqual.apply(this, [expected, actual]);
-            } else {
-                original.apply(this, arguments);
-            }
+            const expected = BN.from(value);
+            const actual = BN.from(this._obj);
+            almostEqual.apply(this, [expected, actual]);
         };
     });
 });
@@ -26,7 +21,7 @@ describe('ERC20Farmable', function () {
     let Farm;
     let EthTransferMock;
     let TokenMock;
-    const INITIAL_SUPPLY = ether('1.0');
+    const INITIAL_SUPPLY = BN.from(ether('1.0'));
     const MAX_USER_FARMS = 10;
 
     before(async () => {
@@ -42,38 +37,24 @@ describe('ERC20Farmable', function () {
         await token.deployed();
         await token.mint(wallet1.address, INITIAL_SUPPLY);
 
-        gift = await TokenMock.deploy('UDSC', 'USDC');
+        const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.deployed();
-        farm = await Farm.deploy(token.address, gift.address);
+        const farm = await Farm.deploy(token.address, gift.address);
         await farm.deployed();
+
+        for (const wallet of [wallet1, wallet2, wallet3]) {
+            await gift.mint(wallet.address, '1000000000');
+            await gift.connect(wallet).approve(farm.address, '1000000000');
+        }
+        await farm.setDistributor(wallet1.address);
+
+        return { token, gift, farm };
     };
 
-    shouldBehaveLikeFarmable(() => ({
-        INITIAL_SUPPLY,
-        initialHolder: wallet1,
-        recipient: wallet2,
-        anotherAccount: wallet3,
-        token: token,
-        farm: farm,
-        gift: gift,
-    }));
+    shouldBehaveLikeFarmable();
 
     // Generic farming scenarios
     describe('farming', async () => {
-        beforeEach(async () => {
-            gift = await TokenMock.deploy('UDSC', 'USDC');
-            await gift.deployed();
-            farm = await Farm.deploy(token.address, gift.address);
-            await farm.deployed();
-
-            for (const wallet of [wallet1, wallet2, wallet3]) {
-                await gift.mint(wallet, '1000000000');
-                await gift.approve(farm.address, '1000000000', { from: wallet });
-            }
-
-            await farm.setDistributor(wallet1.address);
-        });
-
         // Farm initialization scenarios
         describe('startFarming', async () => {
             /*
@@ -89,10 +70,10 @@ describe('ERC20Farmable', function () {
                 Revert with error `'AccessDenied()'`.
             */
             it('should thrown with rewards distribution access denied ', async () => {
-                await expectRevert(
-                    farm.startFarming(1000, 60 * 60 * 24, { from: wallet2 }),
-                    'AccessDenied()',
-                );
+                const { farm } = await loadFixture(initContracts);
+                await expect(
+                    farm.connect(wallet2).startFarming(1000, 60 * 60 * 24),
+                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
             });
 
             /*
@@ -106,10 +87,10 @@ describe('ERC20Farmable', function () {
                 Revert with error `'DurationTooLarge()'`.
             */
             it('Thrown with Period too large', async () => {
-                await expectRevert(
-                    farm.startFarming('10000', (BN.from(2)).pow(BN.from(40)), { from: wallet1 }),
-                    'DurationTooLarge()',
-                );
+                const { farm } = await loadFixture(initContracts);
+                await expect(
+                    farm.startFarming('10000', (BN.from(2)).pow(40)),
+                ).to.be.revertedWithCustomError(farm, 'DurationTooLarge');
             });
 
             /*
@@ -123,13 +104,13 @@ describe('ERC20Farmable', function () {
                 Revert with error `'AmountTooLarge()'`.
             */
             it('Thrown with Amount equals _MAX_REWARD_AMOUNT + 1', async () => {
-                const _MAX_REWARD_AMOUNT = BN.from(10).pow(BN.from(42));
+                const { gift, farm } = await loadFixture(initContracts);
+                const _MAX_REWARD_AMOUNT = BN.from(10).pow(42);
                 await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT.add(1));
                 await gift.approve(farm.address, _MAX_REWARD_AMOUNT.add(1));
-                await expectRevert(
-                    farm.startFarming(_MAX_REWARD_AMOUNT.add(1), time.duration.weeks(1), { from: wallet1 }),
-                    'AmountTooLarge()',
-                );
+                await expect(
+                    farm.startFarming(_MAX_REWARD_AMOUNT.add(1), time.duration.weeks(1)),
+                ).to.be.revertedWithCustomError(farm, 'AmountTooLarge');
             });
         });
 
@@ -150,14 +131,15 @@ describe('ERC20Farmable', function () {
                 `wallet1` reward token balance equals 1000
             */
             it('should claim tokens', async () => {
-                await token.join(farm.address, { from: wallet1 });
-                await gift.transfer(farm.address, '1000', { from: wallet2 });
+                const { token, gift, farm } = await loadFixture(initContracts);
+                await token.join(farm.address);
+                await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await timeIncreaseTo(started.add(60 * 60 * 25));
 
                 const balanceBefore = await gift.balanceOf(wallet1.address);
-                await token.claim(farm.address, { from: wallet1 });
+                await token.claim(farm.address);
                 expect(await gift.balanceOf(wallet1.address)).to.equal(balanceBefore.add(1000));
             });
 
@@ -177,14 +159,15 @@ describe('ERC20Farmable', function () {
                 `wallet2` gift token balance doesn't change after the claim
             */
             it('should claim tokens for non-user farms wallet', async () => {
-                await token.join(farm.address, { from: wallet1 });
-                await gift.transfer(farm.address, '1000', { from: wallet2 });
+                const { token, gift, farm } = await loadFixture(initContracts);
+                await token.join(farm.address);
+                await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await timeIncreaseTo(started.add(60 * 60 * 25));
 
                 const balanceBefore = await gift.balanceOf(wallet2.address);
-                await token.claim(farm.address, { from: wallet2 });
+                await token.connect(wallet2).claim(farm.address);
                 expect(await gift.balanceOf(wallet2.address)).to.equal(balanceBefore);
             });
         });
@@ -205,10 +188,10 @@ describe('ERC20Farmable', function () {
                 Revert with error `'AccessDenied()'`
             */
             it('should thrown with access denied', async () => {
-                await expectRevert(
-                    farm.claimFor(wallet1.address, '1000', { from: wallet1 }),
-                    'AccessDenied()',
-                );
+                const { farm } = await loadFixture(initContracts);
+                await expect(
+                    farm.claimFor(wallet1.address, '1000'),
+                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
             });
         });
 
@@ -232,14 +215,16 @@ describe('ERC20Farmable', function () {
                 `wallet1` reward token balance equals 1000
             */
             it('should claim tokens from all farms', async () => {
+                const { token, gift } = await loadFixture(initContracts);
                 // Create and set additional farms
                 const amountFarms = 10;
                 const farms = [];
                 let lastFarmStarted;
                 for (let i = 0; i < amountFarms; i++) {
                     farms[i] = await Farm.deploy(token.address, gift.address);
+                    await farms[i].deployed();
                     await farms[i].setDistributor(wallet1.address);
-                    await gift.transfer(farms[i].address, '100', { from: wallet2 });
+                    await gift.connect(wallet2).transfer(farms[i].address, '100');
                 }
 
                 // Join and start farming, then delay
@@ -252,7 +237,7 @@ describe('ERC20Farmable', function () {
 
                 // Check reward
                 const balanceBefore = await gift.balanceOf(wallet1.address);
-                await token.claimAll({ from: wallet1 });
+                await token.claimAll();
                 expect(await gift.balanceOf(wallet1.address)).to.equal(balanceBefore.add(1000));
             });
         });
@@ -273,12 +258,12 @@ describe('ERC20Farmable', function () {
                 - Call is reverted with an error `'AccessDenied()'`
             */
             it('should thrown with access denied', async () => {
+                const { gift, farm } = await loadFixture(initContracts);
                 const distributor = await farm.distributor();
-                expect(wallet2.address).to.not.equal(distributor.address);
-                await expectRevert(
-                    farm.rescueFunds(gift.address, '1000', { from: wallet2 }),
-                    'AccessDenied()',
-                );
+                expect(wallet2.address).to.not.equal(distributor);
+                await expect(
+                    farm.connect(wallet2).rescueFunds(gift.address, '1000'),
+                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
             });
 
             /*
@@ -296,14 +281,15 @@ describe('ERC20Farmable', function () {
                 - 1000 reward tokens are transferred from the farm to the distributor
             */
             it('should transfer tokens from farm to wallet', async () => {
-                await farm.startFarming(1000, 60 * 60 * 24, { from: wallet1 });
+                const { gift, farm } = await loadFixture(initContracts);
+                await farm.startFarming(1000, 60 * 60 * 24);
 
                 const balanceWalletBefore = await gift.balanceOf(wallet1.address);
                 const balanceFarmBefore = await gift.balanceOf(farm.address);
 
                 const distributor = await farm.distributor();
-                expect(wallet1.address).to.equal(distributor.address);
-                await farm.rescueFunds(gift.address, '1000', { from: wallet1 });
+                expect(wallet1.address).to.equal(distributor);
+                await farm.rescueFunds(gift.address, '1000');
 
                 expect(await gift.balanceOf(wallet1.address)).to.equal(balanceWalletBefore.add(1000));
                 expect(await gift.balanceOf(farm.address)).to.equal(balanceFarmBefore.sub(1000));
@@ -324,17 +310,20 @@ describe('ERC20Farmable', function () {
                 - `wallet1` balance has increased by 1000 ethers minus the blockchain fee
             */
             it('should transfer ethers from farm to wallet', async () => {
+                const { farm } = await loadFixture(initContracts);
                 // Transfer ethers to farm
-                await EthTransferMock.deploy(farm.address, { from: wallet1, value: '1000' });
+                const ethMock = await EthTransferMock.deploy(farm.address, { value: '1000' });
+                await ethMock.deployed();
 
                 // Check rescueFunds
                 const balanceWalletBefore = BN.from(await ethers.provider.getBalance(wallet1.address));
                 const balanceFarmBefore = BN.from(await ethers.provider.getBalance(farm.address));
 
                 const distributor = await farm.distributor();
-                expect(wallet1.address).to.equal(distributor.address);
-                const tx = await farm.rescueFunds(constants.ZERO_ADDRESS, '1000', { from: wallet1 });
-                const txCost = BN.from(tx.receipt.gasUsed).mul(BN.from(tx.receipt.effectiveGasPrice));
+                expect(wallet1.address).to.equal(distributor);
+                const tx = await farm.rescueFunds(constants.ZERO_ADDRESS, '1000');
+                const receipt = await tx.wait();
+                const txCost = BN.from(receipt.gasUsed).mul(receipt.effectiveGasPrice);
 
                 expect(BN.from(await ethers.provider.getBalance(wallet1.address))).to.equal(balanceWalletBefore.sub(txCost).add(1000));
                 expect(BN.from(await ethers.provider.getBalance(farm.address))).to.equal(balanceFarmBefore.sub(1000));
@@ -359,7 +348,8 @@ describe('ERC20Farmable', function () {
                 - `wallet2` status: is farming (true)
             */
             it('should return false when user does not farm and true when user farms', async () => {
-                await token.join(farm.address, { from: wallet2 });
+                const { token, farm } = await loadFixture(initContracts);
+                await token.connect(wallet2).join(farm.address);
                 expect(await token.userIsFarming(wallet1.address, farm.address)).to.equal(false);
                 expect(await token.userIsFarming(wallet2.address, farm.address)).to.equal(true);
             });
@@ -376,8 +366,9 @@ describe('ERC20Farmable', function () {
                 - `wallet2` status: is not farming (false)
             */
             it('should return false when user quits from farm', async () => {
-                await token.join(farm.address, { from: wallet2 });
-                await token.quit(farm.address, { from: wallet2 });
+                const { token, farm } = await loadFixture(initContracts);
+                await token.connect(wallet2).join(farm.address);
+                await token.connect(wallet2).quit(farm.address);
                 expect(await token.userIsFarming(wallet1.address, farm.address)).to.equal(false);
             });
         });
@@ -396,6 +387,7 @@ describe('ERC20Farmable', function () {
                 - Each time the account quits from a farm `userFarmsCount` should decrease by 1
             */
             it('should return amount of user\'s farms', async () => {
+                const { token } = await loadFixture(initContracts);
                 const amount = BN.from(10);
                 await joinNewFarms(token, amount, wallet1);
                 expect(await token.userFarmsCount(wallet1.address)).to.equal(amount);
@@ -425,6 +417,7 @@ describe('ERC20Farmable', function () {
                 - Each pair of addresses should be equal
             */
             it('should return correct addresses', async () => {
+                const { token } = await loadFixture(initContracts);
                 const amount = BN.from(10);
                 await joinNewFarms(token, amount, wallet1);
                 const farms = await token.userFarms(wallet1.address);

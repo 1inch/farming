@@ -1,6 +1,5 @@
-const { constants, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { expect } = require('chai');
+const { expect, constants, time } = require('@1inch/solidity-utils');
 const { ethers } = require('hardhat');
 const { BigNumber: BN } = require('ethers');
 const { timeIncreaseTo, almostEqual, startFarming } = require('./utils');
@@ -43,11 +42,11 @@ describe('FarmingPool', () => {
         for (const wallet of [wallet1, wallet2, wallet3]) {
             await token.mint(wallet.address, '1000000000');
             await gift.mint(wallet.address, '1000000000');
-            await token.connect(wallet).approve(farm.address, '1000000000', { from: wallet });
-            await gift.connect(wallet).approve(farm.address, '1000000000', { from: wallet });
+            await token.connect(wallet).approve(farm.address, '1000000000');
+            await gift.connect(wallet).approve(farm.address, '1000000000');
         }
 
-        await farm.connect(wallet1.address).setDistributor(wallet1.address);
+        await farm.setDistributor(wallet1.address);
         return { token, gift, farm };
     };
 
@@ -84,7 +83,7 @@ describe('FarmingPool', () => {
     describe('mint', async () => {
         it('should be mint', async () => {
             const { farm } = await loadFixture(initContracts);
-            await farm.connect(wallet1).deposit('1000');
+            await farm.deposit('1000');
             expect(await farm.balanceOf(wallet1.address)).to.equal('1000');
             expect(await farm.totalSupply()).to.equal('1000');
         });
@@ -93,17 +92,15 @@ describe('FarmingPool', () => {
     describe('burn', async () => {
         it('should be burn', async () => {
             const { farm } = await loadFixture(initContracts);
-            await farm.connect(wallet1).deposit('1000');
-            await farm.connect(wallet1).withdraw('999');
+            await farm.deposit('1000');
+            await farm.withdraw('999');
             expect(await farm.balanceOf(wallet1.address)).to.equal('1');
             expect(await farm.totalSupply()).to.equal('1');
         });
 
         it('should be thrown', async () => {
             const { farm } = await loadFixture(initContracts);
-            await expect(
-                farm.connect(wallet1).withdraw('1'),
-            ).to.be.revertedWith(farm, 'ERC20: burn amount exceeds balance');
+            await expect(farm.withdraw('1')).to.be.revertedWith('ERC20: burn amount exceeds balance');
         });
     });
 
@@ -117,7 +114,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet1.address)).to.equal('0');
             expect(await farm.farmed(wallet2.address)).to.equal('0');
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
             await farm.connect(wallet2).deposit('1');
 
             // expect(await farm.farmedPerToken()).to.equal('0');
@@ -142,7 +139,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet1.address)).to.equal('0');
             expect(await farm.farmed(wallet2.address)).to.equal('0');
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
             await farm.connect(wallet2).deposit('3');
 
             // expect(await farm.farmedPerToken()).to.equal('0');
@@ -166,7 +163,7 @@ describe('FarmingPool', () => {
             // 72000 UDSC per week
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
@@ -176,7 +173,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
             expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
 
-            await farm.connect(wallet1).startFarming('72000', time.duration.weeks(1));
+            await farm.startFarming('72000', time.duration.weeks(1));
             await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
             // expect(await farm.farmedPerToken()).to.almostEqual('90000');
@@ -193,7 +190,7 @@ describe('FarmingPool', () => {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
@@ -217,12 +214,12 @@ describe('FarmingPool', () => {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            await farm.connect(wallet1).claim({ from: wallet1 });
+            await farm.claim();
             expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
 
             await timeIncreaseTo(started.add(time.duration.weeks(2)));
@@ -245,10 +242,10 @@ describe('FarmingPool', () => {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
             await farm.connect(wallet2).deposit('3');
 
-            await timeIncreaseTo(started.add(time.duration.weeks(1).add(1)));
+            await timeIncreaseTo(started.add(BN.from(time.duration.weeks(1)).add(1)));
 
             await farm.connect(wallet3).deposit('5');
 
@@ -268,7 +265,7 @@ describe('FarmingPool', () => {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
             await farm.connect(wallet2).deposit('3');
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)));
@@ -287,7 +284,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('78000');
             expect(await farm.farmed(wallet3.address)).to.almostEqual('40000');
 
-            await farm.connect(wallet2).exit({ from: wallet2 });
+            await farm.connect(wallet2).exit();
 
             await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
             await timeIncreaseTo(started.add(time.duration.weeks(3)));
@@ -303,7 +300,7 @@ describe('FarmingPool', () => {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
 
             await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
@@ -330,7 +327,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet1.address)).to.equal('0');
             expect(await farm.farmed(wallet2.address)).to.equal('0');
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
             await farm.connect(wallet2).deposit('3');
 
             // expect(await farm.farmedPerToken()).to.equal('0');
@@ -347,17 +344,17 @@ describe('FarmingPool', () => {
         it('Thrown with Period too large', async () => {
             const { farm } = await loadFixture(initContracts);
             await expect(
-                farm.connect(wallet1).startFarming('10000', (BN.from(2)).pow(40)),
+                farm.startFarming('10000', (BN.from(2)).pow(40)),
             ).to.be.revertedWithCustomError(farm, 'DurationTooLarge');
         });
 
         it('Thrown with Amount too large', async () => {
             const { gift, farm } = await loadFixture(initContracts);
             const largeAmount = (BN.from(2)).pow(192);
-            await gift.connect(wallet1).mint(wallet1.address, largeAmount);
-            await gift.connect(wallet1).approve(farm.address, largeAmount);
+            await gift.mint(wallet1.address, largeAmount);
+            await gift.approve(farm.address, largeAmount);
             await expect(
-                farm.connect(wallet1).startFarming(largeAmount, time.duration.weeks(1)),
+                farm.startFarming(largeAmount, time.duration.weeks(1)),
             ).to.be.revertedWithCustomError(farm, 'AmountTooLarge');
         });
 
@@ -375,7 +372,7 @@ describe('FarmingPool', () => {
             // 1000 UDSC per week for 1 weeks
             await startFarming(farm, '1000', time.duration.weeks(1), wallet1);
 
-            await farm.connect(wallet1).deposit('1');
+            await farm.deposit('1');
             await farm.connect(wallet2).deposit('3');
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)).add(2));
@@ -396,7 +393,7 @@ describe('FarmingPool', () => {
             const { farm } = await loadFixture(initContracts);
 
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
-            await farm.connect(wallet1).deposit(wallet1Amount);
+            await farm.deposit(wallet1Amount);
             await farm.connect(wallet2).deposit(wallet2Amount);
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)));
@@ -433,7 +430,7 @@ describe('FarmingPool', () => {
         it('should be correct farming after transfered from farm user to non-farm user', async () => {
             const { farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
-            await farm.connect(wallet1).deposit(wallet1Amount.add(wallet2Amount));
+            await farm.deposit(wallet1Amount.add(wallet2Amount));
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)));
 
@@ -442,7 +439,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1PerWeek);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2PerWeek);
 
-            await farm.connect(wallet1).transfer(wallet2.address, wallet2Amount);
+            await farm.transfer(wallet2.address, wallet2Amount);
 
             const balanceWallet1 = await farm.balanceOf(wallet1.address);
             const balanceWallet2 = await farm.balanceOf(wallet2.address);
@@ -468,8 +465,8 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
             expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
 
-            await farm.connect(wallet1).deposit(wallet1Amount.add(wallet2Amount));
-            await farm.connect(wallet1).transfer(wallet2.address, wallet2Amount);
+            await farm.deposit(wallet1Amount.add(wallet2Amount));
+            await farm.transfer(wallet2.address, wallet2Amount);
 
             await timeIncreaseTo(started.add(time.duration.weeks(2)));
 
@@ -484,7 +481,7 @@ describe('FarmingPool', () => {
         it('should be correct farming after transfered from farm user to farm user', async () => {
             const { farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
-            await farm.connect(wallet1).deposit(wallet1Amount);
+            await farm.deposit(wallet1Amount);
             await farm.connect(wallet2).deposit(wallet2Amount);
 
             await timeIncreaseTo(started.add(time.duration.weeks(1)));
@@ -518,7 +515,7 @@ describe('FarmingPool', () => {
         it('should thrown with access denied', async () => {
             const { gift, farm } = await loadFixture(initContracts);
             const distributor = await farm.distributor();
-            expect(wallet2.address).to.not.equal(distributor.address);
+            expect(wallet2.address).to.not.equal(distributor);
             await expect(
                 farm.connect(wallet2).rescueFunds(gift.address, '1000'),
             ).to.be.revertedWithCustomError(farm, 'AccessDenied');
@@ -526,14 +523,14 @@ describe('FarmingPool', () => {
 
         it('should transfer tokens from farm to wallet', async () => {
             const { gift, farm } = await loadFixture(initContracts);
-            await farm.connect(wallet1).startFarming(1000, time.duration.weeks(1));
+            await farm.startFarming(1000, time.duration.weeks(1));
 
             const balanceWalletBefore = await gift.balanceOf(wallet1.address);
             const balanceFarmBefore = await gift.balanceOf(farm.address);
 
             const distributor = await farm.distributor();
-            expect(wallet1.address).to.equal(distributor.address);
-            await farm.connect(wallet1).rescueFunds(gift.address, '1000');
+            expect(wallet1.address).to.equal(distributor);
+            await farm.rescueFunds(gift.address, '1000');
 
             expect(await gift.balanceOf(wallet1.address)).to.equal(balanceWalletBefore.add(1000));
             expect(await gift.balanceOf(farm.address)).to.equal(balanceFarmBefore.sub(1000));
@@ -541,45 +538,46 @@ describe('FarmingPool', () => {
 
         it('should thrown with not enough balance for staking token', async () => {
             const { token, farm } = await loadFixture(initContracts);
-            await farm.connect(wallet1).deposit('1000');
+            await farm.deposit('1000');
             expect(await farm.totalSupply()).to.gt('0');
 
             const distributor = await farm.distributor();
-            expect(wallet1.address).to.equal(distributor.address);
-            await expectRevert(
-                farm.connect(wallet1).rescueFunds(token.address, '1000'),
+            expect(wallet1.address).to.equal(distributor);
+            await expect(
+                farm.rescueFunds(token.address, '1000'),
             ).to.be.revertedWithCustomError(farm, 'NotEnoughBalance');
         });
 
         it('should transfer staking token and leave balance of staking tokens more than (and equals to) totalBalance amount', async () => {
             const { token, farm } = await loadFixture(initContracts);
-            await token.connect(wallet1).transfer(farm.address, '1000');
-            await farm.connect(wallet1).deposit('1000');
+            await token.transfer(farm.address, '1000');
+            await farm.deposit('1000');
             expect(await farm.totalSupply()).to.gt('0');
 
             const distributor = await farm.distributor();
-            expect(wallet1.address).to.equal(distributor.address);
-            await farm.connect(wallet1).rescueFunds(token.address, '500');
+            expect(wallet1.address).to.equal(distributor);
+            await farm.rescueFunds(token.address, '500');
             expect(await token.balanceOf(farm.address)).to.gt(await farm.totalSupply());
 
-            await farm.connect(wallet1).rescueFunds(token.address, '500');
+            await farm.rescueFunds(token.address, '500');
             expect(await token.balanceOf(farm.address)).to.equal(await farm.totalSupply());
         });
 
         it('should transfer ethers from farm to wallet', async () => {
             const { farm } = await loadFixture(initContracts);
             // Transfer ethers to farm
-            const ethMock = await EthTransferMock.connect(wallet1).deploy(farm.address, { value: '1000' });
+            const ethMock = await EthTransferMock.deploy(farm.address, { value: '1000' });
             await ethMock.deployed();
 
             // Check rescueFunds
-            const balanceWalletBefore = await web3.eth.getBalance(wallet1.address);
-            const balanceFarmBefore = await web3.eth.getBalance(farm.address);
+            const balanceWalletBefore = await ethers.provider.getBalance(wallet1.address);
+            const balanceFarmBefore = await ethers.provider.getBalance(farm.address);
 
             const distributor = await farm.distributor();
-            expect(wallet1.address).to.equal(distributor.address);
-            const tx = await farm.connect(wallet1).rescueFunds(constants.ZERO_ADDRESS, '1000');
-            const txCost = BN.from(tx.receipt.gasUsed).mul(tx.receipt.effectiveGasPrice);
+            expect(wallet1.address).to.equal(distributor);
+            const tx = await farm.rescueFunds(constants.ZERO_ADDRESS, '1000');
+            const receipt = await tx.wait();
+            const txCost = BN.from(receipt.gasUsed).mul(receipt.effectiveGasPrice);
 
             expect(await ethers.provider.getBalance(wallet1.address)).to.equal(balanceWalletBefore.sub(txCost).add(1000));
             expect(await ethers.provider.getBalance(farm.address)).to.equal(balanceFarmBefore.sub(1000));
