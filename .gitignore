@@ -4,6 +4,7 @@ node_modules
 coverage
 coverage.json
 build
+yarn-error.log
 dist
 .coverage_contracts
 .coverage_artifacts
