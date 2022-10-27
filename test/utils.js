@@ -2,9 +2,9 @@ const { ethers } = require('hardhat');
 
 function almostEqual (expected, actual) {
     this.assert(
-        expected == actual ||
-        expected + 1n == actual || expected + 2n == actual ||
-        actual + 1n == expected || actual + 2n == expected,
+        expected === actual ||
+        expected + 1n === actual || expected + 2n === actual ||
+        actual + 1n === expected || actual + 2n === expected,
         'expected #{act} to be almost equal #{exp}',
         'expected #{act} to be different from #{exp}',
         expected.toString(),
