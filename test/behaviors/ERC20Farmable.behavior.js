@@ -22,24 +22,22 @@ function shouldBehaveLikeFarmable () {
         let initialHolder;
         let recipient;
         let anotherAccount;
-        let ERC20FarmableMock;
-        let Farm;
-        let TokenMock;
 
         before(async function () {
             [initialHolder, recipient, anotherAccount] = await ethers.getSigners();
-            ERC20FarmableMock = await ethers.getContractFactory('ERC20FarmableMock');
-            Farm = await ethers.getContractFactory('Farm');
-            TokenMock = await ethers.getContractFactory('TokenMock');
         });
 
         async function initContracts () {
+            const ERC20FarmableMock = await ethers.getContractFactory('ERC20FarmableMock');
             const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS);
             await token.deployed();
             await token.mint(initialHolder.address, INITIAL_SUPPLY);
 
+            const TokenMock = await ethers.getContractFactory('TokenMock');
             const gift = await TokenMock.deploy('UDSC', 'USDC');
             await gift.deployed();
+
+            const Farm = await ethers.getContractFactory('Farm');
             const farm = await Farm.deploy(token.address, gift.address);
             await farm.deployed();
 
