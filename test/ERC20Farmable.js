@@ -2,18 +2,8 @@ const { expect, constants, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { BigNumber: BN } = require('ethers');
-const { timeIncreaseTo, almostEqual, startFarming, joinNewFarms } = require('./utils');
+const { timeIncreaseTo, startFarming, joinNewFarms } = require('./utils');
 const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
-
-require('chai').use(function (chai, utils) {
-    chai.Assertion.overwriteMethod('almostEqual', (original) => {
-        return function (value) {
-            const expected = BN.from(value);
-            const actual = BN.from(this._obj);
-            almostEqual.apply(this, [expected, actual]);
-        };
-    });
-});
 
 describe('ERC20Farmable', function () {
     let wallet1, wallet2, wallet3;

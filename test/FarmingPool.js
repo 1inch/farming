@@ -7,13 +7,9 @@ const { timeIncreaseTo, almostEqual, startFarming } = require('./utils');
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
         return function (value) {
-            if (utils.flag(this, 'bignumber')) {
-                const expected = BN.from(value);
-                const actual = BN.from(this._obj);
-                almostEqual.apply(this, [expected, actual]);
-            } else {
-                original.apply(this, arguments);
-            }
+            const expected = BN.from(value);
+            const actual = BN.from(this._obj);
+            almostEqual.apply(this, [expected, actual]);
         };
     });
 });
