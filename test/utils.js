@@ -1,11 +1,4 @@
-const { time } = require('@1inch/solidity-utils');
 const { ethers } = require('hardhat');
-
-async function timeIncreaseTo (seconds) {
-    const delay = 10 - new Date().getMilliseconds();
-    await new Promise(resolve => setTimeout(resolve, delay));
-    await time.increaseTo(seconds);
-};
 
 function almostEqual (expected, actual) {
     this.assert(
@@ -38,7 +31,6 @@ async function joinNewFarms (erc20farmableToken, farmsCount, from) {
 };
 
 module.exports = {
-    timeIncreaseTo,
     almostEqual,
     startFarming,
     joinNewFarms,
