@@ -18,13 +18,13 @@ require('chai').use(function (chai, utils) {
     });
 });
 
-describe('FarmingPool', () => {
+describe('FarmingPool', function () {
     let wallet1, wallet2, wallet3;
     let TokenMock;
     let FarmingPool;
     let EthTransferMock;
 
-    before(async () => {
+    before(async function () {
         [wallet1, wallet2, wallet3] = await ethers.getSigners();
         TokenMock = await ethers.getContractFactory('TokenMock');
         FarmingPool = await ethers.getContractFactory('FarmingPool');
@@ -50,8 +50,8 @@ describe('FarmingPool', () => {
         return { token, gift, farm };
     };
 
-    describe('startFarming', async () => {
-        it('should thrown with rewards distribution access denied ', async () => {
+    describe('startFarming', function () {
+        it('should thrown with rewards distribution access denied ', async function () {
             const { farm } = await loadFixture(initContracts);
             await expect(
                 farm.connect(wallet2).startFarming(1000, 60 * 60 * 24),
@@ -59,29 +59,29 @@ describe('FarmingPool', () => {
         });
     });
 
-    describe('name', async () => {
-        it('should be return name', async () => {
+    describe('name', function () {
+        it('should be return name', async function () {
             const { token, farm } = await loadFixture(initContracts);
             expect(await farm.name()).to.equal('Farming of ' + await token.name());
         });
     });
 
-    describe('symbol', async () => {
-        it('should be return symbol', async () => {
+    describe('symbol', function () {
+        it('should be return symbol', async function () {
             const { token, farm } = await loadFixture(initContracts);
             expect(await farm.symbol()).to.equal('farm' + await token.name());
         });
     });
 
-    describe('decimals', async () => {
-        it('should be return decimals', async () => {
+    describe('decimals', function () {
+        it('should be return decimals', async function () {
             const { token, farm } = await loadFixture(initContracts);
             expect(await farm.decimals()).to.equal(await token.decimals());
         });
     });
 
-    describe('mint', async () => {
-        it('should be mint', async () => {
+    describe('mint', function () {
+        it('should be mint', async function () {
             const { farm } = await loadFixture(initContracts);
             await farm.deposit('1000');
             expect(await farm.balanceOf(wallet1.address)).to.equal('1000');
@@ -89,8 +89,8 @@ describe('FarmingPool', () => {
         });
     });
 
-    describe('burn', async () => {
-        it('should be burn', async () => {
+    describe('burn', function () {
+        it('should be burn', async function () {
             const { farm } = await loadFixture(initContracts);
             await farm.deposit('1000');
             await farm.withdraw('999');
@@ -98,14 +98,14 @@ describe('FarmingPool', () => {
             expect(await farm.totalSupply()).to.equal('1');
         });
 
-        it('should be thrown', async () => {
+        it('should be thrown', async function () {
             const { farm } = await loadFixture(initContracts);
             await expect(farm.withdraw('1')).to.be.revertedWith('ERC20: burn amount exceeds balance');
         });
     });
 
-    describe('deposit', async () => {
-        it('Two stakers with the same stakes wait 1 w', async () => {
+    describe('deposit', function () {
+        it('Two stakers with the same stakes wait 1 w', async function () {
             const { farm } = await loadFixture(initContracts);
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
@@ -128,7 +128,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('36000');
         });
 
-        it('Two stakers with the different (1:3) stakes wait 1 w', async () => {
+        it('Two stakers with the different (1:3) stakes wait 1 w', async function () {
             const { farm } = await loadFixture(initContracts);
             // 72000 UDSC per week
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
@@ -153,7 +153,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('54000');
         });
 
-        it('Two stakers with the different (1:3) stakes wait 2 weeks', async () => {
+        it('Two stakers with the different (1:3) stakes wait 2 weeks', async function () {
             const { farm } = await loadFixture(initContracts);
             //
             // 1x: +----------------+ = 72k for 1w + 18k for 2w
@@ -181,7 +181,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('54000');
         });
 
-        it('One staker on 1st and 3rd weeks farming with gap', async () => {
+        it('One staker on 1st and 3rd weeks farming with gap', async function () {
             const { farm } = await loadFixture(initContracts);
             //
             // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
@@ -205,7 +205,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
         });
 
-        it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async () => {
+        it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async function () {
             const { farm } = await loadFixture(initContracts);
             //
             // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
@@ -231,7 +231,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
         });
 
-        it('Three stakers with the different (1:3:5) stakes wait 3 weeks + 1 second', async () => {
+        it('Three stakers with the different (1:3:5) stakes wait 3 weeks + 1 second', async function () {
             const { farm } = await loadFixture(initContracts);
             //
             // 1x: +----------------+--------+ = 18k for 1w +  8k for 2w + 12k for 3w
@@ -254,7 +254,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet3.address)).to.almostEqual('0');
         });
 
-        it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async () => {
+        it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async function () {
             const { farm } = await loadFixture(initContracts);
             //
             // 1x: +----------------+--------+ = 18k for 1w +  8k for 2w + 12k for 3w
@@ -295,7 +295,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet3.address)).to.almostEqual('100000');
         });
 
-        it('One staker on 2 durations with gap', async () => {
+        it('One staker on 2 durations with gap', async function () {
             const { farm } = await loadFixture(initContracts);
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
@@ -316,7 +316,7 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet1.address)).to.almostEqual('144000');
         });
 
-        it('Notify Reward Amount from mocked distribution to 10,000', async () => {
+        it('Notify Reward Amount from mocked distribution to 10,000', async function () {
             const { farm } = await loadFixture(initContracts);
             // 10000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '10000', time.duration.weeks(1), wallet1);
@@ -341,14 +341,14 @@ describe('FarmingPool', () => {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('7500');
         });
 
-        it('Thrown with Period too large', async () => {
+        it('Thrown with Period too large', async function () {
             const { farm } = await loadFixture(initContracts);
             await expect(
                 farm.startFarming('10000', (BN.from(2)).pow(40)),
             ).to.be.revertedWithCustomError(farm, 'DurationTooLarge');
         });
 
-        it('Thrown with Amount too large', async () => {
+        it('Thrown with Amount too large', async function () {
             const { gift, farm } = await loadFixture(initContracts);
             const largeAmount = (BN.from(2)).pow(192);
             await gift.mint(wallet1.address, largeAmount);
@@ -358,7 +358,7 @@ describe('FarmingPool', () => {
             ).to.be.revertedWithCustomError(farm, 'AmountTooLarge');
         });
 
-        it('Notify Reward Amount before prev farming finished', async () => {
+        it('Notify Reward Amount before prev farming finished', async function () {
             const { farm } = await loadFixture(initContracts);
             // 10000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '10000', time.duration.weeks(1), wallet1);
@@ -383,13 +383,13 @@ describe('FarmingPool', () => {
         });
     });
 
-    describe('transfer', async () => {
+    describe('transfer', function () {
         const farmingAmount = BN.from('72000');
         const wallet1Amount = BN.from('1');
         const wallet2Amount = BN.from('3');
         const wallet3Amount = BN.from('1');
 
-        it('should be correct farming after transfered from non-farm user to farm user', async () => {
+        it('should be correct farming after transfered from non-farm user to farm user', async function () {
             const { farm } = await loadFixture(initContracts);
 
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
@@ -427,7 +427,7 @@ describe('FarmingPool', () => {
             console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1Per2Week.toString()}, ${farmedWallet2Per2Week.toString()}}`);
         });
 
-        it('should be correct farming after transfered from farm user to non-farm user', async () => {
+        it('should be correct farming after transfered from farm user to non-farm user', async function () {
             const { farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
             await farm.deposit(wallet1Amount.add(wallet2Amount));
@@ -456,7 +456,7 @@ describe('FarmingPool', () => {
             console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1Per2Week.toString()}, ${farmedWallet2Per2Week.toString()}}`);
         });
 
-        it('should be correct farming after transfered from non-farm user to non-farm user', async () => {
+        it('should be correct farming after transfered from non-farm user to non-farm user', async function () {
             const { farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
 
@@ -478,7 +478,7 @@ describe('FarmingPool', () => {
             console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
         });
 
-        it('should be correct farming after transfered from farm user to farm user', async () => {
+        it('should be correct farming after transfered from farm user to farm user', async function () {
             const { farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
             await farm.deposit(wallet1Amount);
@@ -511,8 +511,8 @@ describe('FarmingPool', () => {
         });
     });
 
-    describe('rescueFunds', async () => {
-        it('should thrown with access denied', async () => {
+    describe('rescueFunds', function () {
+        it('should thrown with access denied', async function () {
             const { gift, farm } = await loadFixture(initContracts);
             const distributor = await farm.distributor();
             expect(wallet2.address).to.not.equal(distributor);
@@ -521,7 +521,7 @@ describe('FarmingPool', () => {
             ).to.be.revertedWithCustomError(farm, 'AccessDenied');
         });
 
-        it('should transfer tokens from farm to wallet', async () => {
+        it('should transfer tokens from farm to wallet', async function () {
             const { gift, farm } = await loadFixture(initContracts);
             await farm.startFarming(1000, time.duration.weeks(1));
 
@@ -536,7 +536,7 @@ describe('FarmingPool', () => {
             expect(await gift.balanceOf(farm.address)).to.equal(balanceFarmBefore.sub(1000));
         });
 
-        it('should thrown with not enough balance for staking token', async () => {
+        it('should thrown with not enough balance for staking token', async function () {
             const { token, farm } = await loadFixture(initContracts);
             await farm.deposit('1000');
             expect(await farm.totalSupply()).to.gt('0');
@@ -548,7 +548,7 @@ describe('FarmingPool', () => {
             ).to.be.revertedWithCustomError(farm, 'NotEnoughBalance');
         });
 
-        it('should transfer staking token and leave balance of staking tokens more than (and equals to) totalBalance amount', async () => {
+        it('should transfer staking token and leave balance of staking tokens more than (and equals to) totalBalance amount', async function () {
             const { token, farm } = await loadFixture(initContracts);
             await token.transfer(farm.address, '1000');
             await farm.deposit('1000');
@@ -563,7 +563,7 @@ describe('FarmingPool', () => {
             expect(await token.balanceOf(farm.address)).to.equal(await farm.totalSupply());
         });
 
-        it('should transfer ethers from farm to wallet', async () => {
+        it('should transfer ethers from farm to wallet', async function () {
             const { farm } = await loadFixture(initContracts);
             // Transfer ethers to farm
             const ethMock = await EthTransferMock.deploy(farm.address, { value: '1000' });

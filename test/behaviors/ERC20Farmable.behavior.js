@@ -18,9 +18,9 @@ require('chai').use(function (chai, utils) {
     });
 });
 
-const shouldBehaveLikeFarmable = () => {
+function shouldBehaveLikeFarmable() {
     // Behavior test scenarios
-    describe('should behave like farmable', async () => {
+    describe('should behave like farmable', function () {
         const INITIAL_SUPPLY = BN.from(ether('1.0'));
         const MAX_USER_FARMS = 10;
         let initialHolder;
@@ -30,7 +30,7 @@ const shouldBehaveLikeFarmable = () => {
         let Farm;
         let TokenMock;
 
-        before(async () => {
+        before(async function () {
             [initialHolder, recipient, anotherAccount] = await ethers.getSigners();
             ERC20FarmableMock = await ethers.getContractFactory('ERC20FarmableMock');
             Farm = await ethers.getContractFactory('Farm');
@@ -57,7 +57,7 @@ const shouldBehaveLikeFarmable = () => {
         };
 
         // Wallet joining scenarios
-        describe('farm', async () => {
+        describe('farm', function () {
             /*
                 ***Test Scenario**
                 Checks if farm's total supply is updated after a wallet joins
@@ -71,7 +71,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Farm's total supply equals 1000
             */
-            it('should update totalSupply', async () => {
+            it('should update totalSupply', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.join(farm.address);
                 expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
@@ -89,7 +89,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Farm's total supply decreased and equals to 400
             */
-            it('should make totalSupply to decrease with balance', async () => {
+            it('should make totalSupply to decrease with balance', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.join(farm.address);
                 await token.transfer(recipient.address, INITIAL_SUPPLY.mul(6).div(10));
@@ -108,7 +108,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Farm's total supply increased and equals to 1500
             */
-            it('should make totalSupply to increase with balance', async () => {
+            it('should make totalSupply to increase with balance', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.transfer(recipient.address, INITIAL_SUPPLY.div(2));
                 await token.join(farm.address);
@@ -129,7 +129,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Farm's total supply remains unchanged and equals to 400
             */
-            it('should make totalSupply ignore internal transfers', async () => {
+            it('should make totalSupply ignore internal transfers', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.join(farm.address);
                 await token.connect(recipient).join(farm.address);
@@ -149,7 +149,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Reverts with error `'AlreadyFarming()'`
             */
-            it('should be thrown', async () => {
+            it('should be thrown', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.join(farm.address);
                 await expect(
@@ -170,7 +170,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Reverts with error `'MaxUserFarmsReached()'`
              */
-            it('should revert when user joins more than max allowed farms count', async () => {
+            it('should revert when user joins more than max allowed farms count', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 const maxUserFarms = await token.maxUserFarms();
                 await joinNewFarms(token, maxUserFarms, initialHolder);
@@ -193,7 +193,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 The join operation succeeds
              */
-            it('should be join farm after reached max and then exit from one', async () => {
+            it('should be join farm after reached max and then exit from one', async function () {
                 const { token } = await loadFixture(initContracts);
                 const maxUserFarms = await token.maxUserFarms();
                 await joinNewFarms(token, maxUserFarms, initialHolder);
@@ -211,7 +211,7 @@ const shouldBehaveLikeFarmable = () => {
         });
 
         // Check all farms a user is farming scenarios
-        describe('userFarms', async () => {
+        describe('userFarms', function () {
             /*
                 ***Test Scenario**
                 Check farms list a user farming is returned correctly for the wallet
@@ -226,7 +226,7 @@ const shouldBehaveLikeFarmable = () => {
                 - Number of farms returned is 1
                 - Address of the farm is the farm's address `wallet1` joined during setup
             */
-            it('should return user farms', async () => {
+            it('should return user farms', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.join(farm.address);
                 const initialHolderFarms = await token.userFarms(initialHolder.address);
@@ -236,7 +236,7 @@ const shouldBehaveLikeFarmable = () => {
         });
 
         // Tokens farming exit scenarios
-        describe('exit', async () => {
+        describe('exit', function () {
             /*
                 ***Test Scenario**
                 Checks that farm's total supply decreases after a user quits farming
@@ -251,7 +251,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Farm's total supply equals 0
             */
-            it('should be burn', async () => {
+            it('should be burn', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.join(farm.address);
                 await token.quit(farm.address);
@@ -271,7 +271,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 Reverts with error `'AlreadyExited()'`
             */
-            it('should be thrown', async () => {
+            it('should be thrown', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await expect(
                     token.quit(farm.address),
@@ -317,7 +317,7 @@ const shouldBehaveLikeFarmable = () => {
                 - `wallet1` has not joined any farms after step 1.
                 - Each exit attempt is reverted with an error `AlreadyExited()` at step 2.
             */
-            it('should quit all farms', async () => {
+            it('should quit all farms', async function () {
                 const { token } = await loadFixture(initContracts);
                 const maxUserFarms = await token.maxUserFarms();
                 await joinNewFarms(token, maxUserFarms, initialHolder);
@@ -334,7 +334,7 @@ const shouldBehaveLikeFarmable = () => {
         });
 
         // Farming reward calculations scenarios
-        describe('deposit', async () => {
+        describe('deposit', function () {
             /*
                 ***Test Scenario**
                 Staker without farming tokens joins on 1st week and adds them on 2nd
@@ -390,7 +390,7 @@ const shouldBehaveLikeFarmable = () => {
                 `wallet1` farmed reward is 36k
                 `wallet2` farmed reward is 36k
             */
-            it('Two stakers with the same stakes wait 1 w', async () => {
+            it('Two stakers with the same stakes wait 1 w', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.transfer(recipient.address, INITIAL_SUPPLY.div(2));
 
@@ -435,7 +435,7 @@ const shouldBehaveLikeFarmable = () => {
                 `wallet1` farmed reward is 18k
                 `wallet2` farmed reward is 54k
             */
-            it('Two stakers with the different (1:3) stakes wait 1 w', async () => {
+            it('Two stakers with the different (1:3) stakes wait 1 w', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
 
@@ -482,7 +482,7 @@ const shouldBehaveLikeFarmable = () => {
                 |4. |Fast-forward => **week 2**                 |90k|54k|
 
             */
-            it('Two stakers with the different (1:3) stakes wait 2 weeks', async () => {
+            it('Two stakers with the different (1:3) stakes wait 2 weeks', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +----------------+ = 72k for 1w + 18k for 2w
@@ -533,7 +533,7 @@ const shouldBehaveLikeFarmable = () => {
                 |4. |Fast-forward => **week 3**                 |144k|
 
             */
-            it('One staker on 1st and 3rd weeks farming with gap', async () => {
+            it('One staker on 1st and 3rd weeks farming with gap', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
@@ -579,7 +579,7 @@ const shouldBehaveLikeFarmable = () => {
                 |4. |Fast-forward => **week 3**                 |72k|
 
             */
-            it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async () => {
+            it('One staker on 1st and 3rd weeks farming with gap + claim in the middle', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
@@ -628,7 +628,7 @@ const shouldBehaveLikeFarmable = () => {
                 |6. |Fast-forward => **week 3**                 |144k|
 
             */
-            it('One staker on 1st and 3rd weeks farming with gap + exit/farm in the middle', async () => {
+            it('One staker on 1st and 3rd weeks farming with gap + exit/farm in the middle', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
@@ -680,7 +680,7 @@ const shouldBehaveLikeFarmable = () => {
                 |7. |Fast-forward => **week 3**                 |72k|
 
             */
-            it('One staker on 1st and 3rd weeks farming with gap + exit/claim in the middle', async () => {
+            it('One staker on 1st and 3rd weeks farming with gap + exit/claim in the middle', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +-------+        +--------+ = 72k for 1w + 0k for 2w + 72k for 3w
@@ -738,7 +738,7 @@ const shouldBehaveLikeFarmable = () => {
                 |7. |Fast-forward => **week 3**                 |38k|78k|100k|
 
             */
-            it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async () => {
+            it('Three stakers with the different (1:3:5) stakes wait 3 weeks', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +----------------+--------+ = 18k for 1w +  8k for 2w + 12k for 3w
@@ -808,7 +808,7 @@ const shouldBehaveLikeFarmable = () => {
                 |5. |Fast-forward => **week 3**                 |38k|78k|100k|
 
             */
-            it('Three stakers with the different (1:3:5) stakes wait 3 weeks for 1 farming event', async () => {
+            it('Three stakers with the different (1:3:5) stakes wait 3 weeks for 1 farming event', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +-------------------------+ = 18k for 1w +  8k for 2w + 12k for 3w
@@ -870,7 +870,7 @@ const shouldBehaveLikeFarmable = () => {
                 |2. |Fast-forward => **week 1**                 |2720|8250|
 
             */
-            it('Notify Reward Amount before prev farming finished', async () => {
+            it('Notify Reward Amount before prev farming finished', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
 
@@ -914,7 +914,7 @@ const shouldBehaveLikeFarmable = () => {
                 1. Join, check reward and claim operations completed succesfully.
                 2. Claimed reward equals to _MAX_REWARD_AMOUNT.
             */
-            it('Operate farm with max allowed reward', async () => {
+            it('Operate farm with max allowed reward', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
                 const _MAX_REWARD_AMOUNT = BN.from(10).pow(42);
 
@@ -949,7 +949,7 @@ const shouldBehaveLikeFarmable = () => {
                 ***Expected results**
                 1. Reward increase stops after 1 week from start farming.
             */
-            it('Farm operation time', async () => {
+            it('Farm operation time', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
                 const _MAX_REWARD_AMOUNT = BN.from(10).pow(42);
 
@@ -969,7 +969,7 @@ const shouldBehaveLikeFarmable = () => {
         });
 
         // Token transfer scenarios
-        describe('transfers', async () => {
+        describe('transfers', function () {
             /*
                 ***Test Scenario**
                 Transfer from one wallet to another, both are farming
@@ -991,7 +991,7 @@ const shouldBehaveLikeFarmable = () => {
                 |3. |Fast-forward => **week 2**                             |36k|36k|
 
             */
-            it('Transfer from one wallet to another, both farming', async () => {
+            it('Transfer from one wallet to another, both farming', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 2x: +-------+ 1х+--------+   = 9k  for 1w + 27k for 2w = 36
@@ -1044,7 +1044,7 @@ const shouldBehaveLikeFarmable = () => {
                 |3. |Fast-forward => **week 2**                             |54k|18k|
 
             */
-            it('Transfer from one wallet to another, sender is farming, reciever is not farming', async () => {
+            it('Transfer from one wallet to another, sender is farming, reciever is not farming', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 //
                 // 1x: +-------+--------+   = 18k for 1w + 36k for 2w
@@ -1094,7 +1094,7 @@ const shouldBehaveLikeFarmable = () => {
                 |3. |Fast-forward => **week 2**                             |45k|27k|
 
             */
-            it('Transfer from one wallet to another, sender is not farming, reciever is farming', async () => {
+            it('Transfer from one wallet to another, sender is not farming, reciever is farming', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
                 await token.transfer(anotherAccount.address, INITIAL_SUPPLY.div(2));

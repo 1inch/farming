@@ -2,13 +2,13 @@ const { time } = require('@1inch/solidity-utils');
 const { ethers } = require('hardhat');
 const { BigNumber: BN } = require('ethers');
 
-const timeIncreaseTo = async (seconds) => {
+async function timeIncreaseTo(seconds) {
     const delay = 10 - new Date().getMilliseconds();
     await new Promise(resolve => setTimeout(resolve, delay));
     await time.increaseTo(seconds);
 };
 
-const almostEqual = function (expected, actual) {
+function almostEqual(expected, actual) {
     this.assert(
         expected.eq(actual) ||
         expected.add(1).eq(actual) || expected.add(2).eq(actual) ||
@@ -20,13 +20,13 @@ const almostEqual = function (expected, actual) {
     );
 };
 
-const startFarming = async (farm, amount, period, from) => {
+async function startFarming(farm, amount, period, from) {
     const tx = await farm.connect(from).startFarming(amount, period);
     const receipt = await tx.wait();
     return BN.from((await ethers.provider.getBlock(receipt.blockHash)).timestamp);
 };
 
-const joinNewFarms = async (erc20farmableToken, amount, from) => {
+async function joinNewFarms(erc20farmableToken, amount, from) {
     for (let i = 0; i < amount; i++) {
         const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('GIFT', 'GIFT');
