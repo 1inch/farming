@@ -2,13 +2,12 @@ const { ether, expect, time } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { almostEqual, startFarming, joinNewFarms } = require('../utils');
-const { BigNumber: BN } = require('ethers');
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', function (original) {
         return function (value) {
-            const expected = BN.from(value);
-            const actual = BN.from(this._obj);
+            const expected = BigInt(value);
+            const actual = BigInt(this._obj);
             almostEqual.apply(this, [expected, actual]);
         };
     });
@@ -17,7 +16,7 @@ require('chai').use(function (chai, utils) {
 function shouldBehaveLikeFarmable () {
     // Behavior test scenarios
     describe('should behave like farmable', function () {
-        const INITIAL_SUPPLY = BN.from(ether('1.0'));
+        const INITIAL_SUPPLY = ether('1');
         const MAX_USER_FARMS = 10;
         let initialHolder;
         let recipient;
@@ -86,8 +85,8 @@ function shouldBehaveLikeFarmable () {
             it('should make totalSupply to decrease with balance', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.join(farm.address);
-                await token.transfer(recipient.address, INITIAL_SUPPLY.mul(6).div(10));
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY.mul(4).div(10));
+                await token.transfer(recipient.address, INITIAL_SUPPLY * 6n / 10n);
+                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY * 4n / 10n);
             });
 
             /*
@@ -104,10 +103,10 @@ function shouldBehaveLikeFarmable () {
             */
             it('should make totalSupply to increase with balance', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(2));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
                 await token.join(farm.address);
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY.div(2));
-                await token.connect(recipient).transfer(initialHolder.address, INITIAL_SUPPLY.div(2));
+                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY / 2n);
+                await token.connect(recipient).transfer(initialHolder.address, INITIAL_SUPPLY / 2n);
                 expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
             });
 
@@ -128,7 +127,7 @@ function shouldBehaveLikeFarmable () {
                 await token.join(farm.address);
                 await token.connect(recipient).join(farm.address);
                 expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(2));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
                 expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
             });
 
@@ -386,7 +385,7 @@ function shouldBehaveLikeFarmable () {
             */
             it('Two stakers with the same stakes wait 1 w', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(2));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
 
                 // 72000 UDSC per week for 3 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
@@ -431,7 +430,7 @@ function shouldBehaveLikeFarmable () {
             */
             it('Two stakers with the different (1:3) stakes wait 1 w', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 4n);
 
                 // 72000 UDSC per week
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
@@ -482,14 +481,14 @@ function shouldBehaveLikeFarmable () {
                 // 1x: +----------------+ = 72k for 1w + 18k for 2w
                 // 3x:         +--------+ =  0k for 1w + 54k for 2w
                 //
-                const recipientAmount = INITIAL_SUPPLY.mul(3).div(4);
+                const recipientAmount = INITIAL_SUPPLY * 3n / 4n;
                 await token.transfer(recipient.address, recipientAmount);
 
                 // 72000 UDSC per week
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
                 await token.join(farm.address);
-                expect(await token.farmTotalSupply(farm.address)).to.almostEqual(INITIAL_SUPPLY.sub(recipientAmount));
+                expect(await token.farmTotalSupply(farm.address)).to.almostEqual(INITIAL_SUPPLY - recipientAmount);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
@@ -739,9 +738,9 @@ function shouldBehaveLikeFarmable () {
                 // 3x: +----------------+          = 54k for 1w + 24k for 2w +  0k for 3w
                 // 5x:         +-----------------+ =  0k for 1w + 40k for 2w + 60k for 3w
                 //
-                const recipientAmount = INITIAL_SUPPLY.div(3);
+                const recipientAmount = INITIAL_SUPPLY / 3n;
                 await token.transfer(recipient.address, recipientAmount);
-                const anotherAccountAmount = INITIAL_SUPPLY.mul(5).div(9);
+                const anotherAccountAmount = INITIAL_SUPPLY * 5n / 9n;
                 await token.transfer(anotherAccount.address, anotherAccountAmount);
 
                 // 72000 UDSC per week for 3 weeks
@@ -809,9 +808,9 @@ function shouldBehaveLikeFarmable () {
                 // 3x: +----------------+          = 54k for 1w + 24k for 2w +  0k for 3w
                 // 5x:         +-----------------+ =  0k for 1w + 40k for 2w + 60k for 3w
                 //
-                const recipientAmount = INITIAL_SUPPLY.div(3);
+                const recipientAmount = INITIAL_SUPPLY / 3n;
                 await token.transfer(recipient.address, recipientAmount);
-                const anotherAccountAmount = INITIAL_SUPPLY.mul(5).div(9);
+                const anotherAccountAmount = INITIAL_SUPPLY * 5n / 9n;
                 await token.transfer(anotherAccount.address, anotherAccountAmount);
 
                 // 72000 UDSC per week for 3 weeks
@@ -866,7 +865,7 @@ function shouldBehaveLikeFarmable () {
             */
             it('Notify Reward Amount before prev farming finished', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 4n);
 
                 // 10000 UDSC per week for 1 weeks
                 const started = await startFarming(farm, '10000', time.duration.weeks(1), initialHolder);
@@ -910,7 +909,7 @@ function shouldBehaveLikeFarmable () {
             */
             it('Operate farm with max allowed reward', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                const _MAX_REWARD_AMOUNT = BN.from(10).pow(42);
+                const _MAX_REWARD_AMOUNT = 10n ** 42n;
 
                 await gift.mint(initialHolder.address, _MAX_REWARD_AMOUNT);
                 await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
@@ -945,7 +944,7 @@ function shouldBehaveLikeFarmable () {
             */
             it('Farm operation time', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                const _MAX_REWARD_AMOUNT = BN.from(10).pow(42);
+                const _MAX_REWARD_AMOUNT = 10n ** 42n;
 
                 await gift.mint(initialHolder.address, _MAX_REWARD_AMOUNT);
                 await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
@@ -991,7 +990,7 @@ function shouldBehaveLikeFarmable () {
                 // 2x: +-------+ 1х+--------+   = 9k  for 1w + 27k for 2w = 36
                 // 1x: +-------+ 2x+--------+   = 27k for 1w +  9k for 2w = 36
                 //
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 4n);
 
                 // 36000 UDSC per week for 2 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(2), initialHolder);
@@ -1004,7 +1003,7 @@ function shouldBehaveLikeFarmable () {
                 expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('27000');
                 expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('9000');
 
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(2));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
@@ -1044,7 +1043,7 @@ function shouldBehaveLikeFarmable () {
                 // 1x: +-------+--------+   = 18k for 1w + 36k for 2w
                 // 1x: +-------+            = 18k for 1w +  0k for 2w
                 //
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(2));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
 
                 // 36000 UDSC per week for 2 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(2), initialHolder);
@@ -1057,7 +1056,7 @@ function shouldBehaveLikeFarmable () {
                 expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('18000');
                 expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('18000');
 
-                await token.connect(recipient).transfer(anotherAccount.address, INITIAL_SUPPLY.div(2));
+                await token.connect(recipient).transfer(anotherAccount.address, INITIAL_SUPPLY / 2n);
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
@@ -1090,8 +1089,8 @@ function shouldBehaveLikeFarmable () {
             */
             it('Transfer from one wallet to another, sender is not farming, reciever is farming', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
-                await token.transfer(anotherAccount.address, INITIAL_SUPPLY.div(2));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 4n);
+                await token.transfer(anotherAccount.address, INITIAL_SUPPLY / 2n);
 
                 // 36000 UDSC per week for 2 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(2), initialHolder);
@@ -1104,7 +1103,7 @@ function shouldBehaveLikeFarmable () {
                 expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('18000');
                 expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('18000');
 
-                await token.connect(anotherAccount).transfer(initialHolder.address, INITIAL_SUPPLY.div(2));
+                await token.connect(anotherAccount).transfer(initialHolder.address, INITIAL_SUPPLY / 2n);
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
@@ -1140,7 +1139,7 @@ function shouldBehaveLikeFarmable () {
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                await token.transfer(recipient.address, INITIAL_SUPPLY.div(4));
+                await token.transfer(recipient.address, INITIAL_SUPPLY / 4n);
 
                 await token.join(farm.address);
                 await token.connect(recipient).join(farm.address);

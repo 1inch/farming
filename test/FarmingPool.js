@@ -1,14 +1,13 @@
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect, constants, time } = require('@1inch/solidity-utils');
 const { ethers } = require('hardhat');
-const { BigNumber: BN } = require('ethers');
 const { almostEqual, startFarming } = require('./utils');
 
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
         return function (value) {
-            const expected = BN.from(value);
-            const actual = BN.from(this._obj);
+            const expected = BigInt(value);
+            const actual = BigInt(this._obj);
             almostEqual.apply(this, [expected, actual]);
         };
     });
@@ -340,13 +339,13 @@ describe('FarmingPool', function () {
         it('Thrown with Period too large', async function () {
             const { farm } = await loadFixture(initContracts);
             await expect(
-                farm.startFarming('10000', (BN.from(2)).pow(40)),
+                farm.startFarming('10000', 2n ** 40n),
             ).to.be.revertedWithCustomError(farm, 'DurationTooLarge');
         });
 
         it('Thrown with Amount too large', async function () {
             const { gift, farm } = await loadFixture(initContracts);
-            const largeAmount = (BN.from(2)).pow(192);
+            const largeAmount = 2n ** 192n;
             await gift.mint(wallet1.address, largeAmount);
             await gift.approve(farm.address, largeAmount);
             await expect(
@@ -380,10 +379,10 @@ describe('FarmingPool', function () {
     });
 
     describe('transfer', function () {
-        const farmingAmount = BN.from('72000');
-        const wallet1Amount = BN.from('1');
-        const wallet2Amount = BN.from('3');
-        const wallet3Amount = BN.from('1');
+        const farmingAmount = 72000n;
+        const wallet1Amount = 1n;
+        const wallet2Amount = 3n;
+        const wallet3Amount = 1n;
 
         it('should be correct farming after transfered from non-farm user to farm user', async function () {
             const { farm } = await loadFixture(initContracts);
@@ -395,8 +394,8 @@ describe('FarmingPool', function () {
             await time.increaseTo(started + time.duration.weeks(1));
 
             // farmedWalletPerWeek = farmingAmount / 2 * wallet1Amount / (wallet1Amount + wallet2Amount)
-            const farmedWallet1PerWeek = farmingAmount.div(2).mul(wallet1Amount).div(wallet1Amount.add(wallet2Amount));
-            const farmedWallet2PerWeek = farmingAmount.div(2).mul(wallet2Amount).div(wallet1Amount.add(wallet2Amount));
+            const farmedWallet1PerWeek = farmingAmount / 2n * wallet1Amount / (wallet1Amount + wallet2Amount);
+            const farmedWallet2PerWeek = farmingAmount / 2n * wallet2Amount / (wallet1Amount + wallet2Amount);
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1PerWeek);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2PerWeek);
             expect(await farm.farmed(wallet3.address)).to.almostEqual('0');
@@ -404,18 +403,18 @@ describe('FarmingPool', function () {
             await farm.connect(wallet3).deposit(wallet3Amount);
             await farm.connect(wallet3).transfer(wallet1.address, wallet3Amount);
 
-            const balanceWallet1 = await farm.balanceOf(wallet1.address);
-            const balanceWallet2 = await farm.balanceOf(wallet2.address);
-            const balanceWallet3 = await farm.balanceOf(wallet3.address);
-            expect(balanceWallet1).to.equal(wallet1Amount.add(wallet3Amount));
+            const balanceWallet1 = BigInt(await farm.balanceOf(wallet1.address));
+            const balanceWallet2 = BigInt(await farm.balanceOf(wallet2.address));
+            const balanceWallet3 = BigInt(await farm.balanceOf(wallet3.address));
+            expect(balanceWallet1).to.equal(wallet1Amount + wallet3Amount);
             expect(balanceWallet2).to.equal(wallet2Amount);
             expect(balanceWallet3).to.equal('0');
 
             await time.increaseTo(started + time.duration.weeks(2));
 
             // farmedWalletPer2Week = farmedWalletPerWeek + farmingAmount / 2 * balanceWallet2 / (balanceWallet1 + balanceWallet2);
-            const farmedWallet1Per2Week = farmedWallet1PerWeek.add(farmingAmount.div(2).mul(balanceWallet1).div(balanceWallet1.add(balanceWallet2)));
-            const farmedWallet2Per2Week = farmedWallet2PerWeek.add(farmingAmount.div(2).mul(balanceWallet2).div(balanceWallet1.add(balanceWallet2)));
+            const farmedWallet1Per2Week = farmedWallet1PerWeek + (farmingAmount / 2n * balanceWallet1 / (balanceWallet1 + balanceWallet2));
+            const farmedWallet2Per2Week = farmedWallet2PerWeek + (farmingAmount / 2n * balanceWallet2 / (balanceWallet1 + balanceWallet2));
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1Per2Week);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2Per2Week);
             expect(await farm.farmed(wallet3.address)).to.almostEqual('0');
@@ -426,26 +425,26 @@ describe('FarmingPool', function () {
         it('should be correct farming after transfered from farm user to non-farm user', async function () {
             const { farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, farmingAmount, time.duration.weeks(2), wallet1);
-            await farm.deposit(wallet1Amount.add(wallet2Amount));
+            await farm.deposit(wallet1Amount + wallet2Amount);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            const farmedWallet1PerWeek = farmingAmount.div(2);
-            const farmedWallet2PerWeek = BN.from('0');
+            const farmedWallet1PerWeek = farmingAmount / 2n;
+            const farmedWallet2PerWeek = 0n;
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1PerWeek);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2PerWeek);
 
             await farm.transfer(wallet2.address, wallet2Amount);
 
-            const balanceWallet1 = await farm.balanceOf(wallet1.address);
-            const balanceWallet2 = await farm.balanceOf(wallet2.address);
+            const balanceWallet1 = BigInt(await farm.balanceOf(wallet1.address));
+            const balanceWallet2 = BigInt(await farm.balanceOf(wallet2.address));
             expect(balanceWallet1).to.equal(wallet1Amount);
             expect(balanceWallet2).to.equal(wallet2Amount);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            const farmedWallet1Per2Week = farmedWallet1PerWeek.add(farmingAmount.div(2).mul(balanceWallet1).div(balanceWallet1.add(balanceWallet2)));
-            const farmedWallet2Per2Week = farmedWallet2PerWeek.add(farmingAmount.div(2).mul(balanceWallet2).div(balanceWallet1.add(balanceWallet2)));
+            const farmedWallet1Per2Week = farmedWallet1PerWeek + farmingAmount / 2n * balanceWallet1 / (balanceWallet1 + balanceWallet2);
+            const farmedWallet2Per2Week = farmedWallet2PerWeek + farmingAmount / 2n * balanceWallet2 / (balanceWallet1 + balanceWallet2);
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1Per2Week);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2Per2Week);
             console.log(`farmed after week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
@@ -461,13 +460,13 @@ describe('FarmingPool', function () {
             expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
             expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
 
-            await farm.deposit(wallet1Amount.add(wallet2Amount));
+            await farm.deposit(wallet1Amount + wallet2Amount);
             await farm.transfer(wallet2.address, wallet2Amount);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            const farmedWallet1PerWeek = farmingAmount.div(2).mul(wallet1Amount).div(wallet1Amount.add(wallet2Amount));
-            const farmedWallet2PerWeek = farmingAmount.div(2).mul(wallet2Amount).div(wallet1Amount.add(wallet2Amount));
+            const farmedWallet1PerWeek = farmingAmount / 2n * wallet1Amount / (wallet1Amount + wallet2Amount);
+            const farmedWallet2PerWeek = farmingAmount / 2n * wallet2Amount / (wallet1Amount + wallet2Amount);
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1PerWeek);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2PerWeek);
             console.log('farmed after week {wallet1, wallet2} = {0, 0}');
@@ -482,28 +481,28 @@ describe('FarmingPool', function () {
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            const farmedWallet1PerWeek = farmingAmount.div(2).mul(wallet1Amount).div(wallet1Amount.add(wallet2Amount));
-            const farmedWallet2PerWeek = farmingAmount.div(2).mul(wallet2Amount).div(wallet1Amount.add(wallet2Amount));
+            const farmedWallet1PerWeek = farmingAmount / 2n * wallet1Amount / (wallet1Amount + wallet2Amount);
+            const farmedWallet2PerWeek = farmingAmount / 2n * wallet2Amount / (wallet1Amount + wallet2Amount);
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1PerWeek);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2PerWeek);
 
             await farm.connect(wallet2).transfer(wallet1.address, wallet1Amount);
 
-            const balanceWallet1 = await farm.balanceOf(wallet1.address);
-            const balanceWallet2 = await farm.balanceOf(wallet2.address);
-            expect(balanceWallet1).to.equal(wallet1Amount.add(wallet1Amount));
-            expect(balanceWallet2).to.equal(wallet2Amount.sub(wallet1Amount));
+            const balanceWallet1 = BigInt(await farm.balanceOf(wallet1.address));
+            const balanceWallet2 = BigInt(await farm.balanceOf(wallet2.address));
+            expect(balanceWallet1).to.equal(wallet1Amount + wallet1Amount);
+            expect(balanceWallet2).to.equal(wallet2Amount - wallet1Amount);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            const farmedWallet1Per2Week = farmedWallet1PerWeek.add(farmingAmount.div(2).mul(balanceWallet1).div(balanceWallet1.add(balanceWallet2)));
-            const farmedWallet2Per2Week = farmedWallet2PerWeek.add(farmingAmount.div(2).mul(balanceWallet2).div(balanceWallet1.add(balanceWallet2)));
+            const farmedWallet1Per2Week = farmedWallet1PerWeek + farmingAmount / 2n * balanceWallet1 / (balanceWallet1 + balanceWallet2);
+            const farmedWallet2Per2Week = farmedWallet2PerWeek + farmingAmount / 2n * balanceWallet2 / (balanceWallet1 + balanceWallet2);
             expect(await farm.farmed(wallet1.address)).to.almostEqual(farmedWallet1Per2Week);
             expect(await farm.farmed(wallet2.address)).to.almostEqual(farmedWallet2Per2Week);
             console.log(`farmed after week {wallet1, wallet2} = {${farmedWallet1PerWeek.toString()}, ${farmedWallet2PerWeek.toString()}}`);
             console.log(`farmed after transfer and additional week {wallet1, wallet2} = {${farmedWallet1Per2Week.toString()}, ${farmedWallet2Per2Week.toString()}}`);
 
-            expect(farmedWallet1Per2Week.sub(farmedWallet1PerWeek)).to.equal(farmedWallet2Per2Week.sub(farmedWallet2PerWeek));
+            expect(farmedWallet1Per2Week - farmedWallet1PerWeek).to.equal(farmedWallet2Per2Week - farmedWallet2PerWeek);
         });
     });
 
@@ -573,7 +572,7 @@ describe('FarmingPool', function () {
             expect(wallet1.address).to.equal(distributor);
             const tx = await farm.rescueFunds(constants.ZERO_ADDRESS, '1000');
             const receipt = await tx.wait();
-            const txCost = BN.from(receipt.gasUsed).mul(receipt.effectiveGasPrice);
+            const txCost = receipt.gasUsed * receipt.effectiveGasPrice;
 
             expect(await ethers.provider.getBalance(wallet1.address)).to.equal(balanceWalletBefore.sub(txCost).add(1000));
             expect(await ethers.provider.getBalance(farm.address)).to.equal(balanceFarmBefore.sub(1000));
