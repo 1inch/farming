@@ -14,7 +14,7 @@ require('chai').use(function (chai, utils) {
     });
 });
 
-function shouldBehaveLikeFarmable() {
+function shouldBehaveLikeFarmable () {
     // Behavior test scenarios
     describe('should behave like farmable', function () {
         const INITIAL_SUPPLY = BN.from(ether('1.0'));
