@@ -5,8 +5,9 @@
     "homepage": "https://github.com/1inch/farming#readme",
     "author": "1inch",
     "files": [
-        "/contracts/**/*.sol",
-        "/artifacts/contracts/**/*.json",
+        "contracts/*.sol",
+        "contracts/accounting",
+        "contracts/interfaces",
         "/test/utils.js",
         "/test/behaviors/*.js"
     ],
