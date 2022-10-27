@@ -26,8 +26,8 @@ async function startFarming (farm, amount, period, from) {
     return BN.from((await ethers.provider.getBlock(receipt.blockHash)).timestamp);
 };
 
-async function joinNewFarms (erc20farmableToken, amount, from) {
-    for (let i = 0; i < amount; i++) {
+async function joinNewFarms (erc20farmableToken, farmsCount, from) {
+    for (let i = 0; i < farmsCount; i++) {
         const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('GIFT', 'GIFT');
         await gift.deployed();

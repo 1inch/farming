@@ -378,15 +378,15 @@ describe('ERC20Farmable', function () {
             */
             it('should return amount of user\'s farms', async function () {
                 const { token } = await loadFixture(initContracts);
-                const amount = BN.from(10);
-                await joinNewFarms(token, amount, wallet1);
-                expect(await token.userFarmsCount(wallet1.address)).to.equal(amount);
+                const farmsCount = 10;
+                await joinNewFarms(token, farmsCount, wallet1);
+                expect(await token.userFarmsCount(wallet1.address)).to.equal(farmsCount);
 
                 const farms = await token.userFarms(wallet1.address);
-                expect(BN.from(farms.length)).to.equal(amount);
-                for (let i = 0; i < amount; i++) {
+                expect(farms.length).to.equal(farmsCount);
+                for (let i = 0; i < farmsCount; i++) {
                     await token.quit(farms[i]);
-                    expect(await token.userFarmsCount(wallet1.address)).to.equal(amount.sub(1 + i));
+                    expect(await token.userFarmsCount(wallet1.address)).to.equal(farmsCount - i - 1);
                 }
             });
         });
@@ -408,10 +408,10 @@ describe('ERC20Farmable', function () {
             */
             it('should return correct addresses', async function () {
                 const { token } = await loadFixture(initContracts);
-                const amount = BN.from(10);
-                await joinNewFarms(token, amount, wallet1);
+                const farmsCount = 10;
+                await joinNewFarms(token, farmsCount, wallet1);
                 const farms = await token.userFarms(wallet1.address);
-                for (let i = 0; i < amount; i++) {
+                for (let i = 0; i < farmsCount; i++) {
                     const farmAddress = await token.userFarmsAt(wallet1.address, i);
                     expect(farmAddress).to.equal(farms[i]);
                 }
