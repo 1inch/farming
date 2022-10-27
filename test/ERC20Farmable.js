@@ -1,13 +1,12 @@
 const { expect, constants, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
-const { BigNumber: BN } = require('ethers');
 const { timeIncreaseTo, startFarming, joinNewFarms } = require('./utils');
 const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
 
 describe('ERC20Farmable', function () {
     let wallet1, wallet2, wallet3;
-    const INITIAL_SUPPLY = BN.from(ether('1.0'));
+    const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
 
     before(async function () {
@@ -74,7 +73,7 @@ describe('ERC20Farmable', function () {
             it('Thrown with Period too large', async function () {
                 const { farm } = await loadFixture(initContracts);
                 await expect(
-                    farm.startFarming('10000', (BN.from(2)).pow(40)),
+                    farm.startFarming('10000', 2n ** 40n),
                 ).to.be.revertedWithCustomError(farm, 'DurationTooLarge');
             });
 
@@ -90,11 +89,11 @@ describe('ERC20Farmable', function () {
             */
             it('Thrown with Amount equals _MAX_REWARD_AMOUNT + 1', async function () {
                 const { gift, farm } = await loadFixture(initContracts);
-                const _MAX_REWARD_AMOUNT = BN.from(10).pow(42);
-                await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT.add(1));
-                await gift.approve(farm.address, _MAX_REWARD_AMOUNT.add(1));
+                const _MAX_REWARD_AMOUNT = 10n ** 42n;
+                await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT + 1n);
+                await gift.approve(farm.address, _MAX_REWARD_AMOUNT + 1n);
                 await expect(
-                    farm.startFarming(_MAX_REWARD_AMOUNT.add(1), time.duration.weeks(1)),
+                    farm.startFarming(_MAX_REWARD_AMOUNT + 1n, time.duration.weeks(1)),
                 ).to.be.revertedWithCustomError(farm, 'AmountTooLarge');
             });
         });
@@ -303,17 +302,17 @@ describe('ERC20Farmable', function () {
                 await ethMock.deployed();
 
                 // Check rescueFunds
-                const balanceWalletBefore = BN.from(await ethers.provider.getBalance(wallet1.address));
-                const balanceFarmBefore = BN.from(await ethers.provider.getBalance(farm.address));
+                const balanceWalletBefore = await ethers.provider.getBalance(wallet1.address);
+                const balanceFarmBefore = await ethers.provider.getBalance(farm.address);
 
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
                 const tx = await farm.rescueFunds(constants.ZERO_ADDRESS, '1000');
                 const receipt = await tx.wait();
-                const txCost = BN.from(receipt.gasUsed).mul(receipt.effectiveGasPrice);
+                const txCost = receipt.gasUsed * receipt.effectiveGasPrice;
 
-                expect(BN.from(await ethers.provider.getBalance(wallet1.address))).to.equal(balanceWalletBefore.sub(txCost).add(1000));
-                expect(BN.from(await ethers.provider.getBalance(farm.address))).to.equal(balanceFarmBefore.sub(1000));
+                expect(await ethers.provider.getBalance(wallet1.address)).to.equal(balanceWalletBefore.sub(txCost).add(1000));
+                expect(await ethers.provider.getBalance(farm.address)).to.equal(balanceFarmBefore.sub(1000));
             });
         });
 
