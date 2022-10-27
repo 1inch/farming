@@ -1,6 +1,5 @@
 const { time } = require('@1inch/solidity-utils');
 const { ethers } = require('hardhat');
-const { BigNumber: BN } = require('ethers');
 
 async function timeIncreaseTo (seconds) {
     const delay = 10 - new Date().getMilliseconds();
@@ -23,7 +22,7 @@ function almostEqual (expected, actual) {
 async function startFarming (farm, amount, period, from) {
     const tx = await farm.connect(from).startFarming(amount, period);
     const receipt = await tx.wait();
-    return BN.from((await ethers.provider.getBlock(receipt.blockHash)).timestamp);
+    return (await ethers.provider.getBlock(receipt.blockHash)).timestamp;
 };
 
 async function joinNewFarms (erc20farmableToken, farmsCount, from) {

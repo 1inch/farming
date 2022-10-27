@@ -120,7 +120,7 @@ describe('ERC20Farmable', function () {
                 await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
-                await timeIncreaseTo(started.add(60 * 60 * 25));
+                await timeIncreaseTo(started + 60 * 60 * 25);
 
                 const balanceBefore = await gift.balanceOf(wallet1.address);
                 await token.claim(farm.address);
@@ -148,7 +148,7 @@ describe('ERC20Farmable', function () {
                 await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
-                await timeIncreaseTo(started.add(60 * 60 * 25));
+                await timeIncreaseTo(started + 60 * 60 * 25);
 
                 const balanceBefore = await gift.balanceOf(wallet2.address);
                 await token.connect(wallet2).claim(farm.address);
@@ -218,7 +218,7 @@ describe('ERC20Farmable', function () {
                     await gift.approve(farms[i].address, '100');
                     lastFarmStarted = await startFarming(farms[i], 100, time.duration.days(1), wallet1);
                 }
-                await timeIncreaseTo(lastFarmStarted.add(time.duration.days(1)));
+                await timeIncreaseTo(lastFarmStarted + time.duration.days(1));
 
                 // Check reward
                 const balanceBefore = await gift.balanceOf(wallet1.address);
