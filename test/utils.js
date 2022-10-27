@@ -1,20 +1,10 @@
-const { time } = require('@openzeppelin/test-helpers');
-const { toBN } = require('@1inch/solidity-utils');
+const { ethers } = require('hardhat');
 
-const Farm = artifacts.require('Farm');
-const TokenMock = artifacts.require('TokenMock');
-
-const timeIncreaseTo = async (seconds) => {
-    const delay = 10 - new Date().getMilliseconds();
-    await new Promise(resolve => setTimeout(resolve, delay));
-    await time.increaseTo(seconds);
-};
-
-const almostEqual = function (expected, actual) {
+function almostEqual (expected, actual) {
     this.assert(
-        expected.eq(actual) ||
-        expected.addn(1).eq(actual) || expected.addn(2).eq(actual) ||
-        actual.addn(1).eq(expected) || actual.addn(2).eq(expected),
+        expected === actual ||
+        expected + 1n === actual || expected + 2n === actual ||
+        actual + 1n === expected || actual + 2n === expected,
         'expected #{act} to be almost equal #{exp}',
         'expected #{act} to be different from #{exp}',
         expected.toString(),
@@ -22,21 +12,25 @@ const almostEqual = function (expected, actual) {
     );
 };
 
-const startFarming = async (farm, amount, period, from) => {
-    const tx = await farm.startFarming(amount, period, { from });
-    return toBN((await web3.eth.getBlock(tx.receipt.blockHash)).timestamp);
+async function startFarming (farm, amount, period, from) {
+    const tx = await farm.connect(from).startFarming(amount, period);
+    const receipt = await tx.wait();
+    return (await ethers.provider.getBlock(receipt.blockHash)).timestamp;
 };
 
-const joinNewFarms = async (erc20farmableToken, amount, from) => {
-    for (let i = 0; i < amount; i++) {
-        const gift = await TokenMock.new('GIFT', 'GIFT');
-        const farm = await Farm.new(erc20farmableToken.address, gift.address);
-        await erc20farmableToken.join(farm.address, { from });
+async function joinNewFarms (erc20farmableToken, farmsCount, from) {
+    for (let i = 0; i < farmsCount; i++) {
+        const TokenMock = await ethers.getContractFactory('TokenMock');
+        const gift = await TokenMock.deploy('GIFT', 'GIFT');
+        await gift.deployed();
+        const Farm = await ethers.getContractFactory('Farm');
+        const farm = await Farm.deploy(erc20farmableToken.address, gift.address);
+        await farm.deployed();
+        await erc20farmableToken.connect(from).join(farm.address);
     }
 };
 
 module.exports = {
-    timeIncreaseTo,
     almostEqual,
     startFarming,
     joinNewFarms,
