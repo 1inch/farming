@@ -207,10 +207,10 @@ describe('ERC20Farmable', function () {
             it('should claim tokens from all farms', async function () {
                 const { token, gift } = await loadFixture(initContracts);
                 // Create and set additional farms
-                const amountFarms = 10;
+                const farmsCount = 10;
                 const farms = [];
                 let lastFarmStarted;
-                for (let i = 0; i < amountFarms; i++) {
+                for (let i = 0; i < farmsCount; i++) {
                     farms[i] = await Farm.deploy(token.address, gift.address);
                     await farms[i].deployed();
                     await farms[i].setDistributor(wallet1.address);
@@ -218,7 +218,7 @@ describe('ERC20Farmable', function () {
                 }
 
                 // Join and start farming, then delay
-                for (let i = 0; i < amountFarms; i++) {
+                for (let i = 0; i < farmsCount; i++) {
                     await token.join(farms[i].address);
                     await gift.approve(farms[i].address, '100');
                     lastFarmStarted = await startFarming(farms[i], 100, time.duration.days(1), wallet1);
