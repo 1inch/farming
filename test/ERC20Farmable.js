@@ -7,28 +7,23 @@ const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior
 
 describe('ERC20Farmable', function () {
     let wallet1, wallet2, wallet3;
-    let ERC20FarmableMock;
-    let Farm;
-    let EthTransferMock;
-    let TokenMock;
     const INITIAL_SUPPLY = BN.from(ether('1.0'));
     const MAX_USER_FARMS = 10;
 
     before(async function () {
         [wallet1, wallet2, wallet3] = await ethers.getSigners();
-        ERC20FarmableMock = await ethers.getContractFactory('ERC20FarmableMock');
-        Farm = await ethers.getContractFactory('Farm');
-        TokenMock = await ethers.getContractFactory('TokenMock');
-        EthTransferMock = await ethers.getContractFactory('EthTransferMock');
     });
 
     async function initContracts () {
+        const ERC20FarmableMock = await ethers.getContractFactory('ERC20FarmableMock');
         const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS);
         await token.deployed();
         await token.mint(wallet1.address, INITIAL_SUPPLY);
 
+        const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.deployed();
+        const Farm = await ethers.getContractFactory('Farm');
         const farm = await Farm.deploy(token.address, gift.address);
         await farm.deployed();
 
@@ -210,6 +205,7 @@ describe('ERC20Farmable', function () {
                 const farmsCount = 10;
                 const farms = [];
                 let lastFarmStarted;
+                const Farm = await ethers.getContractFactory('Farm');
                 for (let i = 0; i < farmsCount; i++) {
                     farms[i] = await Farm.deploy(token.address, gift.address);
                     await farms[i].deployed();
@@ -302,6 +298,7 @@ describe('ERC20Farmable', function () {
             it('should transfer ethers from farm to wallet', async function () {
                 const { farm } = await loadFixture(initContracts);
                 // Transfer ethers to farm
+                const EthTransferMock = await ethers.getContractFactory('EthTransferMock');
                 const ethMock = await EthTransferMock.deploy(farm.address, { value: '1000' });
                 await ethMock.deployed();
 
