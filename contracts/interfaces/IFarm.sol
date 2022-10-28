@@ -2,9 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-interface IFarm {
-    function farmedSinceCheckpointScaled(uint256 checkpoint) external view returns(uint256 amount);
-    function claimFor(address account, uint256 amount) external;
+import "erc20-pods/contracts/interfaces/IPod.sol";
+
+interface IFarm is IPod {
+    function farmed(address account) external view returns(uint256);
+    function claim() external;
 
     // only owner functions
     function setDistributor(address distributor_) external;

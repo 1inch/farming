@@ -13,15 +13,14 @@ library UserAccounting {
 
     function farmedPerToken(
         Info storage info,
-        address context,
-        function(address) internal view returns(uint256) lazyGetSupply,
-        function(address, uint256) internal view returns(uint256) lazyGetFarmed
+        function() internal view returns(uint256) lazyGetSupply,
+        function(uint256) internal view returns(uint256) lazyGetFarmed
     ) internal view returns(uint256) {
         (uint256 checkpoint, uint256 fpt) = (info.checkpoint, info.farmedPerTokenStored);
         if (block.timestamp != checkpoint) {
-            uint256 supply = lazyGetSupply(context);
+            uint256 supply = lazyGetSupply();
             if (supply > 0) {
-                fpt += lazyGetFarmed(context, checkpoint) / supply;
+                fpt += lazyGetFarmed(checkpoint) / supply;
             }
         }
         return fpt;
@@ -39,16 +38,20 @@ library UserAccounting {
         (info.checkpoint, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
-    function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount, bool inFrom, bool inTo) internal {
-        if (amount > 0 && (inFrom || inTo)) {
-            if (inFrom != inTo) {
+    function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount) internal {
+        bool fromNonZero = from != address(0);
+        bool toNonZero = to != address(0);
+        if (from != to && amount > 0) {
+            if (fromNonZero != toNonZero) {
                 updateCheckpoint(info, fpt);
             }
-            if (inFrom) {
-                info.corrections[from] -= int256(amount * fpt);
+
+            int256 diff = int256(amount * fpt);
+            if (fromNonZero) {
+                info.corrections[from] -= diff;
             }
-            if (inTo) {
-                info.corrections[to] += int256(amount * fpt);
+            if (toNonZero) {
+                info.corrections[to] += diff;
             }
         }
     }

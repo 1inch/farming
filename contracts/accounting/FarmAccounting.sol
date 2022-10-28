@@ -35,7 +35,7 @@ library FarmAccounting {
             amount += prev.reward - farmedSinceCheckpointScaled(prev, prev.finished - prev.duration) / _SCALE;
         }
 
-        updateCheckpoint();
+        updateCheckpoint(); // TODO: consider killing function pointer and update FPT before calling startFarming
         if (period == 0) revert ZeroDuration();
         if (period > type(uint32).max) revert DurationTooLarge();
         if (amount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();

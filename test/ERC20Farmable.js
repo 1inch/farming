@@ -116,14 +116,14 @@ describe('ERC20Farmable', function () {
             */
             it('should claim tokens', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
+                await token.addPod(farm.address);
                 await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
 
                 const balanceBefore = await gift.balanceOf(wallet1.address);
-                await token.claim(farm.address);
+                await farm.claim();
                 expect(await gift.balanceOf(wallet1.address)).to.equal(balanceBefore.add(1000));
             });
 
@@ -144,43 +144,20 @@ describe('ERC20Farmable', function () {
             */
             it('should claim tokens for non-user farms wallet', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
+                await token.addPod(farm.address);
                 await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
 
                 const balanceBefore = await gift.balanceOf(wallet2.address);
-                await token.connect(wallet2).claim(farm.address);
+                await farm.claim();
                 expect(await gift.balanceOf(wallet2.address)).to.equal(balanceBefore);
             });
         });
 
-        // Farm's claimFor scenarios
-        describe('claimFor', function () {
-            /*
-                ***Test Scenario**
-                Ensures that `claimFor` can be called only by farmable token contract
-                ***Initial setup**
-                - `wallet1` has 1000 farmable tokens and joined the farm
-                - `wallet2` has 1000 farmable tokens and joined the farm
-
-                ***Test Steps**
-                Call farm's `claimFor` for `wallet1`
-
-                ***Expected results**
-                Revert with error `'AccessDenied()'`
-            */
-            it('should thrown with access denied', async function () {
-                const { farm } = await loadFixture(initContracts);
-                await expect(
-                    farm.claimFor(wallet1.address, '1000'),
-                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
-            });
-        });
-
-        // Farm's claimAll scenarios
-        describe('claimAll', function () {
+        // Farm's claim scenarios
+        describe('claim', function () {
             /*
                 ***Test Scenario**
                 Checks that farming rewards can be claimed from all user's farms with the regular scenario 'join - farm - claim'.
@@ -214,7 +191,7 @@ describe('ERC20Farmable', function () {
 
                 // Join and start farming, then delay
                 for (let i = 0; i < farmsCount; i++) {
-                    await token.join(farms[i].address);
+                    await token.addPod(farms[i].address);
                     await gift.approve(farms[i].address, '100');
                     lastFarmStarted = await startFarming(farms[i], 100, time.duration.days(1), wallet1);
                 }
@@ -222,7 +199,7 @@ describe('ERC20Farmable', function () {
 
                 // Check reward
                 const balanceBefore = await gift.balanceOf(wallet1.address);
-                await token.claimAll();
+                await Promise.all(farms.map(farm => farm.claim()))
                 expect(await gift.balanceOf(wallet1.address)).to.equal(balanceBefore.add(1000));
             });
         });
@@ -316,11 +293,11 @@ describe('ERC20Farmable', function () {
             });
         });
 
-        // Farm's userFarms scenarios
-        describe('userIsFarming', function () {
+        // Farm's pods scenarios
+        describe('hasPod', function () {
             /*
                 ***Test Scenario**
-                Ensures that the `userIsFarming` view returns the correct farming status
+                Ensures that the `hasPod` view returns the correct farming status
 
                 ***Initial setup**
                 - `wallet1` has not joined a farm
@@ -335,14 +312,14 @@ describe('ERC20Farmable', function () {
             */
             it('should return false when user does not farm and true when user farms', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).join(farm.address);
-                expect(await token.userIsFarming(wallet1.address, farm.address)).to.equal(false);
-                expect(await token.userIsFarming(wallet2.address, farm.address)).to.equal(true);
+                await token.connect(wallet2).addPod(farm.address);
+                expect(await token.hasPod(wallet1.address, farm.address)).to.equal(false);
+                expect(await token.hasPod(wallet2.address, farm.address)).to.equal(true);
             });
 
             /*
                 ***Test Scenario**
-                Ensures that `userIsFarming` returns the correct farming status after `quit` is called
+                Ensures that `hasPod` returns the correct farming status after `quit` is called
 
                 ***Test Steps**
                 - `wallet2` joins to farm
@@ -353,51 +330,51 @@ describe('ERC20Farmable', function () {
             */
             it('should return false when user quits from farm', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).join(farm.address);
-                await token.connect(wallet2).quit(farm.address);
-                expect(await token.userIsFarming(wallet1.address, farm.address)).to.equal(false);
+                await token.connect(wallet2).addPod(farm.address);
+                await token.connect(wallet2).removePod(farm.address);
+                expect(await token.hasPod(wallet1.address, farm.address)).to.equal(false);
             });
         });
 
-        describe('userFarmsCount', function () {
+        describe('podsCount', function () {
             /*
                 ***Test Scenario**
-                Ensures that the `userFarmsCount` view returns the correct amount of user's farms
+                Ensures that the `podsCount` view returns the correct amount of user's farms
 
                 ***Test Steps**
                 1. Account joins to N farms
                 2. Account quits from N farms
 
                 ***Expected results**
-                - Each time the account joins a farm `userFarmsCount` should increase by 1
-                - Each time the account quits from a farm `userFarmsCount` should decrease by 1
+                - Each time the account joins a farm `podsCount` should increase by 1
+                - Each time the account quits from a farm `podsCount` should decrease by 1
             */
             it('should return amount of user\'s farms', async function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                expect(await token.userFarmsCount(wallet1.address)).to.equal(farmsCount);
+                expect(await token.podsCount(wallet1.address)).to.equal(farmsCount);
 
-                const farms = await token.userFarms(wallet1.address);
+                const farms = await token.pods(wallet1.address);
                 expect(farms.length).to.equal(farmsCount);
                 for (let i = 0; i < farmsCount; i++) {
-                    await token.quit(farms[i]);
-                    expect(await token.userFarmsCount(wallet1.address)).to.equal(farmsCount - i - 1);
+                    await token.removePod(farms[i]);
+                    expect(await token.podsCount(wallet1.address)).to.equal(farmsCount - i - 1);
                 }
             });
         });
 
-        describe('userFarmsAt', function () {
+        describe('podAt', function () {
             /*
                 ***Test Scenario**
-                Ensure that the `userFarmsAt` view returns the correct farm by index
+                Ensure that the `podAt` view returns the correct farm by index
 
                 ***Initial setup**
                 - Account joins an array of farms
 
                 ***Test Steps**
-                1. Call `userFarms` view to get an array of joined farms for the account
-                2. Request each farm's address with `userFarmsAt` view and compare it with the farm's address in the array
+                1. Call `pods` view to get an array of joined farms for the account
+                2. Request each farm's address with `podAt` view and compare it with the farm's address in the array
 
                 ***Expected results**
                 - Each pair of addresses should be equal
@@ -406,9 +383,9 @@ describe('ERC20Farmable', function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                const farms = await token.userFarms(wallet1.address);
+                const farms = await token.pods(wallet1.address);
                 for (let i = 0; i < farmsCount; i++) {
-                    const farmAddress = await token.userFarmsAt(wallet1.address, i);
+                    const farmAddress = await token.podAt(wallet1.address, i);
                     expect(farmAddress).to.equal(farms[i]);
                 }
             });
