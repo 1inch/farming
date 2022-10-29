@@ -47,6 +47,10 @@ contract Farm is Pod, IFarm, Ownable {
         rewardsToken = rewardsToken_;
     }
 
+    function farmedPerToken() public view returns (uint256) {
+        return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
+    }
+
     function balanceOf(address account) public view returns (uint256) {
         if (farmableToken.hasPod(account, address(this))) {
             return farmableToken.balanceOf(account);
@@ -64,18 +68,18 @@ contract Farm is Pod, IFarm, Ownable {
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
+        userInfo.updateFarmedPerToken(farmedPerToken());
+        uint256 reward = farmInfo.startFarming(amount, period);
         emit RewardAdded(reward, period);
     }
 
     function farmed(address account) public view returns(uint256) {
-        uint256 fpt = userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
         uint256 balance = balanceOf(account);
-        return userInfo.farmed(account, balance, fpt);
+        return userInfo.farmed(account, balance, farmedPerToken());
     }
 
     function claim() external {
-        uint256 fpt = userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
+        uint256 fpt = farmedPerToken();
         uint256 balance = balanceOf(msg.sender);
         uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
         userInfo.eraseFarmed(msg.sender, balance, fpt);
@@ -84,8 +88,7 @@ contract Farm is Pod, IFarm, Ownable {
     }
 
     function updateBalances(address from, address to, uint256 amount) external onlyToken {
-        uint256 fpt = userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
-        userInfo.updateBalances(fpt, from, to, amount);
+        userInfo.updateBalances(farmedPerToken(), from, to, amount);
         if (from == address(0)) {
             totalSupply += amount;
         }
@@ -100,13 +103,6 @@ contract Farm is Pod, IFarm, Ownable {
         } else {
             token.safeTransfer(distributor, amount);
         }
-    }
-
-    // FarmAccounting bindings
-
-    function _updateCheckpoint() private {
-        uint256 fpt = userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
-        userInfo.updateCheckpoint(fpt);
     }
 
     // UserAccounting bindings

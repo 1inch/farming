@@ -63,7 +63,8 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 reward = farmInfo.startFarming(amount, period, _updateCheckpoint);
+        userInfo.updateFarmedPerToken(farmedPerToken());
+        uint256 reward = farmInfo.startFarming(amount, period);
         emit RewardAdded(reward, period);
     }
 
@@ -135,11 +136,5 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function _lazyGetFarmed(uint256 checkpoint) private view returns(uint256) {
         return farmInfo.farmedSinceCheckpointScaled(checkpoint);
-    }
-
-    // FarmAccounting bindings
-
-    function _updateCheckpoint() private {
-        userInfo.updateCheckpoint(farmedPerToken());
     }
 }

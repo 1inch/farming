@@ -34,7 +34,7 @@ library UserAccounting {
         info.corrections[account] = int256(balance * fpt);
     }
 
-    function updateCheckpoint(Info storage info, uint256 fpt) internal {
+    function updateFarmedPerToken(Info storage info, uint256 fpt) internal {
         (info.checkpoint, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
@@ -43,7 +43,7 @@ library UserAccounting {
         bool toNonZero = to != address(0);
         if (from != to && amount > 0) {
             if (fromNonZero != toNonZero) {
-                updateCheckpoint(info, fpt);
+                updateFarmedPerToken(info, fpt);
             }
 
             int256 diff = int256(amount * fpt);
