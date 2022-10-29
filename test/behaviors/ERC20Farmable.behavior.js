@@ -147,7 +147,7 @@ function shouldBehaveLikeFarmable () {
                 await token.addPod(farm.address);
                 await expect(
                     token.addPod(farm.address),
-                ).to.be.revertedWithCustomError(token, 'AlreadyJoined');
+                ).to.be.revertedWithCustomError(token, 'PodAlreadyAdded');
             });
 
             /*
@@ -268,7 +268,7 @@ function shouldBehaveLikeFarmable () {
                 const { token, farm } = await loadFixture(initContracts);
                 await expect(
                     token.removePod(farm.address),
-                ).to.be.revertedWithCustomError(token, 'PodIsNotAttached');
+                ).to.be.revertedWithCustomError(token, 'PodNotFound');
             });
 
             /*
@@ -292,7 +292,7 @@ function shouldBehaveLikeFarmable () {
 
                 await expect(
                     token.removePod(farm.address),
-                ).to.be.revertedWithCustomError(token, 'PodIsNotAttached');
+                ).to.be.revertedWithCustomError(token, 'PodNotFound');
             });
 
             /*
@@ -321,7 +321,7 @@ function shouldBehaveLikeFarmable () {
                 for (let i = 0; i < farms.length; i++) {
                     await expect(
                         token.removePod(farms[i].address),
-                    ).to.be.revertedWithCustomError(token, 'PodIsNotAttached');
+                    ).to.be.revertedWithCustomError(token, 'PodNotFound');
                 }
             });
         });

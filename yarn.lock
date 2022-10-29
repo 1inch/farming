@@ -2042,9 +2042,9 @@ env-paths@^2.2.0:
   resolved "https://registry.yarnpkg.com/env-paths/-/env-paths-2.2.1.tgz#420399d416ce1fbe9bc0a07c62fa68d67fd0f8f2"
   integrity sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==
 
-"erc20-pods@https://github.com/1inch/erc20-pods#1e3091c764319481311e054ea42645ba65ecdb16":
+"erc20-pods@https://github.com/1inch/erc20-pods#5e8bda703d380fd583270317af9734c4fe53454a":
   version "0.0.1"
-  resolved "https://github.com/1inch/erc20-pods#1e3091c764319481311e054ea42645ba65ecdb16"
+  resolved "https://github.com/1inch/erc20-pods#5e8bda703d380fd583270317af9734c4fe53454a"
   dependencies:
     "@1inch/solidity-utils" "^2.2.0"
     "@openzeppelin/contracts" "4.7.3"
