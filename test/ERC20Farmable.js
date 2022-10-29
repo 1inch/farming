@@ -199,7 +199,7 @@ describe('ERC20Farmable', function () {
 
                 // Check reward
                 const balanceBefore = await gift.balanceOf(wallet1.address);
-                await Promise.all(farms.map(farm => farm.claim()))
+                await Promise.all(farms.map(farm => farm.claim()));
                 expect(await gift.balanceOf(wallet1.address)).to.equal(balanceBefore.add(1000));
             });
         });
