@@ -51,7 +51,7 @@ contract Farm is Pod, IFarm, Ownable {
         return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
     }
 
-    function balanceOf(address account) public view returns (uint256) {
+    function farmingBalanceOf(address account) public view returns (uint256) {
         if (farmableToken.hasPod(account, address(this))) {
             return farmableToken.balanceOf(account);
         }
@@ -74,13 +74,13 @@ contract Farm is Pod, IFarm, Ownable {
     }
 
     function farmed(address account) public view returns(uint256) {
-        uint256 balance = balanceOf(account);
+        uint256 balance = farmingBalanceOf(account);
         return userInfo.farmed(account, balance, farmedPerToken());
     }
 
     function claim() external {
         uint256 fpt = farmedPerToken();
-        uint256 balance = balanceOf(msg.sender);
+        uint256 balance = farmingBalanceOf(msg.sender);
         uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
         userInfo.eraseFarmed(msg.sender, balance, fpt);
 
