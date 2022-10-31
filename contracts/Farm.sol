@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "erc20-pods/contracts/Pod.sol";
-import "erc20-pods/contracts/interfaces/IERC20Pods.sol";
+import "@1inch/erc20-pods/contracts/Pod.sol";
+import "@1inch/erc20-pods/contracts/interfaces/IERC20Pods.sol";
 
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";

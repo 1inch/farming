@@ -3,7 +3,7 @@
 pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "erc20-pods/contracts/ERC20Pods.sol";
+import "@1inch/erc20-pods/contracts/ERC20Pods.sol";
 
 contract ERC20FarmableMock is ERC20Pods, Ownable {
     constructor(string memory name, string memory symbol, uint256 maxUserFarms)

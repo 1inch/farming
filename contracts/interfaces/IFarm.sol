@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "erc20-pods/contracts/interfaces/IPod.sol";
+import "@1inch/erc20-pods/contracts/interfaces/IPod.sol";
 
 interface IFarm is IPod {
     function farmed(address account) external view returns(uint256);
