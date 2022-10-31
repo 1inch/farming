@@ -36,8 +36,8 @@ function shouldBehaveLikeFarmable () {
             const gift = await TokenMock.deploy('UDSC', 'USDC');
             await gift.deployed();
 
-            const Farm = await ethers.getContractFactory('Farm');
-            const farm = await Farm.deploy(token.address, gift.address);
+            const FarmingPod = await ethers.getContractFactory('FarmingPod');
+            const farm = await FarmingPod.deploy(token.address, gift.address);
             await farm.deployed();
 
             for (const wallet of [initialHolder, recipient, anotherAccount]) {
@@ -66,8 +66,8 @@ function shouldBehaveLikeFarmable () {
             */
             it('should update totalSupply', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
+                await token.addPod(farm.address);
+                expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
             });
 
             /*
@@ -84,9 +84,9 @@ function shouldBehaveLikeFarmable () {
             */
             it('should make totalSupply to decrease with balance', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
+                await token.addPod(farm.address);
                 await token.transfer(recipient.address, INITIAL_SUPPLY * 6n / 10n);
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY * 4n / 10n);
+                expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY * 4n / 10n);
             });
 
             /*
@@ -104,10 +104,10 @@ function shouldBehaveLikeFarmable () {
             it('should make totalSupply to increase with balance', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
-                await token.join(farm.address);
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY / 2n);
+                await token.addPod(farm.address);
+                expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY / 2n);
                 await token.connect(recipient).transfer(initialHolder.address, INITIAL_SUPPLY / 2n);
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
+                expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
             });
 
             /*
@@ -124,11 +124,11 @@ function shouldBehaveLikeFarmable () {
             */
             it('should make totalSupply ignore internal transfers', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
+                expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
                 await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
-                expect(await token.farmTotalSupply(farm.address)).to.equal(INITIAL_SUPPLY);
+                expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
             });
 
             /*
@@ -144,10 +144,10 @@ function shouldBehaveLikeFarmable () {
             */
             it('should be thrown', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
+                await token.addPod(farm.address);
                 await expect(
-                    token.join(farm.address),
-                ).to.be.revertedWithCustomError(token, 'AlreadyJoined');
+                    token.addPod(farm.address),
+                ).to.be.revertedWithCustomError(token, 'PodAlreadyAdded');
             });
 
             /*
@@ -161,20 +161,20 @@ function shouldBehaveLikeFarmable () {
                 - The wallet joins one more farm
 
                 ***Expected results**
-                Reverts with error `'MaxUserFarmsReached()'`
+                Reverts with error `'PodsLimitReachedForAccount()'`
              */
             it('should revert when user joins more than max allowed farms count', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                const maxUserFarms = await token.maxUserFarms();
-                await joinNewFarms(token, maxUserFarms, initialHolder);
+                const podsLimit = await token.podsLimit();
+                await joinNewFarms(token, podsLimit, initialHolder);
                 await expect(
-                    token.join(farm.address),
-                ).to.be.revertedWithCustomError(token, 'MaxUserFarmsReached');
+                    token.addPod(farm.address),
+                ).to.be.revertedWithCustomError(token, 'PodsLimitReachedForAccount');
             });
 
             /*
                 ***Test Scenario**
-                Checks that a user can join farm if one quit from 1 farm after have the maximum allowed farms
+                Checks that a user can join farm if one removePod from 1 farm after have the maximum allowed farms
 
                 ***Initial Setup**
                 A wallet has joined the maximum allowed number of farms
@@ -188,23 +188,23 @@ function shouldBehaveLikeFarmable () {
              */
             it('should be join farm after reached max and then exit from one', async function () {
                 const { token } = await loadFixture(initContracts);
-                const maxUserFarms = await token.maxUserFarms();
-                await joinNewFarms(token, maxUserFarms, initialHolder);
-                let userFarms = await token.userFarms(initialHolder.address);
-                expect(userFarms.length).to.equal(maxUserFarms);
+                const podsLimit = await token.podsLimit();
+                await joinNewFarms(token, podsLimit, initialHolder);
+                let pods = await token.pods(initialHolder.address);
+                expect(pods.length).to.equal(podsLimit);
 
-                await token.quit(userFarms[0]);
-                userFarms = await token.userFarms(initialHolder.address);
-                expect(userFarms.length).to.equal(maxUserFarms.sub(1));
+                await token.removePod(pods[0]);
+                pods = await token.pods(initialHolder.address);
+                expect(pods.length).to.equal(podsLimit.sub(1));
 
                 await joinNewFarms(token, 1, initialHolder);
-                userFarms = await token.userFarms(initialHolder.address);
-                expect(userFarms.length).to.equal(maxUserFarms);
+                pods = await token.pods(initialHolder.address);
+                expect(pods.length).to.equal(podsLimit);
             });
         });
 
         // Check all farms a user is farming scenarios
-        describe('userFarms', function () {
+        describe('pods', function () {
             /*
                 ***Test Scenario**
                 Check farms list a user farming is returned correctly for the wallet
@@ -221,8 +221,8 @@ function shouldBehaveLikeFarmable () {
             */
             it('should return user farms', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
-                const initialHolderFarms = await token.userFarms(initialHolder.address);
+                await token.addPod(farm.address);
+                const initialHolderFarms = await token.pods(initialHolder.address);
                 expect(initialHolderFarms.length).to.equal(1);
                 expect(initialHolderFarms[0]).to.equal(farm.address);
             });
@@ -232,28 +232,28 @@ function shouldBehaveLikeFarmable () {
         describe('exit', function () {
             /*
                 ***Test Scenario**
-                Checks that farm's total supply decreases after a user quits farming
+                Checks that farm's total supply decreases after a user removePods farming
 
                 ***Initial setup**
                 - `farm` has not started farming
                 - `wallet1` has 1000 unit of farmable token and joined the `farm`
 
                 ***Test Steps**
-                `wallet1` quits the `farm`
+                `wallet1` removePods the `farm`
 
                 ***Expected results**
                 Farm's total supply equals 0
             */
             it('should be burn', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
-                await token.quit(farm.address);
-                expect(await token.farmTotalSupply(farm.address)).to.equal('0');
+                await token.addPod(farm.address);
+                await token.removePod(farm.address);
+                expect(await farm.totalSupply()).to.equal('0');
             });
 
             /*
                 ***Test Scenario**
-                Check that wallet can't quit a farm that it doesn't participate
+                Check that wallet can't removePod a farm that it doesn't participate
 
                 ***Initial setup**
                 `wallet1` has not joined any farm
@@ -267,13 +267,13 @@ function shouldBehaveLikeFarmable () {
             it('should be thrown', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 await expect(
-                    token.quit(farm.address),
-                ).to.be.revertedWithCustomError(token, 'AlreadyQuit');
+                    token.removePod(farm.address),
+                ).to.be.revertedWithCustomError(token, 'PodNotFound');
             });
 
             /*
                 ***Test Scenario**
-                Check that wallet can't quit a farm twice in a row
+                Check that wallet can't removePod a farm twice in a row
 
                 ***Initial setup**
                 `wallet1` has joined the `farm`
@@ -285,43 +285,43 @@ function shouldBehaveLikeFarmable () {
                 ***Expected results**
                 Reverts with error `'AlreadyExited()'`
             */
-            it('should not quit twice', async function () {
+            it('should not removePod twice', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.join(farm.address);
-                await token.quit(farm.address);
+                await token.addPod(farm.address);
+                await token.removePod(farm.address);
 
                 await expect(
-                    token.quit(farm.address),
-                ).to.be.revertedWithCustomError(token, 'AlreadyQuit');
+                    token.removePod(farm.address),
+                ).to.be.revertedWithCustomError(token, 'PodNotFound');
             });
 
             /*
                 ***Test Scenario**
-                Checks that a wallet can quit from all farms using the `quitAll` function
+                Checks that a wallet can removePod from all farms using the `removeAllPods` function
 
                 ***Initial setup**
                 `wallet1` has joined the maximum allowed number of farms
 
                 ***Test Steps**
-                1. Call the `quiteAll` function to exit from all farms
-                2. Try to quit each farm separately
+                1. Call the `removePodeAll` function to exit from all farms
+                2. Try to removePod each farm separately
 
                 ***Expected results**
                 - `wallet1` has not joined any farms after step 1.
                 - Each exit attempt is reverted with an error `AlreadyExited()` at step 2.
             */
-            it('should quit all farms', async function () {
+            it('should removePod all farms', async function () {
                 const { token } = await loadFixture(initContracts);
-                const maxUserFarms = await token.maxUserFarms();
-                await joinNewFarms(token, maxUserFarms, initialHolder);
-                await token.quitAll();
-                expect(await token.userFarmsCount(initialHolder.address)).to.equal('0');
+                const podsLimit = await token.podsLimit();
+                await joinNewFarms(token, podsLimit, initialHolder);
+                await token.removeAllPods();
+                expect(await token.podsCount(initialHolder.address)).to.equal('0');
 
-                const farms = await token.userFarms(initialHolder.address);
+                const farms = await token.pods(initialHolder.address);
                 for (let i = 0; i < farms.length; i++) {
                     await expect(
-                        token.quit(farms[i].address),
-                    ).to.be.revertedWithCustomError(token, 'AlreadyQuit');
+                        token.removePod(farms[i].address),
+                    ).to.be.revertedWithCustomError(token, 'PodNotFound');
                 }
             });
         });
@@ -351,18 +351,19 @@ function shouldBehaveLikeFarmable () {
             it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
                 const { token, farm } = await loadFixture(initContracts);
                 const started = await startFarming(farm, '72000', time.duration.weeks(2), initialHolder);
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
-                await token.connect(recipient).join(farm.address);
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                await token.connect(recipient).addPod(farm.address);
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
                 await time.increaseTo(started + time.duration.weeks(1));
-                expect(await token.farmed(farm.address, initialHolder.address)).to.equal('0');
+                expect(await farm.farmed(initialHolder.address)).to.equal('0');
 
                 await token.transfer(recipient.address, INITIAL_SUPPLY);
                 await time.increaseTo(started + time.duration.weeks(2));
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('36000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('36000');
             });
+
             /*
                 ***Test Scenario**
                 Two stakers with the same stakes wait 1w
@@ -391,21 +392,21 @@ function shouldBehaveLikeFarmable () {
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
                 // expect(await token.farmedPerToken()).to.equal('0');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.equal('0');
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                expect(await farm.farmed(initialHolder.address)).to.equal('0');
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 // expect(await token.farmedPerToken()).to.equal('0');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.equal('0');
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                expect(await farm.farmed(initialHolder.address)).to.equal('0');
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
                 // expect(await token.farmedPerToken()).to.almostEqual('36000');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('36000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('36000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('36000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('36000');
             });
 
             /*
@@ -436,21 +437,21 @@ function shouldBehaveLikeFarmable () {
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
                 // expect(await token.farmedPerToken()).to.equal('0');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.equal('0');
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                expect(await farm.farmed(initialHolder.address)).to.equal('0');
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 // expect(await token.farmedPerToken()).to.equal('0');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.equal('0');
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                expect(await farm.farmed(initialHolder.address)).to.equal('0');
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
                 // expect(await token.farmedPerToken()).to.almostEqual('18000');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('54000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('18000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('54000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('18000');
             });
 
             /*
@@ -487,23 +488,23 @@ function shouldBehaveLikeFarmable () {
                 // 72000 UDSC per week
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
-                await token.join(farm.address);
-                expect(await token.farmTotalSupply(farm.address)).to.almostEqual(INITIAL_SUPPLY - recipientAmount);
+                await token.addPod(farm.address);
+                expect(await farm.totalSupply()).to.almostEqual(INITIAL_SUPPLY - recipientAmount);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                await token.connect(recipient).join(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 // expect(await token.farmedPerToken()).to.almostEqual('72000');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('0');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('0');
 
                 await farm.startFarming('72000', time.duration.weeks(1));
                 await time.increaseTo(started + time.duration.weeks(2));
 
                 // expect(await token.farmedPerToken()).to.almostEqual('90000');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('90000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('54000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('90000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('54000');
             });
 
             /*
@@ -535,11 +536,11 @@ function shouldBehaveLikeFarmable () {
                 // 72000 UDSC per week for 1 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
-                await token.join(farm.address);
+                await token.addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
@@ -547,8 +548,8 @@ function shouldBehaveLikeFarmable () {
                 await farm.startFarming('72000', time.duration.weeks(1));
                 await time.increaseTo(started + time.duration.weeks(3));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('144000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('0');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('144000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('0');
             });
 
             /*
@@ -581,13 +582,13 @@ function shouldBehaveLikeFarmable () {
                 // 72000 UDSC per week for 1 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
-                await token.join(farm.address);
+                await token.addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                await token.claim(farm.address);
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('0');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                await farm.claim();
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('0');
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
@@ -595,8 +596,8 @@ function shouldBehaveLikeFarmable () {
                 await farm.startFarming('72000', time.duration.weeks(1));
                 await time.increaseTo(started + time.duration.weeks(3));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('0');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('0');
             });
 
             /*
@@ -614,7 +615,7 @@ function shouldBehaveLikeFarmable () {
                 |#  |Test Steps|`wallet1`|
                 |---|----------|---------|
                 |1. |Fast-forward => **week 1**                 |72k|
-                |2. |`wallet1` quits `farm`                     |72k|
+                |2. |`wallet1` removePods `farm`                     |72k|
                 |3. |`wallet1` joins `farm`                     |72k|
                 |4. |Fast-forward => **week 2**                 |72k|
                 |5. |`farm` starts new farming 72k for 1 week   |72k|
@@ -630,15 +631,15 @@ function shouldBehaveLikeFarmable () {
                 // 72000 UDSC per week for 1 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
-                await token.join(farm.address);
+                await token.addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                await token.quit(farm.address);
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                await token.join(farm.address);
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                await token.removePod(farm.address);
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                await token.addPod(farm.address);
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
@@ -646,8 +647,8 @@ function shouldBehaveLikeFarmable () {
                 await farm.startFarming('72000', time.duration.weeks(1));
                 await time.increaseTo(started + time.duration.weeks(3));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('144000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('0');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('144000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('0');
             });
 
             /*
@@ -665,7 +666,7 @@ function shouldBehaveLikeFarmable () {
                 |#  |Test Steps|`wallet1`|
                 |---|----------|---------|
                 |1. |Fast-forward => **week 1**                 |72k|
-                |2. |`wallet1` quits `farm`                     |72k|
+                |2. |`wallet1` removePods `farm`                     |72k|
                 |3. |`wallet1` claims farming reward            |0k|
                 |4. |`wallet1` joins `farm`                     |0k|
                 |5. |Fast-forward => **week 2**                 |0k|
@@ -682,17 +683,17 @@ function shouldBehaveLikeFarmable () {
                 // 72000 UDSC per week for 1 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
-                await token.join(farm.address);
+                await token.addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                await token.quit(farm.address);
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                await token.claim(farm.address);
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('0');
-                await token.join(farm.address);
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('0');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                await token.removePod(farm.address);
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                await farm.claim();
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('0');
+                await token.addPod(farm.address);
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('0');
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
@@ -700,8 +701,8 @@ function shouldBehaveLikeFarmable () {
                 await farm.startFarming('72000', time.duration.weeks(1));
                 await time.increaseTo(started + time.duration.weeks(3));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('72000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('0');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('72000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('0');
             });
 
             /*
@@ -726,7 +727,7 @@ function shouldBehaveLikeFarmable () {
                 |2. |`wallet3` joins `farm`                     |18k|54k|0|
                 |3. |`farm` starts new farming 72k for 1 week   |18k|54k|0|
                 |4. |Fast-forward => **week 2**                 |26k|78k|40k|
-                |5. |`wallet2` quits `farm`                     |26k|78k|40k|
+                |5. |`wallet2` removePods `farm`                     |26k|78k|40k|
                 |6. |`farm` starts new farming 72k for 1 week   |26k|78k|40k|
                 |7. |Fast-forward => **week 3**                 |38k|78k|100k|
 
@@ -746,34 +747,34 @@ function shouldBehaveLikeFarmable () {
                 // 72000 UDSC per week for 3 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(1), initialHolder);
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                await token.connect(anotherAccount).join(farm.address);
+                await token.connect(anotherAccount).addPod(farm.address);
 
                 // expect(await token.farmedPerToken()).to.almostEqual('18000');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('18000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('54000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('18000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('54000');
 
                 await farm.startFarming('72000', time.duration.weeks(1));
                 await time.increaseTo(started + time.duration.weeks(2));
 
                 // expect(await token.farmedPerToken()).to.almostEqual('26000'); // 18k + 8k
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('26000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('78000');
-                expect(await token.farmed(farm.address, anotherAccount.address)).to.almostEqual('40000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('26000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('78000');
+                expect(await farm.farmed(anotherAccount.address)).to.almostEqual('40000');
 
-                await token.connect(recipient).quit(farm.address);
+                await token.connect(recipient).removePod(farm.address);
 
                 await farm.startFarming('72000', time.duration.weeks(1));
                 await time.increaseTo(started + time.duration.weeks(3));
 
                 // expect(await token.farmedPerToken()).to.almostEqual('38000'); // 18k + 8k + 12k
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('38000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('78000');
-                expect(await token.farmed(farm.address, anotherAccount.address)).to.almostEqual('100000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('38000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('78000');
+                expect(await farm.farmed(anotherAccount.address)).to.almostEqual('100000');
             });
 
             /*
@@ -797,7 +798,7 @@ function shouldBehaveLikeFarmable () {
                 |1. |Fast-forward => **week 1**                 |18k|54k|0|
                 |2. |`wallet3` joins `farm`                     |18k|54k|0|
                 |3. |Fast-forward => **week 2**                 |26k|78k|40k|
-                |4. |`wallet2` quits `farm`                     |26k|78k|40k|
+                |4. |`wallet2` removePods `farm`                     |26k|78k|40k|
                 |5. |Fast-forward => **week 3**                 |38k|78k|100k|
 
             */
@@ -816,31 +817,31 @@ function shouldBehaveLikeFarmable () {
                 // 72000 UDSC per week for 3 weeks
                 const started = await startFarming(farm, '216000', time.duration.weeks(3), initialHolder);
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                await token.connect(anotherAccount).join(farm.address);
+                await token.connect(anotherAccount).addPod(farm.address);
 
                 // expect(await token.farmedPerToken()).to.almostEqual('18000');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('18000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('54000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('18000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('54000');
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
-                await token.connect(recipient).quit(farm.address);
+                await token.connect(recipient).removePod(farm.address);
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('26000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('78000');
-                expect(await token.farmed(farm.address, anotherAccount.address)).to.almostEqual('40000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('26000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('78000');
+                expect(await farm.farmed(anotherAccount.address)).to.almostEqual('40000');
 
                 await time.increaseTo(started + time.duration.weeks(3));
 
                 // expect(await token.farmedPerToken()).to.almostEqual('38000'); // 18k + 8k + 12k
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('38000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('78000');
-                expect(await token.farmed(farm.address, anotherAccount.address)).to.almostEqual('100000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('38000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('78000');
+                expect(await farm.farmed(anotherAccount.address)).to.almostEqual('100000');
             });
 
             /*
@@ -871,20 +872,20 @@ function shouldBehaveLikeFarmable () {
                 const started = await startFarming(farm, '10000', time.duration.weeks(1), initialHolder);
 
                 // expect(await token.farmedPerToken()).to.equal('0');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.equal('0');
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                expect(await farm.farmed(initialHolder.address)).to.equal('0');
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
                 // 1000 UDSC per week for 1 weeks
                 await farm.startFarming('1000', time.duration.weeks(1));
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1) + 2);
 
                 // expect(await token.farmedPerToken()).to.almostEqual('2750');
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('8250');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('2750');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('8250');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('2750');
             });
 
             /*
@@ -914,13 +915,13 @@ function shouldBehaveLikeFarmable () {
                 await gift.mint(initialHolder.address, _MAX_REWARD_AMOUNT);
                 await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
 
-                await token.join(farm.address);
+                await token.addPod(farm.address);
                 const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), initialHolder);
                 await time.increaseTo(started + time.duration.weeks(1));
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual(_MAX_REWARD_AMOUNT);
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual(_MAX_REWARD_AMOUNT);
 
                 const balanceBeforeClaim = await gift.balanceOf(initialHolder.address);
-                await token.claim(farm.address);
+                await farm.claim();
                 expect(await gift.balanceOf(initialHolder.address)).to.almostEqual(balanceBeforeClaim.add(_MAX_REWARD_AMOUNT));
             });
 
@@ -950,13 +951,13 @@ function shouldBehaveLikeFarmable () {
                 await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
 
                 const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), initialHolder);
-                await token.join(farm.address);
+                await token.addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
-                const farmedAmount = await token.farmed(farm.address, initialHolder.address);
+                const farmedAmount = await farm.farmed(initialHolder.address);
                 for (let i = 1; i < 5; i++) {
                     await time.increaseTo(started + time.duration.weeks(1) + i);
-                    expect(await token.farmed(farm.address, initialHolder.address)).to.equal(farmedAmount);
+                    expect(await farm.farmed(initialHolder.address)).to.equal(farmedAmount);
                 }
             });
         });
@@ -995,20 +996,20 @@ function shouldBehaveLikeFarmable () {
                 // 36000 UDSC per week for 2 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(2), initialHolder);
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('27000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('9000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('27000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('9000');
 
                 await token.transfer(recipient.address, INITIAL_SUPPLY / 2n);
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('36000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('36000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('36000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('36000');
             });
 
             // ```
@@ -1048,21 +1049,21 @@ function shouldBehaveLikeFarmable () {
                 // 36000 UDSC per week for 2 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(2), initialHolder);
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('18000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('18000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('18000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('18000');
 
                 await token.connect(recipient).transfer(anotherAccount.address, INITIAL_SUPPLY / 2n);
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
                 // expect(await token.farmedPerToken()).to.almostEqual('38000'); // 18k + 8k + 12k
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('54000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('18000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('54000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('18000');
             });
 
             /*
@@ -1095,20 +1096,20 @@ function shouldBehaveLikeFarmable () {
                 // 36000 UDSC per week for 2 weeks
                 const started = await startFarming(farm, '72000', time.duration.weeks(2), initialHolder);
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
                 await time.increaseTo(started + time.duration.weeks(1));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('18000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('18000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('18000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('18000');
 
                 await token.connect(anotherAccount).transfer(initialHolder.address, INITIAL_SUPPLY / 2n);
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('45000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('27000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('45000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('27000');
             });
 
             /*
@@ -1141,16 +1142,16 @@ function shouldBehaveLikeFarmable () {
 
                 await token.transfer(recipient.address, INITIAL_SUPPLY / 4n);
 
-                await token.join(farm.address);
-                await token.connect(recipient).join(farm.address);
+                await token.addPod(farm.address);
+                await token.connect(recipient).addPod(farm.address);
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.equal('0');
-                expect(await token.farmed(farm.address, recipient.address)).to.equal('0');
+                expect(await farm.farmed(initialHolder.address)).to.equal('0');
+                expect(await farm.farmed(recipient.address)).to.equal('0');
 
                 await time.increaseTo(started + time.duration.weeks(2));
 
-                expect(await token.farmed(farm.address, initialHolder.address)).to.almostEqual('27000');
-                expect(await token.farmed(farm.address, recipient.address)).to.almostEqual('9000');
+                expect(await farm.farmed(initialHolder.address)).to.almostEqual('27000');
+                expect(await farm.farmed(recipient.address)).to.almostEqual('9000');
             });
         });
     });

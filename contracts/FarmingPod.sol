@@ -3,34 +3,33 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@1inch/erc20-pods/contracts/Pod.sol";
+import "@1inch/erc20-pods/contracts/interfaces/IERC20Pods.sol";
 
-import "./interfaces/IFarmingPool.sol";
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
+import "./interfaces/IFarmingPod.sol";
 
-contract FarmingPool is IFarmingPool, Ownable, ERC20 {
+contract FarmingPod is Pod, IFarmingPod, Ownable {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;
     using Address for address payable;
 
-    error ZeroStakingTokenAddress();
+    error ZeroFarmableTokenAddress();
     error ZeroRewardsTokenAddress();
     error SameDistributor();
-    error AccessDenied();
-    error NotEnoughBalance();
 
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(uint256 reward, uint256 duration);
 
-    IERC20 public immutable stakingToken;
+    IERC20Pods public immutable farmableToken;
     IERC20 public immutable rewardsToken;
 
     address public distributor;
+    uint256 public totalSupply;
     FarmAccounting.Info public farmInfo;
     UserAccounting.Info public userInfo;
 
@@ -39,15 +38,12 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         _;
     }
 
-    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
-        ERC20(
-            string(abi.encodePacked("Farming of ", stakingToken_.name())),
-            string(abi.encodePacked("farm", stakingToken_.symbol()))
-        )
+    constructor(IERC20Pods farmableToken_, IERC20 rewardsToken_)
+        Pod(address(farmableToken_))
     {
-        if (address(stakingToken_) == address(0)) revert ZeroStakingTokenAddress();
+        if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
-        stakingToken = stakingToken_;
+        farmableToken = farmableToken_;
         rewardsToken = rewardsToken_;
     }
 
@@ -61,36 +57,19 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        userInfo.updateFarmedPerToken(farmedPerToken());
+        userInfo.updateFarmedPerToken(_farmedPerToken());
         uint256 reward = farmInfo.startFarming(amount, period);
         emit RewardAdded(reward, period);
     }
 
-    function decimals() public view override returns (uint8) {
-        return IERC20Metadata(address(stakingToken)).decimals();
+    function farmed(address account) public view returns(uint256) {
+        uint256 balance = farmableToken.podBalanceOf(address(this), account);
+        return userInfo.farmed(account, balance, _farmedPerToken());
     }
 
-    function farmedPerToken() public view override returns (uint256) {
-        return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
-    }
-
-    function farmed(address account) external view override returns (uint256) {
-        return userInfo.farmed(account, balanceOf(account), farmedPerToken());
-    }
-
-    function deposit(uint256 amount) external override {
-        _mint(msg.sender, amount);
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-    }
-
-    function withdraw(uint256 amount) public override {
-        _burn(msg.sender, amount);
-        stakingToken.safeTransfer(msg.sender, amount);
-    }
-
-    function claim() public override {
-        uint256 fpt = farmedPerToken();
-        uint256 balance = balanceOf(msg.sender);
+    function claim() external {
+        uint256 fpt = _farmedPerToken();
+        uint256 balance = farmableToken.podBalanceOf(address(this), msg.sender);
         uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
         if (amount > 0) {
             userInfo.eraseFarmed(msg.sender, balance, fpt);
@@ -98,36 +77,32 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         }
     }
 
-    function exit() external override {
-        withdraw(balanceOf(msg.sender));
-        claim();
+    function updateBalances(address from, address to, uint256 amount) external onlyToken {
+        userInfo.updateBalances(from, to, amount, _farmedPerToken());
+        if (from == address(0)) {
+            totalSupply += amount;
+        }
+        if (to == address(0)) {
+            totalSupply -= amount;
+        }
     }
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
-        if (token == IERC20(address(0))) {
+        if(token == IERC20(address(0))) {
             payable(distributor).sendValue(amount);
         } else {
             token.safeTransfer(distributor, amount);
-            if (token == stakingToken) {
-                if (stakingToken.balanceOf(address(this)) < totalSupply()) revert NotEnoughBalance();
-            }
         }
     }
 
-    // ERC20 overrides
-
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
-        super._beforeTokenTransfer(from, to, amount);
-
-        if (amount > 0 && from != to) {
-            userInfo.updateBalances(from, to, amount, farmedPerToken());
-        }
+    function _farmedPerToken() private view returns (uint256) {
+        return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
     }
 
     // UserAccounting bindings
 
     function _lazyGetSupply() private view returns(uint256) {
-        return totalSupply();
+        return totalSupply;
     }
 
     function _lazyGetFarmed(uint256 checkpoint) private view returns(uint256) {
