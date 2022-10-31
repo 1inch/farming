@@ -77,7 +77,7 @@ contract Farm is Pod, IFarm, Ownable {
     }
 
     function updateBalances(address from, address to, uint256 amount) external onlyToken {
-        userInfo.updateBalances(_farmedPerToken(), from, to, amount);
+        userInfo.updateBalances(from, to, amount, _farmedPerToken());
         if (from == address(0)) {
             totalSupply += amount;
         }

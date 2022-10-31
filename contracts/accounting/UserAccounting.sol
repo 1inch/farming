@@ -20,7 +20,9 @@ library UserAccounting {
         if (block.timestamp != checkpoint) {
             uint256 supply = lazyGetSupply();
             if (supply > 0) {
-                fpt += lazyGetFarmed(checkpoint) / supply;
+                uint256 changePerToken;
+                unchecked { changePerToken = lazyGetFarmed(checkpoint) / supply; }
+                fpt += changePerToken;
             }
         }
         return fpt;
@@ -38,7 +40,7 @@ library UserAccounting {
         (info.checkpoint, info.farmedPerTokenStored) = (uint40(block.timestamp), uint216(fpt));
     }
 
-    function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount) internal {
+    function updateBalances(Info storage info, address from, address to, uint256 amount, uint256 fpt) internal {
         bool fromZero = (from == address(0));
         bool toZero = (to == address(0));
         if (amount > 0 && from != to) {

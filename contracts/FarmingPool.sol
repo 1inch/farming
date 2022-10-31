@@ -124,7 +124,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         super._beforeTokenTransfer(from, to, amount);
 
         if (amount > 0 && from != to) {
-            userInfo.updateBalances(farmedPerToken(), from, to, amount);
+            userInfo.updateBalances(from, to, amount, farmedPerToken());
         }
     }
 
