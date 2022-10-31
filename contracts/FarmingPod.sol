@@ -71,9 +71,10 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         uint256 fpt = _farmedPerToken();
         uint256 balance = farmableToken.podBalanceOf(address(this), msg.sender);
         uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
-        userInfo.eraseFarmed(msg.sender, balance, fpt);
-
-        rewardsToken.safeTransfer(msg.sender, amount);
+        if (amount > 0) {
+            userInfo.eraseFarmed(msg.sender, balance, fpt);
+            rewardsToken.safeTransfer(msg.sender, amount);
+        }
     }
 
     function updateBalances(address from, address to, uint256 amount) external onlyToken {
