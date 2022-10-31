@@ -10,9 +10,9 @@ import "@1inch/erc20-pods/contracts/interfaces/IERC20Pods.sol";
 
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
-import "./interfaces/IFarm.sol";
+import "./interfaces/IFarmingPod.sol";
 
-contract Farm is Pod, IFarm, Ownable {
+contract FarmingPod is Pod, IFarmingPod, Ownable {
     using SafeERC20 for IERC20;
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;

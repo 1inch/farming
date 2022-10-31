@@ -22,8 +22,8 @@ describe('ERC20Farmable', function () {
         const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.deployed();
-        const Farm = await ethers.getContractFactory('Farm');
-        const farm = await Farm.deploy(token.address, gift.address);
+        const FarmingPod = await ethers.getContractFactory('FarmingPod');
+        const farm = await FarmingPod.deploy(token.address, gift.address);
         await farm.deployed();
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
@@ -181,9 +181,9 @@ describe('ERC20Farmable', function () {
                 const farmsCount = 10;
                 const farms = [];
                 let lastFarmStarted;
-                const Farm = await ethers.getContractFactory('Farm');
+                const FarmingPod = await ethers.getContractFactory('FarmingPod');
                 for (let i = 0; i < farmsCount; i++) {
-                    farms[i] = await Farm.deploy(token.address, gift.address);
+                    farms[i] = await FarmingPod.deploy(token.address, gift.address);
                     await farms[i].deployed();
                     await farms[i].setDistributor(wallet1.address);
                     await gift.connect(wallet2).transfer(farms[i].address, '100');

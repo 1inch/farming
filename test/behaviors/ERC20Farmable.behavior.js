@@ -36,8 +36,8 @@ function shouldBehaveLikeFarmable () {
             const gift = await TokenMock.deploy('UDSC', 'USDC');
             await gift.deployed();
 
-            const Farm = await ethers.getContractFactory('Farm');
-            const farm = await Farm.deploy(token.address, gift.address);
+            const FarmingPod = await ethers.getContractFactory('FarmingPod');
+            const farm = await FarmingPod.deploy(token.address, gift.address);
             await farm.deployed();
 
             for (const wallet of [initialHolder, recipient, anotherAccount]) {

@@ -15,9 +15,9 @@
 
 ## About
 
-1inch farming contract offers protocols to give rewards to users holding specific tokens. The repository offers two ways to get rewards
+1inch farming contract offers protocols to give rewards to users holding specific tokens. The repository offers two ways to get incentivisation rewards to holders:
 
-- A user can hold `ERC20Farmable` token on its account without staking or depositing it to any contract. User should join a farm and hold tokens on its account to get rewards.
+- Token smart contract could be derived from `ERC20Pods` and allow farming in multiple farms without necessarity staking token to any pool. User should add farm as a pod ([see `ERC20Pods` concept](https://github.com/1inch/erc20-pods)) and keep tokens on its address to be eligible for rewards.
 - A user can stake/deposit specific tokens to `FarmingPool` smart contract. It is less convenient way and is only used for backward compatibility for those smart contracts that have been deployed and there are no way to change it.
 
 ## Math
@@ -64,7 +64,7 @@ The resulting reward distribution would be the following
 
 More examples are here [@1inch/farming/TESTS.md#deposit](https://github.com/1inch/farming/blob/master/TESTS.md#deposit)
 
-# `ERC20Farmable` and `Farm` usage
+# `ERC20Pods` and `FarmingPod` usage
 
 ## Concept
 
@@ -75,11 +75,11 @@ To start new farming owner should deploy (or use already deployed) farming for a
     - Set distributor
     - From distributor account send reward amount and set farming period
 
-When farming is started users holding farmable tokens may `join` the farm to accumulate rewards. After joining a farm, a user starts to get farm rewards for the whole amount of farmable tokens he owns. When a user’s balance changes the reward share is changed automatically.
+When farming is started users holding farmable tokens may `addPod` the farm to accumulate rewards. After joining a farm, a user starts to get farm rewards for the whole amount of farmable tokens he owns. When a user’s balance changes the reward share is changed automatically.
 
-If a user wants to stop participating in farming he should `exit` the farm with. Rewards for previous farming periods may be claimed any time with `claim` function regardless if a user is still farming or has already exited the farm.
+If a user wants to stop participating in farming he should `removePod` the farm with. Rewards for previous farming periods may be claimed any time with `claim` function of the farm regardless if a user is still farming or has already exited the farm.
 
-![ERC20Farmable and Farm concept](.github/concept-ERC20Farmable.png)
+![ERC20Pods and FarmingPod concept](.github/concept-ERC20Farmable.png)
 
 A user may join several farms which provide rewards for the same token.
 
@@ -102,15 +102,15 @@ $ yarn add @1inch/farming
 
 ## Usage
 
-Once installed, you can use the contracts in the library by importing them. Just use `ERC20Farmable` instead of `ERC20` to derive from
+Once installed, you can use the contracts in the library by importing them. Just use `ERC20Pods` instead of `ERC20` to derive from
 
 ```solidity
 pragma solidity ^0.8.0;
 
-import "@1inch/farming/contracts/ERC20Farmable.sol";
+import "@1inch/farming/contracts/ERC20Pods.sol";
 
-contract AMMPoolToken is ERC20Farmable {
-    constructor() ERC20("AMMPoolToken", "AMM") {
+contract AMMPoolToken is ERC20Pods {
+    constructor(uint256 farmsLimit) ERC20("AMMPoolToken", "AMM") ERC20Pods(farmsLimit) {
     }
 }
 ```
@@ -119,7 +119,7 @@ contract AMMPoolToken is ERC20Farmable {
 
 Storage access:
 
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L9-L11) for farming params, updated only on farming restarting:
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L14-L16) for farming params, updated only on farming restarting:
     
     ```solidity
     uint40 public finished;
