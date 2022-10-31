@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"@1inch/erc20-pods@https://github.com/1inch/erc20-pods#31485ad4285b0a25684d91dc3533fe918759e489":
+"@1inch/erc20-pods@https://github.com/1inch/erc20-pods#cc67b287c64c957dc4cbce234a05930f633f3be0":
   version "0.0.1"
-  resolved "https://github.com/1inch/erc20-pods#31485ad4285b0a25684d91dc3533fe918759e489"
+  resolved "https://github.com/1inch/erc20-pods#cc67b287c64c957dc4cbce234a05930f633f3be0"
   dependencies:
     "@1inch/solidity-utils" "^2.2.0"
     "@openzeppelin/contracts" "4.7.3"

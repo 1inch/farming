@@ -47,17 +47,6 @@ contract Farm is Pod, IFarm, Ownable {
         rewardsToken = rewardsToken_;
     }
 
-    function farmedPerToken() public view returns (uint256) {
-        return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
-    }
-
-    function farmingBalanceOf(address account) public view returns (uint256) {
-        if (farmableToken.hasPod(account, address(this))) {
-            return farmableToken.balanceOf(account);
-        }
-        return 0;
-    }
-
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
@@ -68,19 +57,19 @@ contract Farm is Pod, IFarm, Ownable {
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
 
-        userInfo.updateFarmedPerToken(farmedPerToken());
+        userInfo.updateFarmedPerToken(_farmedPerToken());
         uint256 reward = farmInfo.startFarming(amount, period);
         emit RewardAdded(reward, period);
     }
 
     function farmed(address account) public view returns(uint256) {
-        uint256 balance = farmingBalanceOf(account);
-        return userInfo.farmed(account, balance, farmedPerToken());
+        uint256 balance = farmableToken.podBalanceOf(address(this), account);
+        return userInfo.farmed(account, balance, _farmedPerToken());
     }
 
     function claim() external {
-        uint256 fpt = farmedPerToken();
-        uint256 balance = farmingBalanceOf(msg.sender);
+        uint256 fpt = _farmedPerToken();
+        uint256 balance = farmableToken.podBalanceOf(address(this), msg.sender);
         uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
         userInfo.eraseFarmed(msg.sender, balance, fpt);
 
@@ -88,7 +77,7 @@ contract Farm is Pod, IFarm, Ownable {
     }
 
     function updateBalances(address from, address to, uint256 amount) external onlyToken {
-        userInfo.updateBalances(farmedPerToken(), from, to, amount);
+        userInfo.updateBalances(_farmedPerToken(), from, to, amount);
         if (from == address(0)) {
             totalSupply += amount;
         }
@@ -103,6 +92,10 @@ contract Farm is Pod, IFarm, Ownable {
         } else {
             token.safeTransfer(distributor, amount);
         }
+    }
+
+    function _farmedPerToken() private view returns (uint256) {
+        return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
     }
 
     // UserAccounting bindings
