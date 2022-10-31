@@ -39,18 +39,18 @@ library UserAccounting {
     }
 
     function updateBalances(Info storage info, uint256 fpt, address from, address to, uint256 amount) internal {
-        bool fromNonZero = from != address(0);
-        bool toNonZero = to != address(0);
-        if (from != to && amount > 0) {
-            if (fromNonZero != toNonZero) {
+        bool fromZero = (from == address(0));
+        bool toZero = (to == address(0));
+        if (amount > 0 && from != to) {
+            if (fromZero || toZero) {
                 updateFarmedPerToken(info, fpt);
             }
 
             int256 diff = int256(amount * fpt);
-            if (fromNonZero) {
+            if (!fromZero) {
                 info.corrections[from] -= diff;
             }
-            if (toNonZero) {
+            if (!toZero) {
                 info.corrections[to] += diff;
             }
         }
