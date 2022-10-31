@@ -22,8 +22,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     error ZeroRewardsTokenAddress();
     error SameDistributor();
     error AccessDenied();
-    error ZeroDeposit();
-    error ZeroWithdraw();
     error NotEnoughBalance();
 
     event DistributorChanged(address oldDistributor, address newDistributor);
@@ -81,13 +79,11 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function deposit(uint256 amount) external override {
-        if (amount == 0) revert ZeroDeposit();
         _mint(msg.sender, amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public override {
-        if (amount == 0) revert ZeroWithdraw();
         _burn(msg.sender, amount);
         stakingToken.safeTransfer(msg.sender, amount);
     }
