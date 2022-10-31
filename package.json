@@ -19,7 +19,7 @@
     "dependencies": {
         "@1inch/solidity-utils": "2.2.0",
         "@openzeppelin/contracts": "4.7.3",
-        "@1inch/erc20-pods": "https://github.com/1inch/erc20-pods#cc67b287c64c957dc4cbce234a05930f633f3be0"
+        "@1inch/erc20-pods": "0.0.1"
     },
     "devDependencies": {
         "@nomicfoundation/hardhat-chai-matchers": "1.0.4",
