@@ -2,15 +2,15 @@
 # yarn lockfile v1
 
 
-"@1inch/erc20-pods@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@1inch/erc20-pods/-/erc20-pods-0.0.2.tgz#6cf3a90b030dedc8d97b7b0cda8adc623f6e80ec"
-  integrity sha512-X9xg2m3Vl8pTZc3ulfa7KlSKLYPHqjzhicNzaeJlPMRVrGqFAdIRz5R6PSezCRGz++E1CVpsawqUe1bn3lfjbw==
+"@1inch/erc20-pods@0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@1inch/erc20-pods/-/erc20-pods-0.0.3.tgz#60c53cf9100eb284214d641de75ddc20ab6deb72"
+  integrity sha512-0NsgN1lXijXgwilr0K+LEAxY7PqSHcSLG0L0oFryw9A+RQf4WhEAaXt5dney46L8ut9q9v2hkQObOzvNAH6VkA==
   dependencies:
-    "@1inch/solidity-utils" "^2.2.0"
+    "@1inch/solidity-utils" "2.2.0"
     "@openzeppelin/contracts" "4.7.3"
 
-"@1inch/solidity-utils@2.2.0", "@1inch/solidity-utils@^2.2.0":
+"@1inch/solidity-utils@2.2.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@1inch/solidity-utils/-/solidity-utils-2.2.0.tgz#5f35e306975b9cf26b271d39860ba5d1b15d2d98"
   integrity sha512-U5nirVTXWnS0h1D49sL0Q8qf+5NJl7b50uk0kHt6dTrVdVaI92wjxywibd/N9R3ZsyqFXHcuCQoiER4+dcIWHg==
