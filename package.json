@@ -17,8 +17,8 @@
     },
     "license": "MIT",
     "dependencies": {
-        "@1inch/erc20-pods": "^0.0.5",
-        "@1inch/solidity-utils": "^2.2.2",
+        "@1inch/erc20-pods": "0.0.5",
+        "@1inch/solidity-utils": "2.2.2",
         "@openzeppelin/contracts": "4.7.3"
     },
     "devDependencies": {
