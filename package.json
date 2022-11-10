@@ -17,9 +17,9 @@
     },
     "license": "MIT",
     "dependencies": {
-        "@1inch/solidity-utils": "2.2.0",
-        "@openzeppelin/contracts": "4.7.3",
-        "@1inch/erc20-pods": "0.0.5"
+        "@1inch/erc20-pods": "0.0.5",
+        "@1inch/solidity-utils": "^2.2.2",
+        "@openzeppelin/contracts": "4.7.3"
     },
     "devDependencies": {
         "@nomicfoundation/hardhat-chai-matchers": "1.0.4",
@@ -46,7 +46,7 @@
         "solidity-coverage": "0.8.2"
     },
     "scripts": {
-        "test": "hardhat test --parallel",
+        "test": "hardhat test",
         "test:ci": "hardhat test",
         "clean": "rimraf artifacts cache coverage",
         "deploy": "hardhat deploy --network",

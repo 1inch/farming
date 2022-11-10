@@ -31,11 +31,11 @@ describe('ERC20Farmable', function () {
             await gift.connect(wallet).approve(farm.address, '1000000000');
         }
         await farm.setDistributor(wallet1.address);
-
-        return { token, gift, farm };
+        const initialSupply = INITIAL_SUPPLY;
+        return { initialSupply, token, gift, farm };
     };
 
-    shouldBehaveLikeFarmable();
+    shouldBehaveLikeFarmable(initContracts);
 
     // Generic farming scenarios
     describe('farming', function () {
