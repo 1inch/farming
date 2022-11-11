@@ -2,9 +2,8 @@ const { expect, constants, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { startFarming, joinNewFarms } = require('./utils');
-const { shouldBehaveLikeFarmable } = require('./behaviors/ERC20Farmable.behavior.js');
 
-describe('ERC20Farmable', function () {
+describe('ERC20Pods', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
@@ -14,7 +13,7 @@ describe('ERC20Farmable', function () {
     });
 
     async function initContracts () {
-        const ERC20FarmableMock = await ethers.getContractFactory('ERC20FarmableMock');
+        const ERC20FarmableMock = await ethers.getContractFactory('ERC20PodsMock');
         const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS);
         await token.deployed();
         await token.mint(wallet1.address, INITIAL_SUPPLY);
@@ -31,11 +30,8 @@ describe('ERC20Farmable', function () {
             await gift.connect(wallet).approve(farm.address, '1000000000');
         }
         await farm.setDistributor(wallet1.address);
-        const initialSupply = INITIAL_SUPPLY;
-        return { initialSupply, token, gift, farm };
+        return { token, gift, farm };
     };
-
-    shouldBehaveLikeFarmable(initContracts);
 
     // Generic farming scenarios
     describe('farming', function () {
