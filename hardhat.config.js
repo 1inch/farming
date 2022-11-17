@@ -38,6 +38,7 @@ module.exports = {
     dependencyCompiler: {
         paths: [
             '@1inch/solidity-utils/contracts/mocks/TokenMock.sol',
+            '@1inch/erc20-pods/contracts/mocks/ERC20PodsMock.sol',
         ],
     },
 };
