@@ -18,6 +18,12 @@ async function startFarming (farm, amount, period, from) {
     return (await ethers.provider.getBlock(receipt.blockHash)).timestamp;
 };
 
+async function startMultiFarming (multiFarm, rewardsToken, amount, period, from) {
+    const tx = await multiFarm.connect(from).startFarming(rewardsToken, amount, period);
+    const receipt = await tx.wait();
+    return (await ethers.provider.getBlock(receipt.blockHash)).timestamp;
+};
+
 async function joinNewFarms (erc20farmableToken, farmsCount, from) {
     for (let i = 0; i < farmsCount; i++) {
         const TokenMock = await ethers.getContractFactory('TokenMock');
@@ -33,5 +39,6 @@ async function joinNewFarms (erc20farmableToken, farmsCount, from) {
 module.exports = {
     almostEqual,
     startFarming,
+    startMultiFarming,
     joinNewFarms,
 };
