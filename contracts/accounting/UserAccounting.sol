@@ -13,15 +13,16 @@ library UserAccounting {
 
     function farmedPerToken(
         Info storage info,
-        function() internal view returns(uint256) lazyGetSupply,
-        function(uint256) internal view returns(uint256) lazyGetFarmed
+        bytes32 context,
+        function(bytes32) internal view returns(uint256) lazyGetSupply,
+        function(bytes32, uint256) internal view returns(uint256) lazyGetFarmed
     ) internal view returns(uint256) {
         (uint256 checkpoint, uint256 fpt) = (info.checkpoint, info.farmedPerTokenStored);
         if (block.timestamp != checkpoint) {
-            uint256 supply = lazyGetSupply();
+            uint256 supply = lazyGetSupply(context);
             if (supply > 0) {
                 uint256 changePerToken;
-                unchecked { changePerToken = lazyGetFarmed(checkpoint) / supply; }
+                unchecked { changePerToken = lazyGetFarmed(context, checkpoint) / supply; }
                 fpt += changePerToken;
             }
         }
