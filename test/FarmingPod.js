@@ -1,7 +1,17 @@
 const { expect, constants, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
-const { startFarming, joinNewFarms } = require('./utils');
+const { almostEqual, startFarming, joinNewFarms } = require('./utils');
+
+require('chai').use(function (chai, utils) {
+    chai.Assertion.overwriteMethod('almostEqual', (original) => {
+        return function (value) {
+            const expected = BigInt(value);
+            const actual = BigInt(this._obj);
+            almostEqual.apply(this, [expected, actual]);
+        };
+    });
+});
 
 describe('FarmingPod', function () {
     let wallet1, wallet2, wallet3;

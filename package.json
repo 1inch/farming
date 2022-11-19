@@ -46,7 +46,7 @@
         "solidity-coverage": "0.8.2"
     },
     "scripts": {
-        "test": "hardhat test",
+        "test": "hardhat test --parallel",
         "test:ci": "hardhat test",
         "clean": "rimraf artifacts cache coverage",
         "deploy": "hardhat deploy --network",
