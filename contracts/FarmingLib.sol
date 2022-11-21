@@ -11,8 +11,6 @@ library FarmingLib {
     using FarmingLib for FarmingLib.DataPtr;
     using FarmingLib for FarmingLib.Info;
 
-    event RewardAdded(uint256 reward, uint256 duration);
-
     struct Data {
         FarmAccounting.Info farmInfo;
         UserAccounting.Info userInfo;
@@ -40,10 +38,10 @@ library FarmingLib {
         }
     }
 
-    function startFarming(Info memory self, uint256 amount, uint256 period) internal {
-        self.ptr.get().userInfo.updateFarmedPerToken(_farmedPerToken(self));
-        uint256 reward = self.ptr.get().farmInfo.startFarming(amount, period);
-        emit RewardAdded(reward, period);
+    function startFarming(Info memory self, uint256 amount, uint256 period) internal returns(uint256 reward) {
+        Data storage data = self.ptr.get();
+        data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
+        reward = data.farmInfo.startFarming(amount, period);
     }
 
     function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
