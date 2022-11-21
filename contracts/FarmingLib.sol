@@ -8,7 +8,6 @@ import "./accounting/UserAccounting.sol";
 library FarmingLib {
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;
-    using FarmingLib for FarmingLib.DataPtr;
     using FarmingLib for FarmingLib.Info;
 
     struct Data {
@@ -16,63 +15,65 @@ library FarmingLib {
         UserAccounting.Info userInfo;
     }
 
-    type DataPtr is uint256;
-
     struct Info {
         function() internal view returns(uint256) getTotalSupply;
-        DataPtr ptr;
+        bytes32 dataSlot;
     }
 
     function makeInfo(function() internal view returns(uint256) getTotalSupply, Data storage data) internal pure returns(Info memory info) {
         info.getTotalSupply = getTotalSupply;
-        DataPtr ptr;
+        bytes32 dataSlot;
         assembly {  // solhint-disable-line no-inline-assembly
-            ptr := data.slot
+            dataSlot := data.slot
         }
-        info.ptr = ptr;
+        info.dataSlot = dataSlot;
     }
 
-    function get(DataPtr ptr) internal pure returns(Data storage data) {
+    function getData(Info memory self) internal pure returns(Data storage data) {
+        bytes32 dataSlot = self.dataSlot;
         assembly {  // solhint-disable-line no-inline-assembly
-            data.slot := ptr
+            data.slot := dataSlot
         }
     }
 
     function startFarming(Info memory self, uint256 amount, uint256 period) internal returns(uint256 reward) {
-        Data storage data = self.ptr.get();
+        Data storage data = self.getData();
         data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
         reward = data.farmInfo.startFarming(amount, period);
     }
 
     function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
-        return self.ptr.get().userInfo.farmed(account, balance, _farmedPerToken(self));
+        return self.getData().userInfo.farmed(account, balance, _farmedPerToken(self));
     }
 
     function claim(Info memory self, address account, uint256 balance) internal returns(uint256 amount) {
+        Data storage data = self.getData();
         uint256 fpt = _farmedPerToken(self);
-        amount = self.ptr.get().userInfo.farmed(account, balance, fpt);
+        amount = data.userInfo.farmed(account, balance, fpt);
         if (amount > 0) {
-            self.ptr.get().userInfo.eraseFarmed(account, balance, fpt);
+            data.userInfo.eraseFarmed(account, balance, fpt);
         }
     }
 
     function updateBalances(Info memory self, address from, address to, uint256 amount) internal {
-        self.ptr.get().userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
+        self.getData().userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
 
     }
 
     function _farmedPerToken(Info memory self) private view returns (uint256) {
-        return self.ptr.get().userInfo.farmedPerToken(_infoToContext(self), _lazyGetSupply, _lazyGetFarmed);
+        return self.getData().userInfo.farmedPerToken(_infoToContext(self), _lazyGetSupply, _lazyGetFarmed);
     }
 
     // UserAccounting bindings
 
     function _lazyGetSupply(bytes32 context) private view returns(uint256) {
-        return _contextToInfo(context).getTotalSupply();
+        Info memory self = _contextToInfo(context);
+        return self.getTotalSupply();
     }
 
     function _lazyGetFarmed(bytes32 context, uint256 checkpoint) private view returns(uint256) {
-        return _contextToInfo(context).ptr.get().farmInfo.farmedSinceCheckpointScaled(checkpoint);
+        Info memory self = _contextToInfo(context);
+        return self.getData().farmInfo.farmedSinceCheckpointScaled(checkpoint);
     }
 
     function _contextToInfo(bytes32 context) private pure returns(Info memory self) {
