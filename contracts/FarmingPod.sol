@@ -8,14 +8,12 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@1inch/erc20-pods/contracts/Pod.sol";
 import "@1inch/erc20-pods/contracts/interfaces/IERC20Pods.sol";
 
-import "./accounting/FarmAccounting.sol";
-import "./accounting/UserAccounting.sol";
 import "./interfaces/IFarmingPod.sol";
+import "./FarmingLib.sol";
 
 contract FarmingPod is Pod, IFarmingPod, Ownable {
     using SafeERC20 for IERC20;
-    using FarmAccounting for FarmAccounting.Info;
-    using UserAccounting for UserAccounting.Info;
+    using FarmingLib for FarmingLib.Info;
     using Address for address payable;
 
     error ZeroFarmableTokenAddress();
@@ -29,9 +27,8 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     IERC20 public immutable rewardsToken;
 
     address public distributor;
-    uint256 public totalSupply;
-    FarmAccounting.Info public farmInfo;
-    UserAccounting.Info public userInfo;
+    uint256 private _totalSupply;
+    FarmingLib.Data private _farm;
 
     modifier onlyDistributor {
         if (msg.sender != distributor) revert AccessDenied();
@@ -47,6 +44,10 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         rewardsToken = rewardsToken_;
     }
 
+    function totalSupply() public view returns(uint256) {
+        return _totalSupply;
+    }
+
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
@@ -56,34 +57,30 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
 
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
-
-        userInfo.updateFarmedPerToken(_farmedPerToken());
-        uint256 reward = farmInfo.startFarming(amount, period);
+        uint256 reward = _farmInfo().startFarming(amount, period);
         emit RewardAdded(reward, period);
     }
 
     function farmed(address account) public view returns(uint256) {
         uint256 balance = farmableToken.podBalanceOf(address(this), account);
-        return userInfo.farmed(account, balance, _farmedPerToken());
+        return _farmInfo().farmed(account, balance);
     }
 
     function claim() external {
-        uint256 fpt = _farmedPerToken();
-        uint256 balance = farmableToken.podBalanceOf(address(this), msg.sender);
-        uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
+        uint256 podBalance = farmableToken.podBalanceOf(address(this), msg.sender);
+        uint256 amount = _farmInfo().claim(msg.sender, podBalance);
         if (amount > 0) {
-            userInfo.eraseFarmed(msg.sender, balance, fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
 
     function updateBalances(address from, address to, uint256 amount) external onlyToken {
-        userInfo.updateBalances(from, to, amount, _farmedPerToken());
+        _farmInfo().updateBalances(from, to, amount);
         if (from == address(0)) {
-            totalSupply += amount;
+            _totalSupply += amount;
         }
         if (to == address(0)) {
-            totalSupply -= amount;
+            _totalSupply -= amount;
         }
     }
 
@@ -95,17 +92,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         }
     }
 
-    function _farmedPerToken() private view returns (uint256) {
-        return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
-    }
-
-    // UserAccounting bindings
-
-    function _lazyGetSupply() private view returns(uint256) {
-        return totalSupply;
-    }
-
-    function _lazyGetFarmed(uint256 checkpoint) private view returns(uint256) {
-        return farmInfo.farmedSinceCheckpointScaled(checkpoint);
+    function _farmInfo() internal view returns(FarmingLib.Info memory) {
+        return FarmingLib.makeInfo(totalSupply, _farm);
     }
 }

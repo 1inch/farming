@@ -71,7 +71,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function farmedPerToken() public view override returns (uint256) {
-        return userInfo.farmedPerToken(_lazyGetSupply, _lazyGetFarmed);
+        return userInfo.farmedPerToken(0, _lazyGetSupply, _lazyGetFarmed);
     }
 
     function farmed(address account) external view override returns (uint256) {
@@ -126,11 +126,11 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     // UserAccounting bindings
 
-    function _lazyGetSupply() private view returns(uint256) {
+    function _lazyGetSupply(bytes32 /* context */) private view returns(uint256) {
         return totalSupply();
     }
 
-    function _lazyGetFarmed(uint256 checkpoint) private view returns(uint256) {
+    function _lazyGetFarmed(bytes32 /* context */, uint256 checkpoint) private view returns(uint256) {
         return farmInfo.farmedSinceCheckpointScaled(checkpoint);
     }
 }
