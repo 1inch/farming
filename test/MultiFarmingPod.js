@@ -52,17 +52,17 @@ describe('MultiFarmingPod', function () {
 
             const started = await startMultiFarming(multiFarm, gifts[0].address, rewardAmount, period, wallet1);
 
-            // Check that farmed gifts[0] is equal to half of amount after half of period
-            await time.increaseTo(started + period / 2);
-            expect(await multiFarm.farmed(gifts[0].address, wallet1.address)).to.equal(rewardAmount / 2);
-            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.equal(0);
-
             // Start farming with gifts[1] token and check that farmed gifts is equal to amout after period
+            await time.increaseTo(started + period / 2 - 2);
             await multiFarm.addRewardsToken(gifts[1].address);
             await startMultiFarming(multiFarm, gifts[1].address, rewardAmount, period, wallet1);
+
+            // Check that farmed gifts[0] is equal to half of amount after half of period
+            expect(await multiFarm.farmed(gifts[0].address, wallet1.address)).to.equal(rewardAmount / 2);
+            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.equal(0);
             await time.increaseTo(started + period);
             expect(await multiFarm.farmed(gifts[0].address, wallet1.address)).to.equal(rewardAmount);
-            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.almostEqual(rewardAmount / 2);
+            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.equal(rewardAmount / 2);
         });
     });
 });
