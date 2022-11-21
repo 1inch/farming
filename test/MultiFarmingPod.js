@@ -1,4 +1,4 @@
-const { expect, constants, time, ether } = require('@1inch/solidity-utils');
+const { expect, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { startMultiFarming } = require('./utils');
