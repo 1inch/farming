@@ -14,7 +14,7 @@ import "./FarmingLib.sol";
 
 contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     using SafeERC20 for IERC20;
-    using FarmingLib for FarmingLib.Data;
+    using FarmingLib for FarmingLib.Info;
     using Address for address payable;
     using AddressSet for AddressSet.Data;
     using AddressArray for AddressArray.Data;
@@ -33,6 +33,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     uint256 public immutable rewardsTokensLimit;
 
     address public distributor;
+    uint256 private _totalSupply;
     mapping(IERC20 => FarmingLib.Data) private _farms;
     AddressSet.Data private _rewardsTokens;
 
@@ -63,24 +64,22 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     function addRewardsToken(IERC20 rewardsToken) external onlyOwner {
         if (_rewardsTokens.length() == rewardsTokensLimit) revert RewardsTokensLimitReached();
         if (!_rewardsTokens.add(address(rewardsToken))) revert RewardsTokenAlreadyAdded();
-
-        _farms[rewardsToken].totalSupply = _farms[IERC20(_rewardsTokens.at(0))].totalSupply;
     }
 
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) external onlyDistributor {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
-        _farms[rewardsToken].startFarming(amount, period);
+        _farmInfo(rewardsToken).startFarming(amount, period);
     }
 
-    function totalSupply(IERC20 rewardsToken) external view returns(uint256) {
-        return _farms[rewardsToken].totalSupply;
+    function totalSupply() public view returns(uint256) {
+        return _totalSupply;
     }
 
     function farmed(IERC20 rewardsToken, address account) public view returns(uint256) {
         uint256 balance = farmableToken.podBalanceOf(address(this), account);
-        return _farms[rewardsToken].farmed(account, balance);
+        return _farmInfo(rewardsToken).farmed(account, balance);
     }
 
     function claim(IERC20 rewardsToken) public {
@@ -89,7 +88,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     }
 
     function _claim(IERC20 rewardsToken, address account, uint256 podBalance) internal {
-        uint256 amount = _farms[rewardsToken].claim(account, podBalance);
+        uint256 amount = _farmInfo(rewardsToken).claim(account, podBalance);
         if (amount > 0) {
             rewardsToken.safeTransfer(account, amount);
         }
@@ -109,8 +108,14 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
             for (uint256 i = 0; i < tokens.length; i++) {
-                _farms[IERC20(tokens[i])].updateBalances(from, to, amount);
+                _farmInfo(IERC20(tokens[i])).updateBalances(from, to, amount);
             }
+        }
+        if (from == address(0)) {
+            _totalSupply += amount;
+        }
+        if (to == address(0)) {
+            _totalSupply -= amount;
         }
     }
 
@@ -120,5 +125,9 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         } else {
             token.safeTransfer(distributor, amount);
         }
+    }
+
+    function _farmInfo(IERC20 rewardsToken) internal view returns(FarmingLib.Info memory) {
+        return FarmingLib.makeInfo(totalSupply, _farms[rewardsToken]);
     }
 }

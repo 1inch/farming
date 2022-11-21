@@ -8,66 +8,84 @@ import "./accounting/UserAccounting.sol";
 library FarmingLib {
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;
+    using FarmingLib for FarmingLib.DataPtr;
+    using FarmingLib for FarmingLib.Info;
 
     event RewardAdded(uint256 reward, uint256 duration);
 
     struct Data {
-        uint256 totalSupply;
         FarmAccounting.Info farmInfo;
         UserAccounting.Info userInfo;
     }
 
-    function startFarming(Data storage self, uint256 amount, uint256 period) internal {
-        self.userInfo.updateFarmedPerToken(_farmedPerToken(self));
-        uint256 reward = self.farmInfo.startFarming(amount, period);
+    type DataPtr is uint256;
+
+    struct Info {
+        function() internal view returns(uint256) getTotalSupply;
+        DataPtr ptr;
+    }
+
+    function makeInfo(function() internal view returns(uint256) getTotalSupply, Data storage data) internal pure returns(Info memory info) {
+        info.getTotalSupply = getTotalSupply;
+        DataPtr ptr;
+        assembly {  // solhint-disable-line no-inline-assembly
+            ptr := data.slot
+        }
+        info.ptr = ptr;
+    }
+
+    function get(DataPtr ptr) internal pure returns(Data storage data) {
+        assembly {  // solhint-disable-line no-inline-assembly
+            data.slot := ptr
+        }
+    }
+
+    function startFarming(Info memory self, uint256 amount, uint256 period) internal {
+        self.ptr.get().userInfo.updateFarmedPerToken(_farmedPerToken(self));
+        uint256 reward = self.ptr.get().farmInfo.startFarming(amount, period);
         emit RewardAdded(reward, period);
     }
 
-    function farmed(Data storage self, address account, uint256 balance) internal view returns(uint256) {
-        return self.userInfo.farmed(account, balance, _farmedPerToken(self));
+    function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
+        return self.ptr.get().userInfo.farmed(account, balance, _farmedPerToken(self));
     }
 
-    function claim(Data storage self, address account, uint256 balance) internal returns(uint256 amount) {
+    function claim(Info memory self, address account, uint256 balance) internal returns(uint256 amount) {
         uint256 fpt = _farmedPerToken(self);
-        amount = self.userInfo.farmed(account, balance, fpt);
+        amount = self.ptr.get().userInfo.farmed(account, balance, fpt);
         if (amount > 0) {
-            self.userInfo.eraseFarmed(account, balance, fpt);
+            self.ptr.get().userInfo.eraseFarmed(account, balance, fpt);
         }
     }
 
-    function updateBalances(Data storage self, address from, address to, uint256 amount) internal {
-        self.userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
-        if (from == address(0)) {
-            self.totalSupply += amount;
-        }
-        if (to == address(0)) {
-            self.totalSupply -= amount;
-        }
+    function updateBalances(Info memory self, address from, address to, uint256 amount) internal {
+        self.ptr.get().userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
+
     }
 
-    function _farmedPerToken(Data storage self) private view returns (uint256) {
-        return self.userInfo.farmedPerToken(_dataPtrToContext(self), _lazyGetSupply, _lazyGetFarmed);
+    function _farmedPerToken(Info memory self) private view returns (uint256) {
+        return self.ptr.get().userInfo.farmedPerToken(_infoToContext(self), _lazyGetSupply, _lazyGetFarmed);
     }
 
     // UserAccounting bindings
 
     function _lazyGetSupply(bytes32 context) private view returns(uint256) {
-        return _contextToDataPtr(context).totalSupply;
+        return _contextToInfo(context).getTotalSupply();
     }
 
     function _lazyGetFarmed(bytes32 context, uint256 checkpoint) private view returns(uint256) {
-        return _contextToDataPtr(context).farmInfo.farmedSinceCheckpointScaled(checkpoint);
+        return _contextToInfo(context).ptr.get().farmInfo.farmedSinceCheckpointScaled(checkpoint);
     }
 
-    function _contextToDataPtr(bytes32 context) private pure returns(Data storage self) {
+    function _contextToInfo(bytes32 context) private pure returns(Info memory self) {
         assembly {  // solhint-disable-line no-inline-assembly
-            self.slot := context
+            self := context
         }
     }
 
-    function _dataPtrToContext(Data storage self) private pure returns(bytes32 context) {
+    function _infoToContext(Info memory self) private pure returns(bytes32 context) {
         assembly {  // solhint-disable-line no-inline-assembly
-            context := self.slot
+            context := self
         }
     }
 }

@@ -13,7 +13,7 @@ import "./FarmingLib.sol";
 
 contract FarmingPod is Pod, IFarmingPod, Ownable {
     using SafeERC20 for IERC20;
-    using FarmingLib for FarmingLib.Data;
+    using FarmingLib for FarmingLib.Info;
     using Address for address payable;
 
     error ZeroFarmableTokenAddress();
@@ -26,6 +26,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     IERC20 public immutable rewardsToken;
 
     address public distributor;
+    uint256 private _totalSupply;
     FarmingLib.Data private _farm;
 
     modifier onlyDistributor {
@@ -42,8 +43,8 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         rewardsToken = rewardsToken_;
     }
 
-    function totalSupply() external view returns(uint256) {
-        return _farm.totalSupply;
+    function totalSupply() public view returns(uint256) {
+        return _totalSupply;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
@@ -55,24 +56,30 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
 
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
-        _farm.startFarming(amount, period);
+        _farmInfo().startFarming(amount, period);
     }
 
     function farmed(address account) public view returns(uint256) {
         uint256 balance = farmableToken.podBalanceOf(address(this), account);
-        return _farm.farmed(account, balance);
+        return _farmInfo().farmed(account, balance);
     }
 
     function claim() external {
         uint256 podBalance = farmableToken.podBalanceOf(address(this), msg.sender);
-        uint256 amount = _farm.claim(msg.sender, podBalance);
+        uint256 amount = _farmInfo().claim(msg.sender, podBalance);
         if (amount > 0) {
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
 
     function updateBalances(address from, address to, uint256 amount) external onlyToken {
-        _farm.updateBalances(from, to, amount);
+        _farmInfo().updateBalances(from, to, amount);
+        if (from == address(0)) {
+            _totalSupply += amount;
+        }
+        if (to == address(0)) {
+            _totalSupply -= amount;
+        }
     }
 
     function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
@@ -81,5 +88,9 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         } else {
             token.safeTransfer(distributor, amount);
         }
+    }
+
+    function _farmInfo() internal view returns(FarmingLib.Info memory) {
+        return FarmingLib.makeInfo(totalSupply, _farm);
     }
 }
