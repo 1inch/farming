@@ -62,7 +62,7 @@ describe('MultiFarmingPod', function () {
             await startMultiFarming(multiFarm, gifts[1].address, rewardAmount, period, wallet1);
             await time.increaseTo(started + period);
             expect(await multiFarm.farmed(gifts[0].address, wallet1.address)).to.equal(rewardAmount);
-            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.equal(rewardAmount / 2);
+            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.almostEqual(rewardAmount / 2);
         });
     });
 });
