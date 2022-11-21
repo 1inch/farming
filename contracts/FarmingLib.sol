@@ -57,7 +57,6 @@ library FarmingLib {
 
     function updateBalances(Info memory self, address from, address to, uint256 amount) internal {
         self.getData().userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
-
     }
 
     function _farmedPerToken(Info memory self) private view returns (uint256) {
