@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@1inch/erc20-pods@0.0.11":
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/@1inch/erc20-pods/-/erc20-pods-0.0.11.tgz#f3b6e89f7746c9203aff4b32f5ceb2566bdf75f2"
-  integrity sha512-9U5yVN1DshqySe4stzAFzUyvY4D8QuZziTE+XrEF2KxIctj64IfuqQLZVTPDrSWWGLV9EEjLj5FmYfUxMjIMVg==
+"@1inch/erc20-pods@0.0.13":
+  version "0.0.13"
+  resolved "https://registry.yarnpkg.com/@1inch/erc20-pods/-/erc20-pods-0.0.13.tgz#2a9b46226a5267c07fb3cc7b27e1a6c7e49b9359"
+  integrity sha512-JsJyZhLUQRfIndnZBIi9TrMrlIrWI8yiPDD+vcZv/RCL9RSLfn8NIu5BbxqupOzbcIBf1HOjQX5q1K7wttWmng==
   dependencies:
     "@1inch/solidity-utils" "2.2.2"
     "@openzeppelin/contracts" "4.8.0"

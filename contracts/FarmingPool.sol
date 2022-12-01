@@ -24,9 +24,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     error AccessDenied();
     error NotEnoughBalance();
 
-    event DistributorChanged(address oldDistributor, address newDistributor);
-    event RewardAdded(uint256 reward, uint256 duration);
-
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardsToken;
 

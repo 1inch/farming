@@ -20,9 +20,6 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     error ZeroRewardsTokenAddress();
     error SameDistributor();
 
-    event DistributorChanged(address oldDistributor, address newDistributor);
-    event RewardAdded(uint256 reward, uint256 duration);
-
     IERC20Pods public immutable farmableToken;
     IERC20 public immutable rewardsToken;
 
@@ -46,6 +43,10 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
 
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
+    }
+
+    function getFarmInfo() external view returns(FarmAccounting.Info memory) {
+        return _farm.farmInfo;
     }
 
     function setDistributor(address distributor_) external onlyOwner {

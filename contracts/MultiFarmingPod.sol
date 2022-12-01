@@ -27,9 +27,6 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
 
-    event DistributorChanged(address oldDistributor, address newDistributor);
-    event RewardAdded(address token, uint256 reward, uint256 duration);
-
     IERC20Pods public immutable farmableToken;
     uint256 public immutable rewardsTokensLimit;
 
@@ -53,6 +50,10 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         farmableToken = farmableToken_;
         rewardsTokensLimit = rewardsTokensLimit_;
         _rewardsTokens.add(address(rewardsToken_));
+    }
+
+    function getFarmInfo(IERC20 rewardsToken) external view returns(FarmAccounting.Info memory) {
+        return _farms[rewardsToken].farmInfo;
     }
 
     function setDistributor(address distributor_) external onlyOwner {
