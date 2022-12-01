@@ -52,6 +52,10 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         _rewardsTokens.add(address(rewardsToken_));
     }
 
+    function getFarmInfo(IERC20 rewardsToken) external view returns(FarmAccounting.Info memory) {
+        return _farms[rewardsToken].farmInfo;
+    }
+
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();

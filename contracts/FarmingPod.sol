@@ -45,6 +45,10 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         return _totalSupply;
     }
 
+    function getFarmInfo() external view returns(FarmAccounting.Info memory) {
+        return _farm.farmInfo;
+    }
+
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
