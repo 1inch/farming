@@ -123,7 +123,6 @@ describe('FarmingPod', function () {
             it('should claim tokens', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
                 await token.addPod(farm.address);
-                await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
@@ -151,7 +150,6 @@ describe('FarmingPod', function () {
             it('should claim tokens for non-user farms wallet', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
                 await token.addPod(farm.address);
-                await gift.connect(wallet2).transfer(farm.address, '1000');
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
@@ -192,7 +190,6 @@ describe('FarmingPod', function () {
                     farms[i] = await FarmingPod.deploy(token.address, gift.address);
                     await farms[i].deployed();
                     await farms[i].setDistributor(wallet1.address);
-                    await gift.connect(wallet2).transfer(farms[i].address, '100');
                 }
 
                 // Join and start farming, then delay
