@@ -27,9 +27,6 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
 
-    event DistributorChanged(address oldDistributor, address newDistributor);
-    event RewardAdded(address token, uint256 reward, uint256 duration);
-
     IERC20Pods public immutable farmableToken;
     uint256 public immutable rewardsTokensLimit;
 

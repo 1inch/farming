@@ -6,6 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@1inch/erc20-pods/contracts/interfaces/IPod.sol";
 
 interface IMultiFarmingPod is IPod {
+    event DistributorChanged(address oldDistributor, address newDistributor);
+    event RewardAdded(address token, uint256 reward, uint256 duration);
+
     function farmed(IERC20 rewardsToken, address account) external view returns(uint256);
     function claim(IERC20 rewardsToken) external;
     function claim() external;

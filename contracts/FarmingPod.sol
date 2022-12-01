@@ -20,9 +20,6 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     error ZeroRewardsTokenAddress();
     error SameDistributor();
 
-    event DistributorChanged(address oldDistributor, address newDistributor);
-    event RewardAdded(uint256 reward, uint256 duration);
-
     IERC20Pods public immutable farmableToken;
     IERC20 public immutable rewardsToken;
 
