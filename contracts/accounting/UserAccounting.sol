@@ -9,7 +9,7 @@ library UserAccounting {
         mapping(address => int256) corrections;
     }
 
-    uint256 constant internal _SCALE = 1e18;
+    uint256 constant internal _SCALE = 1e6;
 
     function farmedPerToken(
         Info storage info,

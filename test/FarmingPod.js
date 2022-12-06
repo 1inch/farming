@@ -1081,7 +1081,7 @@ describe('FarmingPod', function () {
             ***Test Scenario**
             Checks that a farm can successfully operate with the reward value equal to max allowed value.
 
-            Currently _MAX_REWARD_AMOUNT = 10^42. Need to update test if contract changes this constant.
+            Currently _MAX_REWARD_AMOUNT = 10^32. Need to update test if contract changes this constant.
 
             ***Initial setup**
             - Mint and approve _MAX_REWARD_AMOUNT to `farm`
@@ -1099,7 +1099,7 @@ describe('FarmingPod', function () {
         */
         it('Operate farm with max allowed reward', async function () {
             const { token, gift, farm } = await loadFixture(initContracts);
-            const _MAX_REWARD_AMOUNT = 10n ** 42n;
+            const _MAX_REWARD_AMOUNT = 10n ** 32n;
 
             await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT);
             await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
@@ -1118,7 +1118,7 @@ describe('FarmingPod', function () {
             ***Test Scenario**
             Checks that a farm not credited rewards after farming time expires.
 
-            Currently _MAX_REWARD_AMOUNT = 10^42. Need to update test if contract changes this constant.
+            Currently _MAX_REWARD_AMOUNT = 10^32. Need to update test if contract changes this constant.
 
             ***Initial setup**
             - Mint and approve _MAX_REWARD_AMOUNT to `farm`
@@ -1134,7 +1134,7 @@ describe('FarmingPod', function () {
         */
         it('Farm operation time', async function () {
             const { token, gift, farm } = await loadFixture(initContracts);
-            const _MAX_REWARD_AMOUNT = 10n ** 42n;
+            const _MAX_REWARD_AMOUNT = 10n ** 32n;
 
             await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT);
             await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
