@@ -27,6 +27,8 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
 
+    event NewRewardToken(address token);
+
     uint256 public immutable rewardsTokensLimit;
 
     address public distributor;
@@ -39,15 +41,15 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         _;
     }
 
-    constructor(IERC20Pods farmableToken_, IERC20 rewardsToken_, uint256 rewardsTokensLimit_)
+    constructor(IERC20Pods farmableToken_, address rewardsToken_, uint256 rewardsTokensLimit_)
         Pod(address(farmableToken_))
     {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
-        if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
+        if (rewardsToken_ == address(0)) revert ZeroRewardsTokenAddress();
 
         rewardsTokensLimit = rewardsTokensLimit_;
-        _rewardsTokens.add(address(rewardsToken_));
+        addRewardsToken(rewardsToken_);
     }
 
     function getFarmInfo(IERC20 rewardsToken) external view returns(FarmAccounting.Info memory) {
@@ -61,9 +63,10 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         distributor = distributor_;
     }
 
-    function addRewardsToken(IERC20 rewardsToken) external onlyOwner {
+    function addRewardsToken(address rewardsToken) public onlyOwner {
         if (_rewardsTokens.length() == rewardsTokensLimit) revert RewardsTokensLimitReached();
-        if (!_rewardsTokens.add(address(rewardsToken))) revert RewardsTokenAlreadyAdded();
+        if (!_rewardsTokens.add(rewardsToken)) revert RewardsTokenAlreadyAdded();
+        emit NewRewardToken(rewardsToken);
     }
 
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) external onlyDistributor {
