@@ -72,9 +72,9 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) external onlyDistributor {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
         uint256 reward = _farmInfo(rewardsToken).startFarming(amount, period);
         emit RewardAdded(address(rewardsToken), reward, period);
+        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function totalSupply() public view returns(uint256) {

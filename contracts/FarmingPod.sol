@@ -55,9 +55,9 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     }
 
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
         uint256 reward = _farmInfo().startFarming(amount, period);
         emit RewardAdded(reward, period);
+        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function farmed(address account) public view returns(uint256) {
