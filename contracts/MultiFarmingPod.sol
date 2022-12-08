@@ -27,7 +27,6 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
 
-    IERC20Pods public immutable farmableToken;
     uint256 public immutable rewardsTokensLimit;
 
     address public distributor;
@@ -47,7 +46,6 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
 
-        farmableToken = farmableToken_;
         rewardsTokensLimit = rewardsTokensLimit_;
         _rewardsTokens.add(address(rewardsToken_));
     }
@@ -81,12 +79,12 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     }
 
     function farmed(IERC20 rewardsToken, address account) public view returns(uint256) {
-        uint256 balance = farmableToken.podBalanceOf(address(this), account);
+        uint256 balance = IERC20Pods(token).podBalanceOf(address(this), account);
         return _farmInfo(rewardsToken).farmed(account, balance);
     }
 
     function claim(IERC20 rewardsToken) public {
-        uint256 podBalance = farmableToken.podBalanceOf(address(this), msg.sender);
+        uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
         _claim(rewardsToken, msg.sender, podBalance);
     }
 
@@ -98,7 +96,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     }
 
     function claim() external {
-        uint256 podBalance = farmableToken.podBalanceOf(address(this), msg.sender);
+        uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
             for (uint256 i = 0; i < tokens.length; i++) {

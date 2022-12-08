@@ -20,7 +20,6 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     error ZeroRewardsTokenAddress();
     error SameDistributor();
 
-    IERC20Pods public immutable farmableToken;
     IERC20 public immutable rewardsToken;
 
     address public distributor;
@@ -37,7 +36,6 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
-        farmableToken = farmableToken_;
         rewardsToken = rewardsToken_;
     }
 
@@ -63,12 +61,12 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     }
 
     function farmed(address account) public view returns(uint256) {
-        uint256 balance = farmableToken.podBalanceOf(address(this), account);
+        uint256 balance = IERC20Pods(token).podBalanceOf(address(this), account);
         return _farmInfo().farmed(account, balance);
     }
 
     function claim() external {
-        uint256 podBalance = farmableToken.podBalanceOf(address(this), msg.sender);
+        uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
         uint256 amount = _farmInfo().claim(msg.sender, podBalance);
         if (amount > 0) {
             rewardsToken.safeTransfer(msg.sender, amount);
