@@ -19,12 +19,13 @@ library FarmAccounting {
     uint256 constant internal _MAX_REWARD_AMOUNT = 1e42;
     uint256 constant internal _SCALE = 1e18;
 
-    /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
+    /// @dev Requires extra 18 decimals for precision, result should not exceed 1e60
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
         if (checkpoint < info.finished - info.duration) revert CheckpointBeforeStarted();
         if (info.duration > 0) {
             uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
-            return elapsed * info.reward * _SCALE / info.duration;
+            return elapsed * info.reward * _SCALE / info.duration; // (type(uint32).max * _MAX_REWARD_AMOUNT * _SCALE) < type(uint232).max
+                                                                   // returned value < type(uint200).max
         }
     }
 

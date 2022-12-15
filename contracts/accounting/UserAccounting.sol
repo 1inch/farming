@@ -23,7 +23,7 @@ library UserAccounting {
             if (supply > 0) {
                 uint256 changePerToken;
                 unchecked { changePerToken = lazyGetFarmed(context, checkpoint) / supply; }
-                fpt += changePerToken;
+                fpt += changePerToken; // changePerToken < type(uint200).max
             }
         }
         return fpt;
