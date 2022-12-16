@@ -54,7 +54,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         distributor = distributor_;
     }
 
-    function startFarming(uint256 amount, uint256 period) external onlyDistributor {
+    function startFarming(uint256 amount, uint256 period) external virtual onlyDistributor {
         uint256 reward = _farmInfo().startFarming(amount, period);
         emit RewardAdded(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -65,7 +65,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         return _farmInfo().farmed(account, balance);
     }
 
-    function claim() external {
+    function claim() external virtual {
         uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
         uint256 amount = _farmInfo().claim(msg.sender, podBalance);
         if (amount > 0) {
