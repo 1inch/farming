@@ -113,7 +113,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     // ERC20 overrides
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
         if (amount > 0 && from != to) {
