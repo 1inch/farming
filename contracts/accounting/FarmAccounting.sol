@@ -13,16 +13,21 @@ library FarmAccounting {
     struct Info {
         uint40 finished;
         uint32 duration;
-        uint184 reward;
+        uint184 reward;  // requires 16M startFarming calls to overflow
     }
 
-    uint256 constant internal _MAX_REWARD_AMOUNT = 1e32;
-    uint256 constant internal _SCALE = 1e6;
+    // uint256 constant internal _MAX_REWARD_AMOUNT = 1e32;
+    // uint256 constant internal _SCALE = 1e6;
 
+    uint256 constant internal _MAX_REWARD_AMOUNT = 1e42;  // 140 bits
+    uint256 constant internal _SCALE = 1e18;  // 60 bits
+
+    /// @dev Requires extra 18 decimals for precision, result fits in 200 bits
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
         if (checkpoint < info.finished - info.duration) revert CheckpointBeforeStarted();
         if (info.duration > 0) {
             uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
+            // size of (type(uint32).max * _MAX_REWARD_AMOUNT * _SCALE) is less than 232 bits, so there is no overflow
             return elapsed * info.reward * _SCALE / info.duration;
         }
     }

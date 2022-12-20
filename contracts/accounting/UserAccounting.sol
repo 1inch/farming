@@ -21,7 +21,7 @@ library UserAccounting {
         if (block.timestamp != checkpoint) {
             uint256 supply = lazyGetSupply(context);
             if (supply > 0) {
-                uint256 changePerToken;
+                uint256 changePerToken;  // changePerToken = 200 bit / supply
                 unchecked { changePerToken = lazyGetFarmed(context, checkpoint) / supply; }
                 fpt += changePerToken;
             }
@@ -30,10 +30,12 @@ library UserAccounting {
     }
 
     function farmed(Info storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
+        // balance * fpt is less than 200 bit
         return uint256(int256(balance * fpt) - info.corrections[account]) / _SCALE;
     }
 
     function eraseFarmed(Info storage info, address account, uint256 balance, uint256 fpt) internal {
+        // balance * fpt is less than 200 bit
         info.corrections[account] = int256(balance * fpt);
     }
 
