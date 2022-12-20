@@ -9,14 +9,12 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IFarmingPool.sol";
-import "./accounting/FarmAccounting.sol";
-import "./accounting/UserAccounting.sol";
+import "./FarmingLib.sol";
 
 contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
-    using FarmAccounting for FarmAccounting.Info;
-    using UserAccounting for UserAccounting.Info;
     using Address for address payable;
+    using FarmingLib for FarmingLib.Info;
 
     error ZeroStakingTokenAddress();
     error ZeroRewardsTokenAddress();
@@ -28,8 +26,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     IERC20 public immutable rewardsToken;
 
     address public distributor;
-    FarmAccounting.Info public farmInfo;
-    UserAccounting.Info public userInfo;
+    FarmingLib.Data private _farm;
 
     modifier onlyDistributor {
         if (msg.sender != distributor) revert AccessDenied();
@@ -48,6 +45,10 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         rewardsToken = rewardsToken_;
     }
 
+    function decimals() public view override returns (uint8) {
+        return IERC20Metadata(address(stakingToken)).decimals();
+    }
+
     function setDistributor(address distributor_) external onlyOwner {
         address oldDistributor = distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
@@ -56,23 +57,13 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function startFarming(uint256 amount, uint256 period) external onlyDistributor {
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
-
-        userInfo.updateFarmedPerToken(farmedPerToken());
-        uint256 reward = farmInfo.startFarming(amount, period);
+        uint256 reward = _farmInfo().startFarming(amount, period);
         emit RewardAdded(reward, period);
-    }
-
-    function decimals() public view override returns (uint8) {
-        return IERC20Metadata(address(stakingToken)).decimals();
-    }
-
-    function farmedPerToken() public view override returns (uint256) {
-        return userInfo.farmedPerToken(0, _lazyGetSupply, _lazyGetFarmed);
+        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function farmed(address account) external view override returns (uint256) {
-        return userInfo.farmed(account, balanceOf(account), farmedPerToken());
+        return _farmInfo().farmed(account, balanceOf(account));
     }
 
     function deposit(uint256 amount) external override {
@@ -86,11 +77,8 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function claim() public override {
-        uint256 fpt = farmedPerToken();
-        uint256 balance = balanceOf(msg.sender);
-        uint256 amount = userInfo.farmed(msg.sender, balance, fpt);
+        uint256 amount = _farmInfo().claim(msg.sender, balanceOf(msg.sender));
         if (amount > 0) {
-            userInfo.eraseFarmed(msg.sender, balance, fpt);
             rewardsToken.safeTransfer(msg.sender, amount);
         }
     }
@@ -111,23 +99,17 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         }
     }
 
+    function _farmInfo() internal view returns(FarmingLib.Info memory) {
+        return FarmingLib.makeInfo(totalSupply, _farm);
+    }
+
     // ERC20 overrides
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
         if (amount > 0 && from != to) {
-            userInfo.updateBalances(from, to, amount, farmedPerToken());
+            _farmInfo().updateBalances(from, to, amount);
         }
-    }
-
-    // UserAccounting bindings
-
-    function _lazyGetSupply(bytes32 /* context */) private view returns(uint256) {
-        return totalSupply();
-    }
-
-    function _lazyGetFarmed(bytes32 /* context */, uint256 checkpoint) private view returns(uint256) {
-        return farmInfo.farmedSinceCheckpointScaled(checkpoint);
     }
 }
