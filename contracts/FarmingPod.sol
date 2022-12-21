@@ -3,8 +3,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 import "@1inch/erc20-pods/contracts/Pod.sol";
 import "@1inch/erc20-pods/contracts/interfaces/IERC20Pods.sol";
 
@@ -32,7 +32,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     }
 
     constructor(IERC20Pods farmableToken_, IERC20 rewardsToken_)
-        Pod(address(farmableToken_))
+        Pod(farmableToken_)
     {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
@@ -73,7 +73,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         }
     }
 
-    function updateBalances(address from, address to, uint256 amount) external onlyToken {
+    function _updateBalances(address from, address to, uint256 amount) internal override {
         _farmInfo().updateBalances(from, to, amount);
         if (from == address(0)) {
             _totalSupply += amount;
