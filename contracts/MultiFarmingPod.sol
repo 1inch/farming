@@ -42,7 +42,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     }
 
     constructor(IERC20Pods farmableToken_, address rewardsToken_, uint256 rewardsTokensLimit_)
-        Pod(address(farmableToken_))
+        Pod(farmableToken_)
     {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
@@ -108,7 +108,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         }
     }
 
-    function updateBalances(address from, address to, uint256 amount) external onlyToken {
+    function _updateBalances(address from, address to, uint256 amount) internal override {
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
             for (uint256 i = 0; i < tokens.length; i++) {
