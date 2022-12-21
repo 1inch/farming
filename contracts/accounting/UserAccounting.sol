@@ -2,14 +2,14 @@
 
 pragma solidity ^0.8.0;
 
+import "./FarmAccounting.sol";
+
 library UserAccounting {
     struct Info {
         uint40 checkpoint;
         uint216 farmedPerTokenStored;
         mapping(address => int256) corrections;
     }
-
-    uint256 constant internal _SCALE = 1e18;
 
     function farmedPerToken(
         Info storage info,
@@ -21,19 +21,20 @@ library UserAccounting {
         if (block.timestamp != checkpoint) {
             uint256 supply = lazyGetSupply(context);
             if (supply > 0) {
-                uint256 changePerToken;
-                unchecked { changePerToken = lazyGetFarmed(context, checkpoint) / supply; }
-                fpt += changePerToken;
+                // fpt increases by 168 bit / supply
+                unchecked { fpt += lazyGetFarmed(context, checkpoint) / supply; }
             }
         }
         return fpt;
     }
 
     function farmed(Info storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
-        return uint256(int256(balance * fpt) - info.corrections[account]) / _SCALE;
+        // balance * fpt is less than 168 bit
+        return uint256(int256(balance * fpt) - info.corrections[account]) / FarmAccounting._SCALE;
     }
 
     function eraseFarmed(Info storage info, address account, uint256 balance, uint256 fpt) internal {
+        // balance * fpt is less than 168 bit
         info.corrections[account] = int256(balance * fpt);
     }
 
@@ -49,6 +50,7 @@ library UserAccounting {
                 updateFarmedPerToken(info, fpt);
             }
 
+            // fpt is less than 168 bit, so amount should be less 98 bit
             int256 diff = int256(amount * fpt);
             if (!fromZero) {
                 info.corrections[from] -= diff;

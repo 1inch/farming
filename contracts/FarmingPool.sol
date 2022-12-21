@@ -21,6 +21,9 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     error SameDistributor();
     error AccessDenied();
     error NotEnoughBalance();
+    error MaxBalanceExceeded();
+
+    uint256 constant internal _MAX_BALANCE = 1e32;
 
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardsToken;
@@ -68,6 +71,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function deposit(uint256 amount) external override {
         _mint(msg.sender, amount);
+        if (balanceOf(msg.sender) > _MAX_BALANCE) revert MaxBalanceExceeded();
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 

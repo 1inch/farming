@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 library FarmAccounting {
-    error CheckpointBeforeStarted();
     error ZeroDuration();
     error DurationTooLarge();
     error AmountTooLarge();
@@ -16,15 +15,17 @@ library FarmAccounting {
         uint184 reward;
     }
 
-    uint256 constant internal _MAX_REWARD_AMOUNT = 1e42;
-    uint256 constant internal _SCALE = 1e18;
+    uint256 constant internal _MAX_REWARD_AMOUNT = 1e32;  // 108 bits
+    uint256 constant internal _SCALE = 1e18;  // 60 bits
 
-    /// @dev Requires extra 18 decimals for precision, result should not exceed 10**54
+    /// @dev Requires extra 18 decimals for precision, result fits in 168 bits
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
-        if (checkpoint < info.finished - info.duration) revert CheckpointBeforeStarted();
-        if (info.duration > 0) {
-            uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
-            return elapsed * info.reward * _SCALE / info.duration;
+        unchecked {
+            if (info.duration > 0) {
+                uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
+                // size of (type(uint32).max * _MAX_REWARD_AMOUNT * _SCALE) is less than 200 bits, so there is no overflow
+                return elapsed * info.reward * _SCALE / info.duration;
+            }
         }
     }
 
