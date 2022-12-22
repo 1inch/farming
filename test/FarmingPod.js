@@ -112,7 +112,7 @@ describe('FarmingPod', function () {
 
                 const started = await startFarming(farm, reward, duration, wallet1);
 
-                const farmInfo = await farm.getFarmInfo();
+                const farmInfo = await farm.farmInfo();
 
                 expect(farmInfo.duration).to.be.equal(duration);
                 expect(farmInfo.finished).to.be.equal(started + duration);

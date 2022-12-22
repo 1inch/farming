@@ -82,12 +82,12 @@ describe('MultiFarmingPod', function () {
             await multiFarm.addRewardsToken(gifts[1].address);
             const startedGift1 = await startMultiFarming(multiFarm, gifts[1].address, rewardAmount, period, wallet1);
 
-            const farmInfo0 = await multiFarm.getFarmInfo(gifts[0].address);
+            const farmInfo0 = await multiFarm.farmInfo(gifts[0].address);
             expect(farmInfo0.duration).to.be.equal(period);
             expect(farmInfo0.finished).to.be.equal(startedGift0 + period);
             expect(farmInfo0.reward).to.be.equal(rewardAmount);
 
-            const farmInfo1 = await multiFarm.getFarmInfo(gifts[1].address);
+            const farmInfo1 = await multiFarm.farmInfo(gifts[1].address);
             expect(farmInfo1.duration).to.be.equal(period);
             expect(farmInfo1.finished).to.be.equal(startedGift1 + period);
             expect(farmInfo1.reward).to.be.equal(rewardAmount);

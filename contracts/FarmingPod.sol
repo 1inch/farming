@@ -22,12 +22,12 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
 
     IERC20 public immutable rewardsToken;
 
-    address public distributor;
+    address private _distributor;
     uint256 private _totalSupply;
     FarmingLib.Data private _farm;
 
     modifier onlyDistributor {
-        if (msg.sender != distributor) revert AccessDenied();
+        if (msg.sender != _distributor) revert AccessDenied();
         _;
     }
 
@@ -37,44 +37,53 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
         rewardsToken = rewardsToken_;
+        emit FarmCreated(address(farmableToken_), address(rewardsToken_));
+    }
+
+    function farmInfo() public view returns(FarmAccounting.Info memory) {
+        return _farm.farmInfo;
     }
 
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
     }
 
-    function getFarmInfo() external view returns(FarmAccounting.Info memory) {
-        return _farm.farmInfo;
+    function distributor() public view returns(address) {
+        return _distributor;
     }
 
-    function setDistributor(address distributor_) external onlyOwner {
-        address oldDistributor = distributor;
+    function setDistributor(address distributor_) public virtual onlyOwner {
+        address oldDistributor = _distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);
-        distributor = distributor_;
+        _distributor = distributor_;
     }
 
-    function startFarming(uint256 amount, uint256 period) external virtual onlyDistributor {
-        uint256 reward = _farmInfo().startFarming(amount, period);
+    function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
+        uint256 reward = _makeInfo().startFarming(amount, period);
         emit RewardAdded(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    function farmed(address account) public view returns(uint256) {
+    function farmed(address account) public view virtual returns(uint256) {
         uint256 balance = IERC20Pods(token).podBalanceOf(address(this), account);
-        return _farmInfo().farmed(account, balance);
+        return _makeInfo().farmed(account, balance);
     }
 
-    function claim() external virtual {
+    function claim() public virtual {
         uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
-        uint256 amount = _farmInfo().claim(msg.sender, podBalance);
+        uint256 amount = _makeInfo().claim(msg.sender, podBalance);
         if (amount > 0) {
-            rewardsToken.safeTransfer(msg.sender, amount);
+            _transferReward(rewardsToken, msg.sender, amount);
         }
     }
 
-    function _updateBalances(address from, address to, uint256 amount) internal override {
-        _farmInfo().updateBalances(from, to, amount);
+    function _transferReward(IERC20 reward, address to, uint256 amount) internal virtual {
+        reward.safeTransfer(to, amount);
+    }
+
+    function _updateBalances(address from, address to, uint256 amount) internal virtual override {
+        _makeInfo().updateBalances(from, to, amount);
         if (from == address(0)) {
             _totalSupply += amount;
         }
@@ -83,15 +92,15 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         }
     }
 
-    function rescueFunds(IERC20 token, uint256 amount) external onlyDistributor {
+    function rescueFunds(IERC20 token, uint256 amount) public virtual onlyDistributor {
         if(token == IERC20(address(0))) {
-            payable(distributor).sendValue(amount);
+            payable(_distributor).sendValue(amount);
         } else {
-            token.safeTransfer(distributor, amount);
+            token.safeTransfer(_distributor, amount);
         }
     }
 
-    function _farmInfo() internal view returns(FarmingLib.Info memory) {
+    function _makeInfo() private view returns(FarmingLib.Info memory) {
         return FarmingLib.makeInfo(totalSupply, _farm);
     }
 }
