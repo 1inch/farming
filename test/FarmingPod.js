@@ -17,6 +17,7 @@ describe('FarmingPod', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
+    const MAX_POD_GAS_LIMIT = 200_000;
 
     before(async function () {
         [wallet1, wallet2, wallet3] = await ethers.getSigners();
@@ -24,7 +25,7 @@ describe('FarmingPod', function () {
 
     async function initContracts () {
         const ERC20FarmableMock = await ethers.getContractFactory('ERC20PodsMock');
-        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS);
+        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_POD_GAS_LIMIT);
         await token.deployed();
         await token.mint(wallet1.address, INITIAL_SUPPLY);
 
