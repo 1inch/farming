@@ -39,15 +39,11 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         _;
     }
 
-    constructor(IERC20Pods farmableToken_, address rewardsToken_, uint256 rewardsTokensLimit_)
-        Pod(farmableToken_)
-    {
+    constructor(IERC20Pods farmableToken_, uint256 rewardsTokensLimit_) Pod(farmableToken_) {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
-        if (rewardsToken_ == address(0)) revert ZeroRewardsTokenAddress();
 
         rewardsTokensLimit = rewardsTokensLimit_;
-        addRewardsToken(rewardsToken_);
     }
 
     function farmInfo(IERC20 rewardsToken) public view returns(FarmAccounting.Info memory) {

@@ -26,8 +26,9 @@ describe('MultiFarmingPod', function () {
         gifts[1] = await TokenMock.deploy('USDT', 'USDT');
         gifts[1].deployed();
         const MultiFarmingPod = await ethers.getContractFactory('MultiFarmingPod');
-        const multiFarm = await MultiFarmingPod.deploy(token.address, gifts[0].address, REWARDS_TOKENS_LIMITS);
+        const multiFarm = await MultiFarmingPod.deploy(token.address, REWARDS_TOKENS_LIMITS);
         await multiFarm.deployed();
+        await multiFarm.addRewardsToken(gifts[0].address);
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
             for (const gift of gifts) {
