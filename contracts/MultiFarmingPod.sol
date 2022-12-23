@@ -46,6 +46,10 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         rewardsTokensLimit = rewardsTokensLimit_;
     }
 
+    function rewardsTokens() external view returns(address[] memory) {
+        return _rewardsTokens.items.get();
+    }
+
     function farmInfo(IERC20 rewardsToken) public view returns(FarmAccounting.Info memory) {
         return _farms[rewardsToken].farmInfo;
     }
