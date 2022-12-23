@@ -1,6 +1,6 @@
 {
     "name": "@1inch/farming",
-    "version": "1.2.4",
+    "version": "1.2.5",
     "description": "Set of contracts for farming incentives",
     "homepage": "https://github.com/1inch/farming#readme",
     "author": "1inch",
@@ -18,7 +18,7 @@
     "license": "MIT",
     "dependencies": {
         "@1inch/erc20-pods": "0.0.16",
-        "@1inch/solidity-utils": "2.2.2",
+        "@1inch/solidity-utils": "2.2.5",
         "@openzeppelin/contracts": "4.8.0"
     },
     "devDependencies": {
