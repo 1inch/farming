@@ -5,9 +5,6 @@
 
 # Farming contracts
 
-# _**!!! NOTICE: WAIT UNTILL FULLY AUDITED !!!**_
-
-
 [![Build Status](https://github.com/1inch/farming/workflows/CI/badge.svg)](https://github.com/1inch/farming/actions)
 [![Coverage Status](https://codecov.io/gh/1inch/farming/branch/master/graph/badge.svg?token=Z6DVAXACRF)](https://codecov.io/gh/1inch/farming)
 
@@ -86,9 +83,6 @@ A user may join several farms which provide rewards for the same token.
 To prevent new farmings from starting an owner may set a distributor address to zero.
 
 ## Installation
-
-# _**!!! NOTICE: WAIT UNTILL FULLY AUDITED !!!**_
-
 
 ```bash
 $ npm install @1inch/farming
