@@ -32,13 +32,14 @@ library FarmAccounting {
     function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
         if (period == 0) revert ZeroDuration();
         if (period > type(uint32).max) revert DurationTooLarge();
-        if (amount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();
 
         // If something left from prev farming add it to the new farming
         Info memory prev = info;
         if (block.timestamp < prev.finished) {
             amount += prev.reward - farmedSinceCheckpointScaled(prev, prev.finished - prev.duration) / _SCALE;
         }
+
+        if (amount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();
 
         (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint32(period), uint184(amount));
         return amount;
