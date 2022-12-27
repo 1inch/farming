@@ -92,11 +92,11 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         }
     }
 
-    function rescueFunds(IERC20 token, uint256 amount) public virtual onlyDistributor {
-        if(token == IERC20(address(0))) {
+    function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
+        if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
-            token.safeTransfer(_distributor, amount);
+            token_.safeTransfer(_distributor, amount);
         }
     }
 
