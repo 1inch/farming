@@ -97,7 +97,8 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
-            for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 length = tokens.length;
+            for (uint256 i = 0; i < length; i++) {
                 _claim(IERC20(tokens[i]), msg.sender, podBalance);
             }
         }
@@ -117,7 +118,8 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     function _updateBalances(address from, address to, uint256 amount) internal virtual override {
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
-            for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 length = tokens.length;
+            for (uint256 i = 0; i < length; i++) {
                 _makeInfo(IERC20(tokens[i])).updateBalances(from, to, amount);
             }
         }
