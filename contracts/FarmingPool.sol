@@ -18,6 +18,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     error ZeroStakingTokenAddress();
     error ZeroRewardsTokenAddress();
+    error ZeroDistributorAddress();
     error SameDistributor();
     error AccessDenied();
     error NotEnoughBalance();
@@ -61,6 +62,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function setDistributor(address distributor_) public virtual onlyOwner {
+        if (distributor_ == address(0)) revert ZeroDistributorAddress();
         address oldDistributor = _distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);

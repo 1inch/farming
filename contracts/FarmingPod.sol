@@ -18,6 +18,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
 
     error ZeroFarmableTokenAddress();
     error ZeroRewardsTokenAddress();
+    error ZeroDistributorAddress();
     error SameDistributor();
 
     IERC20 public immutable rewardsToken;
@@ -53,6 +54,7 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     }
 
     function setDistributor(address distributor_) public virtual onlyOwner {
+        if (distributor_ == address(0)) revert ZeroDistributorAddress();
         address oldDistributor = _distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);

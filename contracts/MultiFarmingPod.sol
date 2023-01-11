@@ -21,6 +21,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
 
     error ZeroFarmableTokenAddress();
     error ZeroRewardsTokenAddress();
+    error ZeroDistributorAddress();
     error SameDistributor();
     error RewardsTokenAlreadyAdded();
     error RewardsTokensLimitTooHigh(uint256);
@@ -63,6 +64,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     }
 
     function setDistributor(address distributor_) public virtual onlyOwner {
+        if (distributor_ == address(0)) revert ZeroDistributorAddress();
         address oldDistributor = _distributor;
         if (distributor_ == oldDistributor) revert SameDistributor();
         emit DistributorChanged(oldDistributor, distributor_);
@@ -70,6 +72,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     }
 
     function addRewardsToken(address rewardsToken) public virtual onlyOwner {
+        if (rewardsToken == address(0)) revert ZeroRewardsTokenAddress();
         if (_rewardsTokens.length() == rewardsTokensLimit) revert RewardsTokensLimitReached();
         if (!_rewardsTokens.add(rewardsToken)) revert RewardsTokenAlreadyAdded();
         emit FarmCreated(address(token), rewardsToken);
