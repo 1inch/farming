@@ -9,7 +9,7 @@ As a contributor, you are expected to fork this repository, work on your own for
 
 ## A typical workflow
 
-1) Before contributing any changes it a good practice to open an issue and provide the reasoning for the changes   
+1) Before contributing any changes it is a good practice to open an issue and provide the reasoning for the changes   
 1) Make sure your fork is up to date with the main repository
 2) Update all dependencies to the latest version
 	```
@@ -27,10 +27,10 @@ Before pushing the brunch ensure that:
 	```
 	yarn test
 	```
-5) Go to GitHub repo in your web browser and issue a new pull request.
-6) Maintainers will review your code and possibly ask for changes before your code is pulled in to the main repository. We'll check that all tests pass, review the coding style, and check for general code correctness. If everything is OK, we'll merge your pull request.
+5) Go to the GitHub repo in your web browser and issue a new pull request.
+6) Maintainers will review your code and possibly ask for changes before your code is pulled into the main repository. We'll check that all tests pass, review the coding style, and check for general code correctness. If everything is OK, we'll merge your pull request.
 
 ## All done!
 
-If you have any questions feel free to post them to the issues section.
+If you have any questions feel free to post them in the issues section.
 Thanks for your time and code!
