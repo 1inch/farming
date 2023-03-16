@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@1inch/erc20-pods/contracts/interfaces/IPod.sol";
-import "../accounting/FarmAccounting.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IPod } from "@1inch/erc20-pods/contracts/interfaces/IPod.sol";
+import { FarmAccounting } from "../accounting/FarmAccounting.sol";
 
 interface IMultiFarmingPod is IPod {
     event FarmCreated(address token, address reward);
