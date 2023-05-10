@@ -54,7 +54,7 @@ describe('MultiFarmingPod', function () {
 
             const started = await startMultiFarming(multiFarm, gifts[0].address, rewardAmount, period, wallet1);
 
-            // Start farming with gifts[1] token and check that farmed gifts is equal to amout after period
+            // Start farming with gifts[1] token and check that farmed gifts is equal to amount after period
             await time.increaseTo(started + period / 2 - 2);
             await multiFarm.addRewardsToken(gifts[1].address);
             await startMultiFarming(multiFarm, gifts[1].address, rewardAmount, period, wallet1);
@@ -79,7 +79,7 @@ describe('MultiFarmingPod', function () {
 
             const startedGift0 = await startMultiFarming(multiFarm, gifts[0].address, rewardAmount, period, wallet1);
 
-            // Start farming with gifts[1] token and check that farmed gifts is equal to amout after period
+            // Start farming with gifts[1] token and check that farmed gifts is equal to amount after period
             await time.increaseTo(startedGift0 + period / 2 - 2);
             await multiFarm.addRewardsToken(gifts[1].address);
             const startedGift1 = await startMultiFarming(multiFarm, gifts[1].address, rewardAmount, period, wallet1);
