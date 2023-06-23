@@ -5,21 +5,30 @@ pragma solidity ^0.8.0;
 import "./accounting/FarmAccounting.sol";
 import "./accounting/UserAccounting.sol";
 
+/// @title FarmingLib
+/// @dev A library for farming logic, using FarmAccounting and UserAccounting.
 library FarmingLib {
     using FarmAccounting for FarmAccounting.Info;
     using UserAccounting for UserAccounting.Info;
     using FarmingLib for FarmingLib.Info;
 
+    /// @dev Struct containing farm and user info for farming operations.
     struct Data {
         FarmAccounting.Info farmInfo;
         UserAccounting.Info userInfo;
     }
 
+    /// @dev Struct containing the total supply function and a data slot for EVM storage.
     struct Info {
         function() internal view returns(uint256) getTotalSupply;
         bytes32 dataSlot;
     }
 
+
+    /// @notice Creates a new Info struct.
+    /// @param getTotalSupply The function to get the total supply.
+    /// @param data The data struct for storage.
+    /// @return info The created Info struct.
     function makeInfo(function() internal view returns(uint256) getTotalSupply, Data storage data) internal pure returns(Info memory info) {
         info.getTotalSupply = getTotalSupply;
         bytes32 dataSlot;
@@ -29,6 +38,9 @@ library FarmingLib {
         info.dataSlot = dataSlot;
     }
 
+    /// @notice Retrieves the Data struct from an Info struct.
+    /// @param self The Info struct.
+    /// @return data The retrieved Data struct.
     function getData(Info memory self) internal pure returns(Data storage data) {
         bytes32 dataSlot = self.dataSlot;
         assembly {  // solhint-disable-line no-inline-assembly
@@ -36,16 +48,31 @@ library FarmingLib {
         }
     }
 
+    /// @notice Begins farming for a specified period.
+    /// @param self The Info struct.
+    /// @param amount The amount to farm.
+    /// @param period The farming period.
+    /// @return reward The farming reward.
     function startFarming(Info memory self, uint256 amount, uint256 period) internal returns(uint256 reward) {
         Data storage data = self.getData();
         data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
         reward = data.farmInfo.startFarming(amount, period);
     }
 
+    /// @notice Gets the farmed amount for an account.
+    /// @param self The Info struct.
+    /// @param account The account to check.
+    /// @param balance The account balance.
+    /// @return The farmed amount.
     function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
         return self.getData().userInfo.farmed(account, balance, _farmedPerToken(self));
     }
 
+    /// @notice Claims the farmed amount for an account.
+    /// @param self The Info struct.
+    /// @param account The account to claim for.
+    /// @param balance The account balance.
+    /// @return amount The claimed amount.
     function claim(Info memory self, address account, uint256 balance) internal returns(uint256 amount) {
         Data storage data = self.getData();
         uint256 fpt = _farmedPerToken(self);
@@ -55,6 +82,11 @@ library FarmingLib {
         }
     }
 
+    /// @notice Updates the balances of two accounts.
+    /// @param self The Info struct.
+    /// @param from The account to transfer from.
+    /// @param to The account to transfer to.
+    /// @param amount The amount to transfer.
     function updateBalances(Info memory self, address from, address to, uint256 amount) internal {
         self.getData().userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
     }
