@@ -3,11 +3,11 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { startMultiFarming } = require('./utils');
 
-describe('MultiFarmingPod', function () {
+describe('MultiFarmingPlugin', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
-    const MAX_POD_GAS_LIMIT = 200_000;
+    const MAX_PLUGIN_GAS_LIMIT = 200_000;
     const REWARDS_TOKENS_LIMITS = 5;
 
     before(async function () {
@@ -15,8 +15,8 @@ describe('MultiFarmingPod', function () {
     });
 
     async function initContracts () {
-        const ERC20FarmableMock = await ethers.getContractFactory('ERC20PodsMock');
-        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_POD_GAS_LIMIT);
+        const ERC20FarmableMock = await ethers.getContractFactory('ERC20PluginsMock');
+        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_PLUGIN_GAS_LIMIT);
         await token.deployed();
         await token.mint(wallet1.address, INITIAL_SUPPLY);
 
@@ -26,8 +26,8 @@ describe('MultiFarmingPod', function () {
         gifts[0].deployed();
         gifts[1] = await TokenMock.deploy('USDT', 'USDT');
         gifts[1].deployed();
-        const MultiFarmingPod = await ethers.getContractFactory('MultiFarmingPod');
-        const multiFarm = await MultiFarmingPod.deploy(token.address, REWARDS_TOKENS_LIMITS);
+        const MultiFarmingPlugin = await ethers.getContractFactory('MultiFarmingPlugin');
+        const multiFarm = await MultiFarmingPlugin.deploy(token.address, REWARDS_TOKENS_LIMITS);
         await multiFarm.deployed();
         await multiFarm.addRewardsToken(gifts[0].address);
 
@@ -44,7 +44,7 @@ describe('MultiFarmingPod', function () {
     describe('farmed', function () {
         it('should farmed tokens from both farms', async function () {
             const { token, gifts, multiFarm } = await loadFixture(initContracts);
-            await token.addPod(multiFarm.address);
+            await token.addPlugin(multiFarm.address);
             await gifts[0].connect(wallet2).transfer(multiFarm.address, '1000');
             await gifts[1].connect(wallet2).transfer(multiFarm.address, '1000');
 
@@ -69,7 +69,7 @@ describe('MultiFarmingPod', function () {
 
         it('should show farming parameters for both tokens', async function () {
             const { token, gifts, multiFarm } = await loadFixture(initContracts);
-            await token.addPod(multiFarm.address);
+            await token.addPlugin(multiFarm.address);
             await gifts[0].connect(wallet2).transfer(multiFarm.address, '1000');
             await gifts[1].connect(wallet2).transfer(multiFarm.address, '1000');
 

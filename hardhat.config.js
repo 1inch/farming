@@ -17,7 +17,7 @@ module.exports = {
         },
     },
     solidity: {
-        version: '0.8.12',
+        version: '0.8.20',
         settings: {
             optimizer: {
                 enabled: true,
@@ -38,7 +38,7 @@ module.exports = {
     dependencyCompiler: {
         paths: [
             '@1inch/solidity-utils/contracts/mocks/TokenMock.sol',
-            '@1inch/erc20-pods/contracts/mocks/ERC20PodsMock.sol',
+            '@1inch/token-plugins/contracts/mocks/ERC20PluginsMock.sol',
         ],
     },
 };

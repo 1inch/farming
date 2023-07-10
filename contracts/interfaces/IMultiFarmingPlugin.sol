@@ -3,10 +3,10 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@1inch/erc20-pods/contracts/interfaces/IPod.sol";
+import "@1inch/token-plugins/contracts/interfaces/IPlugin.sol";
 import "../accounting/FarmAccounting.sol";
 
-interface IMultiFarmingPod is IPod {
+interface IMultiFarmingPlugin is IPlugin {
     event FarmCreated(address token, address reward);
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardAdded(address token, uint256 reward, uint256 duration);

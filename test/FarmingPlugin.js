@@ -13,27 +13,27 @@ require('chai').use(function (chai, utils) {
     });
 });
 
-describe('FarmingPod', function () {
+describe('FarmingPlugin', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
-    const MAX_POD_GAS_LIMIT = 200_000;
+    const MAX_PLUGIN_GAS_LIMIT = 200_000;
 
     before(async function () {
         [wallet1, wallet2, wallet3] = await ethers.getSigners();
     });
 
     async function initContracts () {
-        const ERC20FarmableMock = await ethers.getContractFactory('ERC20PodsMock');
-        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_POD_GAS_LIMIT);
+        const ERC20FarmableMock = await ethers.getContractFactory('ERC20PluginsMock');
+        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_PLUGIN_GAS_LIMIT);
         await token.deployed();
         await token.mint(wallet1.address, INITIAL_SUPPLY);
 
         const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.deployed();
-        const FarmingPod = await ethers.getContractFactory('FarmingPod');
-        const farm = await FarmingPod.deploy(token.address, gift.address);
+        const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
+        const farm = await FarmingPlugin.deploy(token.address, gift.address);
         await farm.deployed();
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
@@ -106,7 +106,7 @@ describe('FarmingPod', function () {
 
             it('should show farming parameters', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.addPod(farm.address);
+                await token.addPlugin(farm.address);
 
                 const duration = 60 * 60 * 24;
                 const reward = 1000;
@@ -139,7 +139,7 @@ describe('FarmingPod', function () {
             */
             it('should claim tokens', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.addPod(farm.address);
+                await token.addPlugin(farm.address);
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
@@ -166,7 +166,7 @@ describe('FarmingPod', function () {
             */
             it('should claim tokens for non-user farms wallet', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.addPod(farm.address);
+                await token.addPlugin(farm.address);
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
@@ -202,16 +202,16 @@ describe('FarmingPod', function () {
                 const farmsCount = 10;
                 const farms = [];
                 let lastFarmStarted;
-                const FarmingPod = await ethers.getContractFactory('FarmingPod');
+                const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
                 for (let i = 0; i < farmsCount; i++) {
-                    farms[i] = await FarmingPod.deploy(token.address, gift.address);
+                    farms[i] = await FarmingPlugin.deploy(token.address, gift.address);
                     await farms[i].deployed();
                     await farms[i].setDistributor(wallet1.address);
                 }
 
                 // Join and start farming, then delay
                 for (let i = 0; i < farmsCount; i++) {
-                    await token.addPod(farms[i].address);
+                    await token.addPlugin(farms[i].address);
                     await gift.approve(farms[i].address, '100');
                     lastFarmStarted = await startFarming(farms[i], 100, time.duration.days(1), wallet1);
                 }
@@ -313,11 +313,11 @@ describe('FarmingPod', function () {
             });
         });
 
-        // Farm's pods scenarios
-        describe('hasPod', function () {
+        // Farm's plugins scenarios
+        describe('hasPlugin', function () {
             /*
                 ***Test Scenario**
-                Ensures that the `hasPod` view returns the correct farming status
+                Ensures that the `hasPlugin` view returns the correct farming status
 
                 ***Initial setup**
                 - `wallet1` has not joined a farm
@@ -332,14 +332,14 @@ describe('FarmingPod', function () {
             */
             it('should return false when user does not farm and true when user farms', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).addPod(farm.address);
-                expect(await token.hasPod(wallet1.address, farm.address)).to.equal(false);
-                expect(await token.hasPod(wallet2.address, farm.address)).to.equal(true);
+                await token.connect(wallet2).addPlugin(farm.address);
+                expect(await token.hasPlugin(wallet1.address, farm.address)).to.equal(false);
+                expect(await token.hasPlugin(wallet2.address, farm.address)).to.equal(true);
             });
 
             /*
                 ***Test Scenario**
-                Ensures that `hasPod` returns the correct farming status after `quit` is called
+                Ensures that `hasPlugin` returns the correct farming status after `quit` is called
 
                 ***Test Steps**
                 - `wallet2` joins to farm
@@ -350,51 +350,51 @@ describe('FarmingPod', function () {
             */
             it('should return false when user quits from farm', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).addPod(farm.address);
-                await token.connect(wallet2).removePod(farm.address);
-                expect(await token.hasPod(wallet1.address, farm.address)).to.equal(false);
+                await token.connect(wallet2).addPlugin(farm.address);
+                await token.connect(wallet2).removePlugin(farm.address);
+                expect(await token.hasPlugin(wallet1.address, farm.address)).to.equal(false);
             });
         });
 
-        describe('podsCount', function () {
+        describe('pluginsCount', function () {
             /*
                 ***Test Scenario**
-                Ensures that the `podsCount` view returns the correct amount of user's farms
+                Ensures that the `pluginsCount` view returns the correct amount of user's farms
 
                 ***Test Steps**
                 1. Account joins to N farms
                 2. Account quits from N farms
 
                 ***Expected results**
-                - Each time the account joins a farm `podsCount` should increase by 1
-                - Each time the account quits from a farm `podsCount` should decrease by 1
+                - Each time the account joins a farm `pluginsCount` should increase by 1
+                - Each time the account quits from a farm `pluginsCount` should decrease by 1
             */
             it('should return amount of user\'s farms', async function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                expect(await token.podsCount(wallet1.address)).to.equal(farmsCount);
+                expect(await token.pluginsCount(wallet1.address)).to.equal(farmsCount);
 
-                const farms = await token.pods(wallet1.address);
+                const farms = await token.plugins(wallet1.address);
                 expect(farms.length).to.equal(farmsCount);
                 for (let i = 0; i < farmsCount; i++) {
-                    await token.removePod(farms[i]);
-                    expect(await token.podsCount(wallet1.address)).to.equal(farmsCount - i - 1);
+                    await token.removePlugin(farms[i]);
+                    expect(await token.pluginsCount(wallet1.address)).to.equal(farmsCount - i - 1);
                 }
             });
         });
 
-        describe('podAt', function () {
+        describe('pluginAt', function () {
             /*
                 ***Test Scenario**
-                Ensure that the `podAt` view returns the correct farm by index
+                Ensure that the `pluginAt` view returns the correct farm by index
 
                 ***Initial setup**
                 - Account joins an array of farms
 
                 ***Test Steps**
-                1. Call `pods` view to get an array of joined farms for the account
-                2. Request each farm's address with `podAt` view and compare it with the farm's address in the array
+                1. Call `plugins` view to get an array of joined farms for the account
+                2. Request each farm's address with `pluginAt` view and compare it with the farm's address in the array
 
                 ***Expected results**
                 - Each pair of addresses should be equal
@@ -403,9 +403,9 @@ describe('FarmingPod', function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                const farms = await token.pods(wallet1.address);
+                const farms = await token.plugins(wallet1.address);
                 for (let i = 0; i < farmsCount; i++) {
-                    const farmAddress = await token.podAt(wallet1.address, i);
+                    const farmAddress = await token.pluginAt(wallet1.address, i);
                     expect(farmAddress).to.equal(farms[i]);
                 }
             });
@@ -429,7 +429,7 @@ describe('FarmingPod', function () {
         */
         it('should update totalSupply', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
         });
 
@@ -447,7 +447,7 @@ describe('FarmingPod', function () {
         */
         it('should make totalSupply to decrease with balance', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
             await token.transfer(wallet2.address, INITIAL_SUPPLY * 6n / 10n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY * 4n / 10n);
         });
@@ -467,7 +467,7 @@ describe('FarmingPod', function () {
         it('should make totalSupply to increase with balance', async function () {
             const { token, farm } = await loadFixture(initContracts);
             await token.transfer(wallet2.address, INITIAL_SUPPLY / 2n);
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY / 2n);
             await token.connect(wallet2).transfer(wallet1.address, INITIAL_SUPPLY / 2n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
@@ -487,8 +487,8 @@ describe('FarmingPod', function () {
         */
         it('should make totalSupply ignore internal transfers', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
             await token.transfer(wallet2.address, INITIAL_SUPPLY / 2n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
@@ -496,22 +496,22 @@ describe('FarmingPod', function () {
 
         /*
             ***Test Scenario**
-            Checks that farm's total supply decreases after a user removePods farming
+            Checks that farm's total supply decreases after a user removePlugins farming
 
             ***Initial setup**
             - `farm` has not started farming
             - `wallet1` has 1000 unit of farmable token and joined the `farm`
 
             ***Test Steps**
-            `wallet1` removePods the `farm`
+            `wallet1` removePlugins the `farm`
 
             ***Expected results**
             Farm's total supply equals 0
         */
         it('should be burn', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPod(farm.address);
-            await token.removePod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.removePlugin(farm.address);
             expect(await farm.totalSupply()).to.equal('0');
         });
     });
@@ -543,7 +543,7 @@ describe('FarmingPod', function () {
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
             expect(await farm.farmed(wallet2.address)).to.equal('0');
 
-            await token.connect(wallet2).addPod(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
             expect(await farm.farmed(wallet2.address)).to.equal('0');
 
             await time.increaseTo(started + time.duration.weeks(1));
@@ -585,8 +585,8 @@ describe('FarmingPod', function () {
             expect(await farm.farmed(wallet1.address)).to.equal('0');
             expect(await farm.farmed(wallet2.address)).to.equal('0');
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             // expect(await token.farmedPerToken()).to.equal('0');
             expect(await farm.farmed(wallet1.address)).to.equal('0');
@@ -630,8 +630,8 @@ describe('FarmingPod', function () {
             expect(await farm.farmed(wallet1.address)).to.equal('0');
             expect(await farm.farmed(wallet2.address)).to.equal('0');
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             // expect(await token.farmedPerToken()).to.equal('0');
             expect(await farm.farmed(wallet1.address)).to.equal('0');
@@ -678,12 +678,12 @@ describe('FarmingPod', function () {
             // 72000 UDSC per week
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
             expect(await farm.totalSupply()).to.almostEqual(INITIAL_SUPPLY - recipientAmount);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet2).addPod(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             // expect(await token.farmedPerToken()).to.almostEqual('72000');
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
@@ -726,7 +726,7 @@ describe('FarmingPod', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -772,7 +772,7 @@ describe('FarmingPod', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -805,7 +805,7 @@ describe('FarmingPod', function () {
             |#  |Test Steps|`wallet1`|
             |---|----------|---------|
             |1. |Fast-forward => **week 1**                 |72k|
-            |2. |`wallet1` removePods `farm`                     |72k|
+            |2. |`wallet1` removePlugins `farm`                     |72k|
             |3. |`wallet1` joins `farm`                     |72k|
             |4. |Fast-forward => **week 2**                 |72k|
             |5. |`farm` starts new farming 72k for 1 week   |72k|
@@ -821,14 +821,14 @@ describe('FarmingPod', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            await token.removePod(farm.address);
+            await token.removePlugin(farm.address);
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
 
             await time.increaseTo(started + time.duration.weeks(2));
@@ -856,7 +856,7 @@ describe('FarmingPod', function () {
             |#  |Test Steps|`wallet1`|
             |---|----------|---------|
             |1. |Fast-forward => **week 1**                 |72k|
-            |2. |`wallet1` removePods `farm`                     |72k|
+            |2. |`wallet1` removePlugins `farm`                     |72k|
             |3. |`wallet1` claims farming reward            |0k|
             |4. |`wallet1` joins `farm`                     |0k|
             |5. |Fast-forward => **week 2**                 |0k|
@@ -873,16 +873,16 @@ describe('FarmingPod', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            await token.removePod(farm.address);
+            await token.removePlugin(farm.address);
             expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
             await farm.claim();
             expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
             expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
 
             await time.increaseTo(started + time.duration.weeks(2));
@@ -917,7 +917,7 @@ describe('FarmingPod', function () {
             |2. |`wallet3` joins `farm`                     |18k|54k|0|
             |3. |`farm` starts new farming 72k for 1 week   |18k|54k|0|
             |4. |Fast-forward => **week 2**                 |26k|78k|40k|
-            |5. |`wallet2` removePods `farm`                     |26k|78k|40k|
+            |5. |`wallet2` removePlugins `farm`                     |26k|78k|40k|
             |6. |`farm` starts new farming 72k for 1 week   |26k|78k|40k|
             |7. |Fast-forward => **week 3**                 |38k|78k|100k|
 
@@ -937,12 +937,12 @@ describe('FarmingPod', function () {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet3).addPod(farm.address);
+            await token.connect(wallet3).addPlugin(farm.address);
 
             // expect(await token.farmedPerToken()).to.almostEqual('18000');
             expect(await farm.farmed(wallet1.address)).to.almostEqual('18000');
@@ -956,7 +956,7 @@ describe('FarmingPod', function () {
             expect(await farm.farmed(wallet2.address)).to.almostEqual('78000');
             expect(await farm.farmed(wallet3.address)).to.almostEqual('40000');
 
-            await token.connect(wallet2).removePod(farm.address);
+            await token.connect(wallet2).removePlugin(farm.address);
 
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(3));
@@ -988,7 +988,7 @@ describe('FarmingPod', function () {
             |1. |Fast-forward => **week 1**                 |18k|54k|0|
             |2. |`wallet3` joins `farm`                     |18k|54k|0|
             |3. |Fast-forward => **week 2**                 |26k|78k|40k|
-            |4. |`wallet2` removePods `farm`                     |26k|78k|40k|
+            |4. |`wallet2` removePlugins `farm`                     |26k|78k|40k|
             |5. |Fast-forward => **week 3**                 |38k|78k|100k|
 
         */
@@ -1007,12 +1007,12 @@ describe('FarmingPod', function () {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '216000', time.duration.weeks(3), wallet1);
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet3).addPod(farm.address);
+            await token.connect(wallet3).addPlugin(farm.address);
 
             // expect(await token.farmedPerToken()).to.almostEqual('18000');
             expect(await farm.farmed(wallet1.address)).to.almostEqual('18000');
@@ -1020,7 +1020,7 @@ describe('FarmingPod', function () {
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            await token.connect(wallet2).removePod(farm.address);
+            await token.connect(wallet2).removePlugin(farm.address);
 
             expect(await farm.farmed(wallet1.address)).to.almostEqual('26000');
             expect(await farm.farmed(wallet2.address)).to.almostEqual('78000');
@@ -1068,8 +1068,8 @@ describe('FarmingPod', function () {
             // 1000 UDSC per week for 1 weeks
             await farm.startFarming('1000', time.duration.weeks(1));
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1) + 2);
 
@@ -1105,7 +1105,7 @@ describe('FarmingPod', function () {
             await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT);
             await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
 
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
             const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), wallet1);
             await time.increaseTo(started + time.duration.weeks(1));
             expect(await farm.farmed(wallet1.address)).to.almostEqual(_MAX_REWARD_AMOUNT);
@@ -1141,7 +1141,7 @@ describe('FarmingPod', function () {
             await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
 
             const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), wallet1);
-            await token.addPod(farm.address);
+            await token.addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
             const farmedAmount = await farm.farmed(wallet1.address);
@@ -1186,8 +1186,8 @@ describe('FarmingPod', function () {
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -1239,8 +1239,8 @@ describe('FarmingPod', function () {
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -1286,8 +1286,8 @@ describe('FarmingPod', function () {
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -1332,8 +1332,8 @@ describe('FarmingPod', function () {
 
             await token.transfer(wallet2.address, INITIAL_SUPPLY / 4n);
 
-            await token.addPod(farm.address);
-            await token.connect(wallet2).addPod(farm.address);
+            await token.addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm.address);
 
             expect(await farm.farmed(wallet1.address)).to.equal('0');
             expect(await farm.farmed(wallet2.address)).to.equal('0');
