@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../accounting/FarmAccounting.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { FarmAccounting } from "../accounting/FarmAccounting.sol";
 
 interface IFarmingPool is IERC20 {
     event DistributorChanged(address oldDistributor, address newDistributor);
