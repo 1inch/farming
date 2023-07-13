@@ -28,10 +28,10 @@
     ethereumjs-util "7.1.5"
     ethers "5.7.2"
 
-"@1inch/token-plugins@1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@1inch/token-plugins/-/token-plugins-1.1.0.tgz#d6cf20b2f510c0c3e356f2d284c70431e7273d2c"
-  integrity sha512-ufK4OZIwRCD6+7bowoHjS9uyN28KImN+l0AEF4vF2epBG+3a63iVFa2X2cxsh2R2tdpzUBFxERK1NK8Gn1qhGQ==
+"@1inch/token-plugins@1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@1inch/token-plugins/-/token-plugins-1.1.1.tgz#c86a5b543d9a8a82f5b3e5ecd839bf78a38d2334"
+  integrity sha512-8fXNVD3uCMK8rleNBbfV/NXwlUL9jlcNZA9gqhdt2bS3esJU8pkDMoPHIuBDEiZfwCSoakkKl7AW+nzc+cG42g==
   dependencies:
     "@1inch/solidity-utils" "2.2.21"
     "@openzeppelin/contracts" "4.8.2"
