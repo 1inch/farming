@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./FarmAccounting.sol";
+import { FarmAccounting } from "./FarmAccounting.sol";
 
 library UserAccounting {
     struct Info {

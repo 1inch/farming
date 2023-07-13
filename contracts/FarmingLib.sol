@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "./accounting/FarmAccounting.sol";
-import "./accounting/UserAccounting.sol";
+import { FarmAccounting } from "./accounting/FarmAccounting.sol";
+import { UserAccounting } from "./accounting/UserAccounting.sol";
 
 /// @title FarmingLib
 /// @dev A library for farming logic, using FarmAccounting and UserAccounting.
@@ -33,7 +33,7 @@ library FarmingLib {
     function makeInfo(function() internal view returns(uint256) getTotalSupply, Data storage data) internal pure returns(Info memory info) {
         info.getTotalSupply = getTotalSupply;
         bytes32 dataSlot;
-        assembly {  // solhint-disable-line no-inline-assembly
+        assembly ("memory-safe") {  // solhint-disable-line no-inline-assembly
             dataSlot := data.slot
         }
         info.dataSlot = dataSlot;
@@ -46,7 +46,7 @@ library FarmingLib {
      */
     function getData(Info memory self) internal pure returns(Data storage data) {
         bytes32 dataSlot = self.dataSlot;
-        assembly {  // solhint-disable-line no-inline-assembly
+        assembly ("memory-safe") {  // solhint-disable-line no-inline-assembly
             data.slot := dataSlot
         }
     }
@@ -119,13 +119,13 @@ library FarmingLib {
     }
 
     function _contextToInfo(bytes32 context) private pure returns(Info memory self) {
-        assembly {  // solhint-disable-line no-inline-assembly
+        assembly ("memory-safe") {  // solhint-disable-line no-inline-assembly
             self := context
         }
     }
 
     function _infoToContext(Info memory self) private pure returns(bytes32 context) {
-        assembly {  // solhint-disable-line no-inline-assembly
+        assembly ("memory-safe") {  // solhint-disable-line no-inline-assembly
             context := self
         }
     }

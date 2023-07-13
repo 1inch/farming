@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@1inch/token-plugins/contracts/interfaces/IPlugin.sol";
-import "../accounting/FarmAccounting.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IPlugin } from "@1inch/token-plugins/contracts/interfaces/IPlugin.sol";
+import { FarmAccounting } from "../accounting/FarmAccounting.sol";
 
 interface IFarmingPlugin is IPlugin {
     event FarmCreated(address token, address reward);

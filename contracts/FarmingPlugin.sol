@@ -2,14 +2,15 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
-import "@1inch/token-plugins/contracts/Plugin.sol";
-import "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
+import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
+import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
 
-import "./interfaces/IFarmingPlugin.sol";
-import "./FarmingLib.sol";
+import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
+import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
 
 contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
     using SafeERC20 for IERC20;
