@@ -22,5 +22,5 @@ module.exports = {
                 "jml[jl] VTOl jml : fDnTO",
         },
     },
-    skipFiles: ['mocks'],
+    skipFiles: ['mocks', 'interfaces'],
 }

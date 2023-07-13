@@ -6,13 +6,13 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
-import { Pod } from "@1inch/erc20-pods/contracts/Pod.sol";
-import { IERC20Pods } from "@1inch/erc20-pods/contracts/interfaces/IERC20Pods.sol";
+import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
+import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
 
-import { IFarmingPod } from "./interfaces/IFarmingPod.sol";
+import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
 import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
 
-contract FarmingPod is Pod, IFarmingPod, Ownable {
+contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using Address for address payable;
@@ -33,8 +33,8 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
         _;
     }
 
-    constructor(IERC20Pods farmableToken_, IERC20 rewardsToken_)
-        Pod(farmableToken_)
+    constructor(IERC20Plugins farmableToken_, IERC20 rewardsToken_)
+        Plugin(farmableToken_)
     {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
@@ -69,13 +69,13 @@ contract FarmingPod is Pod, IFarmingPod, Ownable {
     }
 
     function farmed(address account) public view virtual returns(uint256) {
-        uint256 balance = IERC20Pods(token).podBalanceOf(address(this), account);
+        uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
         return _makeInfo().farmed(account, balance);
     }
 
     function claim() public virtual {
-        uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
-        uint256 amount = _makeInfo().claim(msg.sender, podBalance);
+        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
+        uint256 amount = _makeInfo().claim(msg.sender, pluginBalance);
         if (amount > 0) {
             _transferReward(rewardsToken, msg.sender, amount);
         }

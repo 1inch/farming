@@ -5,15 +5,15 @@ pragma solidity ^0.8.0;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { Pod } from "@1inch/erc20-pods/contracts/Pod.sol";
+import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 import { AddressArray, AddressSet } from "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
-import { IERC20Pods } from "@1inch/erc20-pods/contracts/interfaces/IERC20Pods.sol";
+import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
 
-import { IMultiFarmingPod } from "./interfaces/IMultiFarmingPod.sol";
+import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
 
-contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
+contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using Address for address payable;
@@ -41,7 +41,7 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
         _;
     }
 
-    constructor(IERC20Pods farmableToken_, uint256 rewardsTokensLimit_) Pod(farmableToken_) {
+    constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_) Plugin(farmableToken_) {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
 
@@ -88,28 +88,28 @@ contract MultiFarmingPod is Pod, IMultiFarmingPod, Ownable {
     }
 
     function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
-        uint256 balance = IERC20Pods(token).podBalanceOf(address(this), account);
+        uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
         return _makeInfo(rewardsToken).farmed(account, balance);
     }
 
     function claim(IERC20 rewardsToken) public virtual {
-        uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
-        _claim(rewardsToken, msg.sender, podBalance);
+        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
+        _claim(rewardsToken, msg.sender, pluginBalance);
     }
 
     function claim() public virtual {
-        uint256 podBalance = IERC20Pods(token).podBalanceOf(address(this), msg.sender);
+        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
             uint256 length = tokens.length;
             for (uint256 i = 0; i < length; i++) {
-                _claim(IERC20(tokens[i]), msg.sender, podBalance);
+                _claim(IERC20(tokens[i]), msg.sender, pluginBalance);
             }
         }
     }
 
-    function _claim(IERC20 rewardsToken, address account, uint256 podBalance) private {
-        uint256 amount = _makeInfo(rewardsToken).claim(account, podBalance);
+    function _claim(IERC20 rewardsToken, address account, uint256 pluginBalance) private {
+        uint256 amount = _makeInfo(rewardsToken).claim(account, pluginBalance);
         if (amount > 0) {
             _transferReward(rewardsToken, account, amount);
         }
