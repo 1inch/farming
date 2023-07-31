@@ -4,11 +4,9 @@ const { ethers } = require('hardhat');
 const { almostEqual, startFarming, joinNewFarms } = require('./utils');
 
 require('chai').use(function (chai, utils) {
-    chai.Assertion.overwriteMethod('almostEqual', (original) => {
+    chai.Assertion.overwriteMethod('almostEqual', (_) => {
         return function (value) {
-            const expected = value;
-            const actual = this._obj;
-            almostEqual.apply(this, [expected, actual]);
+            almostEqual.apply(this, [value, this._obj]);
         };
     });
 });
