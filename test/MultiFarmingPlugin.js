@@ -17,79 +17,79 @@ describe('MultiFarmingPlugin', function () {
     async function initContracts () {
         const ERC20FarmableMock = await ethers.getContractFactory('ERC20PluginsMock');
         const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_PLUGIN_GAS_LIMIT);
-        await token.deployed();
-        await token.mint(wallet1.address, INITIAL_SUPPLY);
+        await token.waitForDeployment();
+        await token.mint(wallet1, INITIAL_SUPPLY);
 
         const gifts = [];
         const TokenMock = await ethers.getContractFactory('TokenMock');
         gifts[0] = await TokenMock.deploy('USDC', 'USDC');
-        gifts[0].deployed();
+        gifts[0].waitForDeployment();
         gifts[1] = await TokenMock.deploy('USDT', 'USDT');
-        gifts[1].deployed();
+        gifts[1].waitForDeployment();
         const MultiFarmingPlugin = await ethers.getContractFactory('MultiFarmingPlugin');
-        const multiFarm = await MultiFarmingPlugin.deploy(token.address, REWARDS_TOKENS_LIMITS);
-        await multiFarm.deployed();
-        await multiFarm.addRewardsToken(gifts[0].address);
+        const multiFarm = await MultiFarmingPlugin.deploy(token, REWARDS_TOKENS_LIMITS);
+        await multiFarm.waitForDeployment();
+        await multiFarm.addRewardsToken(gifts[0]);
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
             for (const gift of gifts) {
-                await gift.mint(wallet.address, '1000000000');
-                await gift.connect(wallet).approve(multiFarm.address, '1000000000');
+                await gift.mint(wallet, '1000000000');
+                await gift.connect(wallet).approve(multiFarm, '1000000000');
             }
         }
-        await multiFarm.setDistributor(wallet1.address);
+        await multiFarm.setDistributor(wallet1);
         return { token, gifts, multiFarm };
     };
 
     describe('farmed', function () {
         it('should farmed tokens from both farms', async function () {
             const { token, gifts, multiFarm } = await loadFixture(initContracts);
-            await token.addPlugin(multiFarm.address);
-            await gifts[0].connect(wallet2).transfer(multiFarm.address, '1000');
-            await gifts[1].connect(wallet2).transfer(multiFarm.address, '1000');
+            await token.addPlugin(multiFarm);
+            await gifts[0].connect(wallet2).transfer(multiFarm, '1000');
+            await gifts[1].connect(wallet2).transfer(multiFarm, '1000');
 
             // Start farming with 1 gift token
             const period = 60 * 60 * 24;
             const rewardAmount = 1000;
 
-            const started = await startMultiFarming(multiFarm, gifts[0].address, rewardAmount, period, wallet1);
+            const started = await startMultiFarming(multiFarm, gifts[0], rewardAmount, period, wallet1);
 
             // Start farming with gifts[1] token and check that farmed gifts is equal to amount after period
             await time.increaseTo(started + period / 2 - 2);
-            await multiFarm.addRewardsToken(gifts[1].address);
-            await startMultiFarming(multiFarm, gifts[1].address, rewardAmount, period, wallet1);
+            await multiFarm.addRewardsToken(gifts[1]);
+            await startMultiFarming(multiFarm, gifts[1], rewardAmount, period, wallet1);
 
             // Check that farmed gifts[0] is equal to half of amount after half of period
-            expect(await multiFarm.farmed(gifts[0].address, wallet1.address)).to.equal(rewardAmount / 2);
-            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.equal(0);
+            expect(await multiFarm.farmed(gifts[0], wallet1)).to.equal(rewardAmount / 2);
+            expect(await multiFarm.farmed(gifts[1], wallet1)).to.equal(0);
             await time.increaseTo(started + period);
-            expect(await multiFarm.farmed(gifts[0].address, wallet1.address)).to.equal(rewardAmount);
-            expect(await multiFarm.farmed(gifts[1].address, wallet1.address)).to.equal(rewardAmount / 2);
+            expect(await multiFarm.farmed(gifts[0], wallet1)).to.equal(rewardAmount);
+            expect(await multiFarm.farmed(gifts[1], wallet1)).to.equal(rewardAmount / 2);
         });
 
         it('should show farming parameters for both tokens', async function () {
             const { token, gifts, multiFarm } = await loadFixture(initContracts);
-            await token.addPlugin(multiFarm.address);
-            await gifts[0].connect(wallet2).transfer(multiFarm.address, '1000');
-            await gifts[1].connect(wallet2).transfer(multiFarm.address, '1000');
+            await token.addPlugin(multiFarm);
+            await gifts[0].connect(wallet2).transfer(multiFarm, '1000');
+            await gifts[1].connect(wallet2).transfer(multiFarm, '1000');
 
             // Start farming with 1 gift token
             const period = 60 * 60 * 24;
             const rewardAmount = 1000;
 
-            const startedGift0 = await startMultiFarming(multiFarm, gifts[0].address, rewardAmount, period, wallet1);
+            const startedGift0 = await startMultiFarming(multiFarm, gifts[0], rewardAmount, period, wallet1);
 
             // Start farming with gifts[1] token and check that farmed gifts is equal to amount after period
             await time.increaseTo(startedGift0 + period / 2 - 2);
-            await multiFarm.addRewardsToken(gifts[1].address);
-            const startedGift1 = await startMultiFarming(multiFarm, gifts[1].address, rewardAmount, period, wallet1);
+            await multiFarm.addRewardsToken(gifts[1]);
+            const startedGift1 = await startMultiFarming(multiFarm, gifts[1], rewardAmount, period, wallet1);
 
-            const farmInfo0 = await multiFarm.farmInfo(gifts[0].address);
+            const farmInfo0 = await multiFarm.farmInfo(gifts[0]);
             expect(farmInfo0.duration).to.be.equal(period);
             expect(farmInfo0.finished).to.be.equal(startedGift0 + period);
             expect(farmInfo0.reward).to.be.equal(rewardAmount);
 
-            const farmInfo1 = await multiFarm.farmInfo(gifts[1].address);
+            const farmInfo1 = await multiFarm.farmInfo(gifts[1]);
             expect(farmInfo1.duration).to.be.equal(period);
             expect(farmInfo1.finished).to.be.equal(startedGift1 + period);
             expect(farmInfo1.reward).to.be.equal(rewardAmount);

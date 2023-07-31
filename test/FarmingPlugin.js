@@ -6,8 +6,8 @@ const { almostEqual, startFarming, joinNewFarms } = require('./utils');
 require('chai').use(function (chai, utils) {
     chai.Assertion.overwriteMethod('almostEqual', (original) => {
         return function (value) {
-            const expected = BigInt(value);
-            const actual = BigInt(this._obj);
+            const expected = value;
+            const actual = this._obj;
             almostEqual.apply(this, [expected, actual]);
         };
     });
@@ -26,21 +26,21 @@ describe('FarmingPlugin', function () {
     async function initContracts () {
         const ERC20FarmableMock = await ethers.getContractFactory('ERC20PluginsMock');
         const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_PLUGIN_GAS_LIMIT);
-        await token.deployed();
-        await token.mint(wallet1.address, INITIAL_SUPPLY);
+        await token.waitForDeployment();
+        await token.mint(wallet1, INITIAL_SUPPLY);
 
         const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('UDSC', 'USDC');
-        await gift.deployed();
+        await gift.waitForDeployment();
         const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
-        const farm = await FarmingPlugin.deploy(token.address, gift.address);
-        await farm.deployed();
+        const farm = await FarmingPlugin.deploy(token, gift);
+        await farm.waitForDeployment();
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
-            await gift.mint(wallet.address, '1000000000');
-            await gift.connect(wallet).approve(farm.address, '1000000000');
+            await gift.mint(wallet, '1000000000');
+            await gift.connect(wallet).approve(farm, '1000000000');
         }
-        await farm.setDistributor(wallet1.address);
+        await farm.setDistributor(wallet1);
         return { token, gift, farm };
     };
 
@@ -97,8 +97,8 @@ describe('FarmingPlugin', function () {
             it('Thrown with Amount equals _MAX_REWARD_AMOUNT + 1', async function () {
                 const { gift, farm } = await loadFixture(initContracts);
                 const _MAX_REWARD_AMOUNT = 10n ** 42n;
-                await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT + 1n);
-                await gift.approve(farm.address, _MAX_REWARD_AMOUNT + 1n);
+                await gift.mint(wallet1, _MAX_REWARD_AMOUNT + 1n);
+                await gift.approve(farm, _MAX_REWARD_AMOUNT + 1n);
                 await expect(
                     farm.startFarming(_MAX_REWARD_AMOUNT + 1n, time.duration.weeks(1)),
                 ).to.be.revertedWithCustomError(farm, 'AmountTooLarge');
@@ -106,7 +106,7 @@ describe('FarmingPlugin', function () {
 
             it('should show farming parameters', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.addPlugin(farm.address);
+                await token.addPlugin(farm);
 
                 const duration = 60 * 60 * 24;
                 const reward = 1000;
@@ -139,14 +139,14 @@ describe('FarmingPlugin', function () {
             */
             it('should claim tokens', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.addPlugin(farm.address);
+                await token.addPlugin(farm);
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
 
-                const balanceBefore = await gift.balanceOf(wallet1.address);
+                const balanceBefore = await gift.balanceOf(wallet1);
                 await farm.claim();
-                expect(await gift.balanceOf(wallet1.address)).to.equal(balanceBefore.add(1000));
+                expect(await gift.balanceOf(wallet1)).to.equal(balanceBefore + 1000n);
             });
 
             /*
@@ -166,14 +166,14 @@ describe('FarmingPlugin', function () {
             */
             it('should claim tokens for non-user farms wallet', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.addPlugin(farm.address);
+                await token.addPlugin(farm);
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
 
-                const balanceBefore = await gift.balanceOf(wallet2.address);
+                const balanceBefore = await gift.balanceOf(wallet2);
                 await farm.claim();
-                expect(await gift.balanceOf(wallet2.address)).to.equal(balanceBefore);
+                expect(await gift.balanceOf(wallet2)).to.equal(balanceBefore);
             });
         });
 
@@ -204,23 +204,23 @@ describe('FarmingPlugin', function () {
                 let lastFarmStarted;
                 const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
                 for (let i = 0; i < farmsCount; i++) {
-                    farms[i] = await FarmingPlugin.deploy(token.address, gift.address);
-                    await farms[i].deployed();
-                    await farms[i].setDistributor(wallet1.address);
+                    farms[i] = await FarmingPlugin.deploy(token, gift);
+                    await farms[i].waitForDeployment();
+                    await farms[i].setDistributor(wallet1);
                 }
 
                 // Join and start farming, then delay
                 for (let i = 0; i < farmsCount; i++) {
-                    await token.addPlugin(farms[i].address);
-                    await gift.approve(farms[i].address, '100');
+                    await token.addPlugin(farms[i]);
+                    await gift.approve(farms[i], '100');
                     lastFarmStarted = await startFarming(farms[i], 100, time.duration.days(1), wallet1);
                 }
                 await time.increaseTo(lastFarmStarted + time.duration.days(1));
 
                 // Check reward
-                const balanceBefore = await gift.balanceOf(wallet1.address);
+                const balanceBefore = await gift.balanceOf(wallet1);
                 await Promise.all(farms.map(farm => farm.claim()));
-                expect(await gift.balanceOf(wallet1.address)).to.equal(balanceBefore.add(1000));
+                expect(await gift.balanceOf(wallet1)).to.equal(balanceBefore + 1000n);
             });
         });
 
@@ -242,9 +242,9 @@ describe('FarmingPlugin', function () {
             it('should thrown with access denied', async function () {
                 const { gift, farm } = await loadFixture(initContracts);
                 const distributor = await farm.distributor();
-                expect(wallet2.address).to.not.equal(distributor);
+                expect(wallet2).to.not.equal(distributor);
                 await expect(
-                    farm.connect(wallet2).rescueFunds(gift.address, '1000'),
+                    farm.connect(wallet2).rescueFunds(gift, '1000'),
                 ).to.be.revertedWithCustomError(farm, 'AccessDenied');
             });
 
@@ -266,15 +266,15 @@ describe('FarmingPlugin', function () {
                 const { gift, farm } = await loadFixture(initContracts);
                 await farm.startFarming(1000, 60 * 60 * 24);
 
-                const balanceWalletBefore = await gift.balanceOf(wallet1.address);
-                const balanceFarmBefore = await gift.balanceOf(farm.address);
+                const balanceWalletBefore = await gift.balanceOf(wallet1);
+                const balanceFarmBefore = await gift.balanceOf(farm);
 
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
-                await farm.rescueFunds(gift.address, '1000');
+                await farm.rescueFunds(gift, '1000');
 
-                expect(await gift.balanceOf(wallet1.address)).to.equal(balanceWalletBefore.add(1000));
-                expect(await gift.balanceOf(farm.address)).to.equal(balanceFarmBefore.sub(1000));
+                expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore + 1000n);
+                expect(await gift.balanceOf(farm)).to.equal(balanceFarmBefore - 1000n);
             });
 
             /*
@@ -295,21 +295,21 @@ describe('FarmingPlugin', function () {
                 const { farm } = await loadFixture(initContracts);
                 // Transfer ethers to farm
                 const EthTransferMock = await ethers.getContractFactory('EthTransferMock');
-                const ethMock = await EthTransferMock.deploy(farm.address, { value: '1000' });
-                await ethMock.deployed();
+                const ethMock = await EthTransferMock.deploy(farm, { value: '1000' });
+                await ethMock.waitForDeployment();
 
                 // Check rescueFunds
-                const balanceWalletBefore = await ethers.provider.getBalance(wallet1.address);
-                const balanceFarmBefore = await ethers.provider.getBalance(farm.address);
+                const balanceWalletBefore = await ethers.provider.getBalance(wallet1);
+                const balanceFarmBefore = await ethers.provider.getBalance(farm);
 
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
                 const tx = await farm.rescueFunds(constants.ZERO_ADDRESS, '1000');
                 const receipt = await tx.wait();
-                const txCost = receipt.gasUsed * receipt.effectiveGasPrice;
+                const txCost = receipt.gasUsed * receipt.gasPrice;
 
-                expect(await ethers.provider.getBalance(wallet1.address)).to.equal(balanceWalletBefore.sub(txCost).add(1000));
-                expect(await ethers.provider.getBalance(farm.address)).to.equal(balanceFarmBefore.sub(1000));
+                expect(await ethers.provider.getBalance(wallet1)).to.equal(balanceWalletBefore - txCost + 1000n);
+                expect(await ethers.provider.getBalance(farm)).to.equal(balanceFarmBefore - 1000n);
             });
         });
 
@@ -332,9 +332,9 @@ describe('FarmingPlugin', function () {
             */
             it('should return false when user does not farm and true when user farms', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).addPlugin(farm.address);
-                expect(await token.hasPlugin(wallet1.address, farm.address)).to.equal(false);
-                expect(await token.hasPlugin(wallet2.address, farm.address)).to.equal(true);
+                await token.connect(wallet2).addPlugin(farm);
+                expect(await token.hasPlugin(wallet1, farm)).to.equal(false);
+                expect(await token.hasPlugin(wallet2, farm)).to.equal(true);
             });
 
             /*
@@ -350,9 +350,9 @@ describe('FarmingPlugin', function () {
             */
             it('should return false when user quits from farm', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).addPlugin(farm.address);
-                await token.connect(wallet2).removePlugin(farm.address);
-                expect(await token.hasPlugin(wallet1.address, farm.address)).to.equal(false);
+                await token.connect(wallet2).addPlugin(farm);
+                await token.connect(wallet2).removePlugin(farm);
+                expect(await token.hasPlugin(wallet1, farm)).to.equal(false);
             });
         });
 
@@ -373,13 +373,13 @@ describe('FarmingPlugin', function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                expect(await token.pluginsCount(wallet1.address)).to.equal(farmsCount);
+                expect(await token.pluginsCount(wallet1)).to.equal(farmsCount);
 
-                const farms = await token.plugins(wallet1.address);
+                const farms = await token.plugins(wallet1);
                 expect(farms.length).to.equal(farmsCount);
                 for (let i = 0; i < farmsCount; i++) {
                     await token.removePlugin(farms[i]);
-                    expect(await token.pluginsCount(wallet1.address)).to.equal(farmsCount - i - 1);
+                    expect(await token.pluginsCount(wallet1)).to.equal(farmsCount - i - 1);
                 }
             });
         });
@@ -403,9 +403,9 @@ describe('FarmingPlugin', function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                const farms = await token.plugins(wallet1.address);
+                const farms = await token.plugins(wallet1);
                 for (let i = 0; i < farmsCount; i++) {
-                    const farmAddress = await token.pluginAt(wallet1.address, i);
+                    const farmAddress = await token.pluginAt(wallet1, i);
                     expect(farmAddress).to.equal(farms[i]);
                 }
             });
@@ -429,7 +429,7 @@ describe('FarmingPlugin', function () {
         */
         it('should update totalSupply', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
         });
 
@@ -447,8 +447,8 @@ describe('FarmingPlugin', function () {
         */
         it('should make totalSupply to decrease with balance', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm.address);
-            await token.transfer(wallet2.address, INITIAL_SUPPLY * 6n / 10n);
+            await token.addPlugin(farm);
+            await token.transfer(wallet2, INITIAL_SUPPLY * 6n / 10n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY * 4n / 10n);
         });
 
@@ -466,10 +466,10 @@ describe('FarmingPlugin', function () {
         */
         it('should make totalSupply to increase with balance', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 2n);
-            await token.addPlugin(farm.address);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
+            await token.addPlugin(farm);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY / 2n);
-            await token.connect(wallet2).transfer(wallet1.address, INITIAL_SUPPLY / 2n);
+            await token.connect(wallet2).transfer(wallet1, INITIAL_SUPPLY / 2n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
         });
 
@@ -487,10 +487,10 @@ describe('FarmingPlugin', function () {
         */
         it('should make totalSupply ignore internal transfers', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 2n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
         });
 
@@ -510,8 +510,8 @@ describe('FarmingPlugin', function () {
         */
         it('should be burn', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm.address);
-            await token.removePlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.removePlugin(farm);
             expect(await farm.totalSupply()).to.equal('0');
         });
     });
@@ -541,17 +541,17 @@ describe('FarmingPlugin', function () {
         it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
             const { token, farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
-            await token.connect(wallet2).addPlugin(farm.address);
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            await token.connect(wallet2).addPlugin(farm);
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
             await time.increaseTo(started + time.duration.weeks(1));
-            expect(await farm.farmed(wallet1.address)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal('0');
 
-            await token.transfer(wallet2.address, INITIAL_SUPPLY);
+            await token.transfer(wallet2, INITIAL_SUPPLY);
             await time.increaseTo(started + time.duration.weeks(2));
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('36000');
+            expect(await farm.farmed(wallet2)).to.almostEqual(36000n);
         });
 
         /*
@@ -576,27 +576,27 @@ describe('FarmingPlugin', function () {
         */
         it('Two stakers with the same stakes wait 1 w', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 2n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
 
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1.address)).to.equal('0');
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1.address)).to.equal('0');
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
             await time.increaseTo(started + time.duration.weeks(1));
 
             // expect(await token.farmedPerToken()).to.almostEqual('36000');
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('36000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('36000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(36000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(36000n);
         });
 
         /*
@@ -621,27 +621,27 @@ describe('FarmingPlugin', function () {
         */
         it('Two stakers with the different (1:3) stakes wait 1 w', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 4n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 4n);
 
             // 72000 UDSC per week
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1.address)).to.equal('0');
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1.address)).to.equal('0');
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
             await time.increaseTo(started + time.duration.weeks(1));
 
             // expect(await token.farmedPerToken()).to.almostEqual('18000');
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('54000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('18000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(54000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(18000n);
         });
 
         /*
@@ -673,28 +673,28 @@ describe('FarmingPlugin', function () {
             // 3x:         +--------+ =  0k for 1w + 54k for 2w
             //
             const recipientAmount = INITIAL_SUPPLY * 3n / 4n;
-            await token.transfer(wallet2.address, recipientAmount);
+            await token.transfer(wallet2, recipientAmount);
 
             // 72000 UDSC per week
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
             expect(await farm.totalSupply()).to.almostEqual(INITIAL_SUPPLY - recipientAmount);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.connect(wallet2).addPlugin(farm);
 
             // expect(await token.farmedPerToken()).to.almostEqual('72000');
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(0n);
 
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(2));
 
             // expect(await token.farmedPerToken()).to.almostEqual('90000');
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('90000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('54000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(90000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(54000n);
         });
 
         /*
@@ -726,11 +726,11 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
@@ -738,8 +738,8 @@ describe('FarmingPlugin', function () {
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(3));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('144000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
+            expect(await farm.farmed(wallet1)).to.almostEqual(144000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(0n);
         });
 
         /*
@@ -772,13 +772,13 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
             await farm.claim();
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
+            expect(await farm.farmed(wallet1)).to.almostEqual(0n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
@@ -786,8 +786,8 @@ describe('FarmingPlugin', function () {
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(3));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(0n);
         });
 
         /*
@@ -821,15 +821,15 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            await token.removePlugin(farm.address);
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            await token.addPlugin(farm.address);
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
+            await token.removePlugin(farm);
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
+            await token.addPlugin(farm);
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
@@ -837,8 +837,8 @@ describe('FarmingPlugin', function () {
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(3));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('144000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
+            expect(await farm.farmed(wallet1)).to.almostEqual(144000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(0n);
         });
 
         /*
@@ -873,17 +873,17 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            await token.removePlugin(farm.address);
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
+            await token.removePlugin(farm);
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
             await farm.claim();
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
-            await token.addPlugin(farm.address);
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('0');
+            expect(await farm.farmed(wallet1)).to.almostEqual(0n);
+            await token.addPlugin(farm);
+            expect(await farm.farmed(wallet1)).to.almostEqual(0n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
@@ -891,8 +891,8 @@ describe('FarmingPlugin', function () {
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(3));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('72000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('0');
+            expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(0n);
         });
 
         /*
@@ -930,41 +930,41 @@ describe('FarmingPlugin', function () {
             // 5x:         +-----------------+ =  0k for 1w + 40k for 2w + 60k for 3w
             //
             const recipientAmount = INITIAL_SUPPLY / 3n;
-            await token.transfer(wallet2.address, recipientAmount);
+            await token.transfer(wallet2, recipientAmount);
             const anotherAccountAmount = INITIAL_SUPPLY * 5n / 9n;
-            await token.transfer(wallet3.address, anotherAccountAmount);
+            await token.transfer(wallet3, anotherAccountAmount);
 
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet3).addPlugin(farm.address);
+            await token.connect(wallet3).addPlugin(farm);
 
             // expect(await token.farmedPerToken()).to.almostEqual('18000');
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('18000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('54000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(18000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(54000n);
 
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(2));
 
             // expect(await token.farmedPerToken()).to.almostEqual('26000'); // 18k + 8k
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('26000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('78000');
-            expect(await farm.farmed(wallet3.address)).to.almostEqual('40000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(26000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(78000n);
+            expect(await farm.farmed(wallet3)).to.almostEqual(40000n);
 
-            await token.connect(wallet2).removePlugin(farm.address);
+            await token.connect(wallet2).removePlugin(farm);
 
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(3));
 
             // expect(await token.farmedPerToken()).to.almostEqual('38000'); // 18k + 8k + 12k
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('38000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('78000');
-            expect(await farm.farmed(wallet3.address)).to.almostEqual('100000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(38000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(78000n);
+            expect(await farm.farmed(wallet3)).to.almostEqual(100000n);
         });
 
         /*
@@ -1000,38 +1000,38 @@ describe('FarmingPlugin', function () {
             // 5x:         +-----------------+ =  0k for 1w + 40k for 2w + 60k for 3w
             //
             const recipientAmount = INITIAL_SUPPLY / 3n;
-            await token.transfer(wallet2.address, recipientAmount);
+            await token.transfer(wallet2, recipientAmount);
             const anotherAccountAmount = INITIAL_SUPPLY * 5n / 9n;
-            await token.transfer(wallet3.address, anotherAccountAmount);
+            await token.transfer(wallet3, anotherAccountAmount);
 
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '216000', time.duration.weeks(3), wallet1);
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet3).addPlugin(farm.address);
+            await token.connect(wallet3).addPlugin(farm);
 
             // expect(await token.farmedPerToken()).to.almostEqual('18000');
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('18000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('54000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(18000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(54000n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            await token.connect(wallet2).removePlugin(farm.address);
+            await token.connect(wallet2).removePlugin(farm);
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('26000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('78000');
-            expect(await farm.farmed(wallet3.address)).to.almostEqual('40000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(26000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(78000n);
+            expect(await farm.farmed(wallet3)).to.almostEqual(40000n);
 
             await time.increaseTo(started + time.duration.weeks(3));
 
             // expect(await token.farmedPerToken()).to.almostEqual('38000'); // 18k + 8k + 12k
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('38000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('78000');
-            expect(await farm.farmed(wallet3.address)).to.almostEqual('100000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(38000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(78000n);
+            expect(await farm.farmed(wallet3)).to.almostEqual(100000n);
         });
 
         /*
@@ -1056,26 +1056,26 @@ describe('FarmingPlugin', function () {
         */
         it('Notify Reward Amount before prev farming finished', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 4n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 4n);
 
             // 10000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '10000', time.duration.weeks(1), wallet1);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1.address)).to.equal('0');
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
             // 1000 UDSC per week for 1 weeks
             await farm.startFarming('1000', time.duration.weeks(1));
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1) + 2);
 
             // expect(await token.farmedPerToken()).to.almostEqual('2750');
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('8250');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('2750');
+            expect(await farm.farmed(wallet1)).to.almostEqual(8250n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(2750n);
         });
 
         /*
@@ -1102,17 +1102,17 @@ describe('FarmingPlugin', function () {
             const { token, gift, farm } = await loadFixture(initContracts);
             const _MAX_REWARD_AMOUNT = 10n ** 32n;
 
-            await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT);
-            await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
+            await gift.mint(wallet1, _MAX_REWARD_AMOUNT);
+            await gift.approve(farm, _MAX_REWARD_AMOUNT);
 
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
             const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), wallet1);
             await time.increaseTo(started + time.duration.weeks(1));
-            expect(await farm.farmed(wallet1.address)).to.almostEqual(_MAX_REWARD_AMOUNT);
+            expect(await farm.farmed(wallet1)).to.almostEqual(_MAX_REWARD_AMOUNT);
 
-            const balanceBeforeClaim = await gift.balanceOf(wallet1.address);
+            const balanceBeforeClaim = await gift.balanceOf(wallet1);
             await farm.claim();
-            expect(await gift.balanceOf(wallet1.address)).to.almostEqual(balanceBeforeClaim.add(_MAX_REWARD_AMOUNT));
+            expect(await gift.balanceOf(wallet1)).to.almostEqual(balanceBeforeClaim + _MAX_REWARD_AMOUNT);
         });
 
         /*
@@ -1137,17 +1137,17 @@ describe('FarmingPlugin', function () {
             const { token, gift, farm } = await loadFixture(initContracts);
             const _MAX_REWARD_AMOUNT = 10n ** 32n;
 
-            await gift.mint(wallet1.address, _MAX_REWARD_AMOUNT);
-            await gift.approve(farm.address, _MAX_REWARD_AMOUNT);
+            await gift.mint(wallet1, _MAX_REWARD_AMOUNT);
+            await gift.approve(farm, _MAX_REWARD_AMOUNT);
 
             const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), wallet1);
-            await token.addPlugin(farm.address);
+            await token.addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
-            const farmedAmount = await farm.farmed(wallet1.address);
+            const farmedAmount = await farm.farmed(wallet1);
             for (let i = 1; i < 5; i++) {
                 await time.increaseTo(started + time.duration.weeks(1) + i);
-                expect(await farm.farmed(wallet1.address)).to.equal(farmedAmount);
+                expect(await farm.farmed(wallet1)).to.equal(farmedAmount);
             }
         });
     });
@@ -1181,25 +1181,25 @@ describe('FarmingPlugin', function () {
             // 2x: +-------+ 1х+--------+   = 9k  for 1w + 27k for 2w = 36
             // 1x: +-------+ 2x+--------+   = 27k for 1w +  9k for 2w = 36
             //
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 4n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 4n);
 
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('27000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('9000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(27000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(9000n);
 
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 2n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('36000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('36000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(36000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(36000n);
         });
 
         // ```
@@ -1234,26 +1234,26 @@ describe('FarmingPlugin', function () {
             // 1x: +-------+--------+   = 18k for 1w + 36k for 2w
             // 1x: +-------+            = 18k for 1w +  0k for 2w
             //
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 2n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
 
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('18000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('18000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(18000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(18000n);
 
-            await token.connect(wallet2).transfer(wallet3.address, INITIAL_SUPPLY / 2n);
+            await token.connect(wallet2).transfer(wallet3, INITIAL_SUPPLY / 2n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
             // expect(await token.farmedPerToken()).to.almostEqual('38000'); // 18k + 8k + 12k
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('54000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('18000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(54000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(18000n);
         });
 
         /*
@@ -1280,26 +1280,26 @@ describe('FarmingPlugin', function () {
         */
         it('Transfer from one wallet to another, sender is not farming, reciever is farming', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 4n);
-            await token.transfer(wallet3.address, INITIAL_SUPPLY / 2n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 4n);
+            await token.transfer(wallet3, INITIAL_SUPPLY / 2n);
 
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('18000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('18000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(18000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(18000n);
 
-            await token.connect(wallet3).transfer(wallet1.address, INITIAL_SUPPLY / 2n);
+            await token.connect(wallet3).transfer(wallet1, INITIAL_SUPPLY / 2n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('45000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('27000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(45000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(27000n);
         });
 
         /*
@@ -1330,18 +1330,18 @@ describe('FarmingPlugin', function () {
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.transfer(wallet2.address, INITIAL_SUPPLY / 4n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 4n);
 
-            await token.addPlugin(farm.address);
-            await token.connect(wallet2).addPlugin(farm.address);
+            await token.addPlugin(farm);
+            await token.connect(wallet2).addPlugin(farm);
 
-            expect(await farm.farmed(wallet1.address)).to.equal('0');
-            expect(await farm.farmed(wallet2.address)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal('0');
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            expect(await farm.farmed(wallet1.address)).to.almostEqual('27000');
-            expect(await farm.farmed(wallet2.address)).to.almostEqual('9000');
+            expect(await farm.farmed(wallet1)).to.almostEqual(27000n);
+            expect(await farm.farmed(wallet2)).to.almostEqual(9000n);
         });
     });
 });
