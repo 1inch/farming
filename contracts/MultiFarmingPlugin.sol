@@ -83,7 +83,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
         uint256 reward = _makeInfo(rewardsToken).startFarming(amount, period);
-        emit RewardAdded(address(rewardsToken), reward, period);
+        emit RewardUpdated(address(rewardsToken), reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
@@ -139,6 +139,10 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
+            if (_rewardsTokens.contains(address(token_))) {
+                (uint256 reward, uint256 duration) = _makeInfo(token_).reduceFarming(amount);
+                emit RewardUpdated(address(token_), reward, duration);
+            }
             token_.safeTransfer(_distributor, amount);
         }
     }

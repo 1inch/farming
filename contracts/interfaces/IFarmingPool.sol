@@ -7,7 +7,7 @@ import { FarmAccounting } from "../accounting/FarmAccounting.sol";
 
 interface IFarmingPool is IERC20 {
     event DistributorChanged(address oldDistributor, address newDistributor);
-    event RewardAdded(uint256 reward, uint256 duration);
+    event RewardUpdated(uint256 reward, uint256 duration);
 
     // View functions
     function distributor() external view returns(address);

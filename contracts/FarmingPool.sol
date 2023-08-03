@@ -71,7 +71,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().startFarming(amount, period);
-        emit RewardAdded(reward, period);
+        emit RewardUpdated(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
@@ -110,10 +110,14 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         if (token == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
-            token.safeTransfer(_distributor, amount);
-            if (token == stakingToken) {
-                if (stakingToken.balanceOf(address(this)) < totalSupply()) revert NotEnoughBalance();
+            if (token == rewardsToken) {
+                (uint256 reward, uint256 duration) = _makeInfo().reduceFarming(amount);
+                emit RewardUpdated(reward, duration);
+            } else if (token == stakingToken) {
+                if (stakingToken.balanceOf(address(this)) + amount < totalSupply()) revert NotEnoughBalance();
             }
+
+            token.safeTransfer(_distributor, amount);
         }
     }
 

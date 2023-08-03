@@ -15,6 +15,7 @@ import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
 contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
+    using FarmAccounting for FarmAccounting.Info;
     using Address for address payable;
 
     error ZeroFarmableTokenAddress();
@@ -64,7 +65,7 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().startFarming(amount, period);
-        emit RewardAdded(reward, period);
+        emit RewardUpdated(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
@@ -99,6 +100,10 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
+            if (token_ == rewardsToken) {
+                (uint256 reward, uint256 duration) = _makeInfo().reduceFarming(amount);
+                emit RewardUpdated(reward, duration);
+            }
             token_.safeTransfer(_distributor, amount);
         }
     }
