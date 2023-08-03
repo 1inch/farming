@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 import { AddressArray, AddressSet } from "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
@@ -139,6 +140,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
+            if (_rewardsTokens.contains(address(token_))) {
+                amount = Math.min(amount, _makeInfo(token_).notYetDistributedRewards());
+            }
             token_.safeTransfer(_distributor, amount);
         }
     }

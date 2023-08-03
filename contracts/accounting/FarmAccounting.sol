@@ -29,6 +29,10 @@ library FarmAccounting {
         }
     }
 
+    function notYetDistributedRewards(Info memory info) internal view returns(uint256) {
+        return info.reward - farmedSinceCheckpointScaled(info, block.timestamp) / _SCALE;
+    }
+
     function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
         if (period == 0) revert ZeroDuration();
         if (period > type(uint32).max) revert DurationTooLarge();

@@ -76,6 +76,15 @@ library FarmingLib {
     }
 
     /**
+     * @notice Gets the amount of reward tokens not yet distributed to farmers.
+     * @param self The Info struct.
+     * @return amount The amount of reward tokens.
+     */
+    function notYetDistributedRewards(Info memory self) internal view returns(uint256) {
+        return self.getData().farmInfo.notYetDistributedRewards();
+    }
+
+    /**
      * @notice Claims the farmed amount for an account.
      * @param self The Info struct.
      * @param account The account to claim for.
