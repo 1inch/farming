@@ -113,11 +113,13 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
             if (token == rewardsToken) {
                 (uint256 reward, uint256 duration) = _makeInfo().reduceFarming(amount);
                 emit RewardUpdated(reward, duration);
-            } else if (token == stakingToken) {
-                if (stakingToken.balanceOf(address(this)) + amount < totalSupply()) revert NotEnoughBalance();
             }
 
             token.safeTransfer(_distributor, amount);
+
+            if (token == stakingToken) {
+                if (stakingToken.balanceOf(address(this)) < totalSupply()) revert NotEnoughBalance();
+            }
         }
     }
 
