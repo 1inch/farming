@@ -309,6 +309,122 @@ describe('FarmingPlugin', function () {
                 expect(await ethers.provider.getBalance(wallet1)).to.equal(balanceWalletBefore - txCost + 1000n);
                 expect(await ethers.provider.getBalance(farm)).to.equal(balanceFarmBefore - 1000n);
             });
+
+            /*
+                ***Test Scenario**
+                Ensures that a distributor account cannot get funds that have been distributed
+                from the farm using the `rescueFunds` function.
+
+                ***Initial setup**
+                - A farm has started farming and distributed half of the reward tokens
+
+                ***Test Steps**
+                - Distributor calls the `rescueFunds` function to transfer 1000 reward tokens from the farm to its account
+
+                ***Expected results**
+                - Call is reverted with an error `'InsufficientFunds()'`
+            */
+            it('should thrown with insufficient funds', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                const duration = BigInt(60 * 60 * 24);
+                await farm.startFarming(1000, duration);
+                await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+
+                const balanceWalletBefore = await gift.balanceOf(wallet1);
+                const balanceFarmBefore = await gift.balanceOf(farm);
+
+                const distributor = await farm.distributor();
+                expect(wallet1.address).to.equal(distributor);
+                await expect(farm.rescueFunds(gift, '1000')).to.be.revertedWithCustomError(farm, 'InsufficientFunds');
+
+                expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore);
+                expect(await gift.balanceOf(farm)).to.equal(balanceFarmBefore);
+            });
+
+            /*
+                ***Test Scenario**
+                Ensures that a distributor account can get remaining funds that haven't been distributed
+                from the farm using the `rescueFunds` function.
+
+                ***Initial setup**
+                - A farm has started farming and distributed half of the reward tokens
+
+                ***Test Steps**
+                - Distributor calls the `rescueFunds` function to transfer 500 reward tokens from the farm to its account
+                - Check the balances of the distributor's account and the farm's accounts
+
+                ***Expected results**
+                - 500 reward tokens are transferred from the farm to the distributor
+                - The farm's reward tokens amount is decreased by 500
+                - The farm's duration and finish time are decreased proportionally
+            */
+            it('should transfer remaining reward tokens from farm to wallet', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                const duration = BigInt(60 * 60 * 24);
+                const amount = 500n;
+                await farm.startFarming(1000, duration);
+                await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+
+                const balanceWalletBefore = await gift.balanceOf(wallet1);
+                const balanceFarmBefore = await gift.balanceOf(farm);
+                const rewardBefore = (await farm.farmInfo()).reward;
+                const durationBefore = (await farm.farmInfo()).duration;
+                const finishedBefore = (await farm.farmInfo()).finished;
+
+                const distributor = await farm.distributor();
+                expect(wallet1.address).to.equal(distributor);
+                await farm.rescueFunds(gift, amount);
+                const newDuration = durationBefore * (rewardBefore - amount) / rewardBefore;
+                const newFinished = finishedBefore - duration + newDuration;
+
+                expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
+                expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
+                expect((await farm.farmInfo()).reward).to.be.equal(rewardBefore - amount);
+                expect((await farm.farmInfo()).duration).to.be.equal(newDuration);
+                expect((await farm.farmInfo()).finished).to.be.equal(newFinished);
+            });
+
+            /*
+                ***Test Scenario**
+                Ensures that a distributor account can get all non-reward funds from the farm using the `rescueFunds` function.
+
+                ***Initial setup**
+                - Non-reward tokens have been minted to the farm
+                - A farm has started farming and distributed half of the reward tokens
+
+                ***Test Steps**
+                - Distributor calls the `rescueFunds` function to transfer 100 non-reward tokens from the farm to its account
+                - Check the balances of the distributor's account and the farm's accounts
+
+                ***Expected results**
+                - 100 non-reward tokens are transferred from the farm to the distributor
+                - The farm's reward tokens amount remains the same
+                - The farm's duration and finish time remain the same
+            */
+            it('should transfer all tokens from farm to wallet during farming', async function () {
+                const { token, farm } = await loadFixture(initContracts);
+                const duration = BigInt(60 * 60 * 24);
+                const amount = 100n;
+                await token.mint(farm, amount);
+                await farm.startFarming(1000, duration);
+                await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+
+                const balanceWalletBefore = await token.balanceOf(wallet1);
+                const balanceFarmBefore = await token.balanceOf(farm);
+                const rewardBefore = (await farm.farmInfo()).reward;
+                const durationBefore = (await farm.farmInfo()).duration;
+                const finishedBefore = (await farm.farmInfo()).finished;
+
+                const distributor = await farm.distributor();
+                expect(wallet1.address).to.equal(distributor);
+                await farm.rescueFunds(token, amount);
+
+                expect(await token.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
+                expect(await token.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
+                expect((await farm.farmInfo()).reward).to.be.equal(rewardBefore);
+                expect((await farm.farmInfo()).duration).to.be.equal(durationBefore);
+                expect((await farm.farmInfo()).finished).to.be.equal(finishedBefore);
+            });
         });
 
         // Farm's plugins scenarios
