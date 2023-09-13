@@ -95,4 +95,73 @@ describe('MultiFarmingPlugin', function () {
             expect(farmInfo1.reward).to.be.equal(rewardAmount);
         });
     });
+
+    describe('rescueFunds', function () {
+        it('should thrown with insufficient funds', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const duration = BigInt(60 * 60 * 24);
+            await multiFarm.startFarming(gift, 1000, duration);
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(multiFarm);
+
+            const distributor = await multiFarm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await expect(multiFarm.rescueFunds(gift, '1000')).to.be.revertedWithCustomError(multiFarm, 'InsufficientFunds');
+
+            expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore);
+            expect(await gift.balanceOf(multiFarm)).to.equal(balanceFarmBefore);
+        });
+
+        it('should transfer remaining reward tokens from farm to wallet', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const duration = BigInt(60 * 60 * 24);
+            const amount = 500n;
+            await multiFarm.startFarming(gift, 1000, duration);
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(multiFarm);
+            const farmInfoBefore = await multiFarm.farmInfo(gift);
+
+            const distributor = await multiFarm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await multiFarm.rescueFunds(gift, amount);
+            const newDuration = farmInfoBefore.duration * (farmInfoBefore.reward - amount) / farmInfoBefore.reward;
+            const newFinished = farmInfoBefore.finished - duration + newDuration;
+
+            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
+            expect(await gift.balanceOf(multiFarm)).to.be.equal(balanceFarmBefore - amount);
+            expect((await multiFarm.farmInfo(gift)).reward).to.be.equal(farmInfoBefore.reward - amount);
+            expect((await multiFarm.farmInfo(gift)).duration).to.be.equal(newDuration);
+            expect((await multiFarm.farmInfo(gift)).finished).to.be.equal(newFinished);
+        });
+
+        it('should transfer all tokens from farm to wallet during farming', async function () {
+            const { token, gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const duration = BigInt(60 * 60 * 24);
+            const amount = 100n;
+            await token.mint(multiFarm, amount);
+            await multiFarm.startFarming(gift, 1000, duration);
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+
+            const balanceWalletBefore = await token.balanceOf(wallet1);
+            const balanceFarmBefore = await token.balanceOf(multiFarm);
+            const farmInfoBefore = await multiFarm.farmInfo(gift);
+
+            const distributor = await multiFarm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await multiFarm.rescueFunds(token, amount);
+
+            expect(await token.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
+            expect(await token.balanceOf(multiFarm)).to.be.equal(balanceFarmBefore - amount);
+            expect((await multiFarm.farmInfo(gift)).reward).to.be.equal(farmInfoBefore.reward);
+            expect((await multiFarm.farmInfo(gift)).duration).to.be.equal(farmInfoBefore.duration);
+            expect((await multiFarm.farmInfo(gift)).finished).to.be.equal(farmInfoBefore.finished);
+        });
+    });
 });

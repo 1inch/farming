@@ -367,19 +367,17 @@ describe('FarmingPlugin', function () {
 
                 const balanceWalletBefore = await gift.balanceOf(wallet1);
                 const balanceFarmBefore = await gift.balanceOf(farm);
-                const rewardBefore = (await farm.farmInfo()).reward;
-                const durationBefore = (await farm.farmInfo()).duration;
-                const finishedBefore = (await farm.farmInfo()).finished;
+                const farmInfoBefore = await farm.farmInfo();
 
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
                 await farm.rescueFunds(gift, amount);
-                const newDuration = durationBefore * (rewardBefore - amount) / rewardBefore;
-                const newFinished = finishedBefore - duration + newDuration;
+                const newDuration = farmInfoBefore.duration * (farmInfoBefore.reward - amount) / farmInfoBefore.reward;
+                const newFinished = farmInfoBefore.finished - duration + newDuration;
 
                 expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
                 expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
-                expect((await farm.farmInfo()).reward).to.be.equal(rewardBefore - amount);
+                expect((await farm.farmInfo()).reward).to.be.equal(farmInfoBefore.reward - amount);
                 expect((await farm.farmInfo()).duration).to.be.equal(newDuration);
                 expect((await farm.farmInfo()).finished).to.be.equal(newFinished);
             });
@@ -411,9 +409,7 @@ describe('FarmingPlugin', function () {
 
                 const balanceWalletBefore = await token.balanceOf(wallet1);
                 const balanceFarmBefore = await token.balanceOf(farm);
-                const rewardBefore = (await farm.farmInfo()).reward;
-                const durationBefore = (await farm.farmInfo()).duration;
-                const finishedBefore = (await farm.farmInfo()).finished;
+                const farmInfoBefore = await farm.farmInfo();
 
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
@@ -421,9 +417,9 @@ describe('FarmingPlugin', function () {
 
                 expect(await token.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
                 expect(await token.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
-                expect((await farm.farmInfo()).reward).to.be.equal(rewardBefore);
-                expect((await farm.farmInfo()).duration).to.be.equal(durationBefore);
-                expect((await farm.farmInfo()).finished).to.be.equal(finishedBefore);
+                expect((await farm.farmInfo()).reward).to.be.equal(farmInfoBefore.reward);
+                expect((await farm.farmInfo()).duration).to.be.equal(farmInfoBefore.duration);
+                expect((await farm.farmInfo()).finished).to.be.equal(farmInfoBefore.finished);
             });
         });
 
