@@ -1,7 +1,8 @@
-const { expect, time, ether } = require('@1inch/solidity-utils');
+const { constants, expect, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
 const { startMultiFarming } = require('./utils');
+const { Typed } = require('ethers');
 
 describe('MultiFarmingPlugin', function () {
     let wallet1, wallet2, wallet3;
@@ -97,47 +98,49 @@ describe('MultiFarmingPlugin', function () {
     });
 
     describe('rescueFunds', function () {
-        it('should thrown with insufficient funds', async function () {
-            const { gifts, multiFarm } = await loadFixture(initContracts);
-            const gift = gifts[0];
-            const duration = BigInt(60 * 60 * 24);
-            await multiFarm.startFarming(gift, 1000, duration);
-            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
-
-            const balanceWalletBefore = await gift.balanceOf(wallet1);
-            const balanceFarmBefore = await gift.balanceOf(multiFarm);
-
-            const distributor = await multiFarm.distributor();
-            expect(wallet1.address).to.equal(distributor);
-            await expect(multiFarm.rescueFunds(gift, '1000')).to.be.revertedWithCustomError(multiFarm, 'InsufficientFunds');
-
-            expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore);
-            expect(await gift.balanceOf(multiFarm)).to.equal(balanceFarmBefore);
-        });
-
         it('should transfer remaining reward tokens from farm to wallet', async function () {
             const { gifts, multiFarm } = await loadFixture(initContracts);
             const gift = gifts[0];
             const duration = BigInt(60 * 60 * 24);
-            const amount = 500n;
-            await multiFarm.startFarming(gift, 1000, duration);
-            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+            const amount = 1000n;
+            await multiFarm.startFarming(gift, amount, duration);
+            const timestamp = (await multiFarm.farmInfo(gift)).finished - duration / 2n;
+            await time.increaseTo(timestamp);
 
             const balanceWalletBefore = await gift.balanceOf(wallet1);
             const balanceFarmBefore = await gift.balanceOf(multiFarm);
-            const farmInfoBefore = await multiFarm.farmInfo(gift);
+            const finishedBefore = (await multiFarm.farmInfo(gift)).finished;
 
             const distributor = await multiFarm.distributor();
             expect(wallet1.address).to.equal(distributor);
-            await multiFarm.rescueFunds(gift, amount);
-            const newDuration = farmInfoBefore.duration * (farmInfoBefore.reward - amount) / farmInfoBefore.reward;
-            const newFinished = farmInfoBefore.finished - duration + newDuration;
+            await multiFarm.rescueFunds(gift);
 
-            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
-            expect(await gift.balanceOf(multiFarm)).to.be.equal(balanceFarmBefore - amount);
-            expect((await multiFarm.farmInfo(gift)).reward).to.be.equal(farmInfoBefore.reward - amount);
-            expect((await multiFarm.farmInfo(gift)).duration).to.be.equal(newDuration);
-            expect((await multiFarm.farmInfo(gift)).finished).to.be.equal(newFinished);
+            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount / 2n);
+            expect(await gift.balanceOf(multiFarm)).to.be.equal(balanceFarmBefore - amount / 2n);
+            expect((await multiFarm.farmInfo(gift)).reward).to.be.equal(0);
+            expect((await multiFarm.farmInfo(gift)).duration).to.be.equal(0);
+            expect((await multiFarm.farmInfo(gift)).finished).to.be.gte(timestamp).lt(finishedBefore);
+        });
+
+        it('should transfer ethers from farm to wallet', async function () {
+            const { multiFarm } = await loadFixture(initContracts);
+            // Transfer ethers to farm
+            const EthTransferMock = await ethers.getContractFactory('EthTransferMock');
+            const ethMock = await EthTransferMock.deploy(multiFarm, { value: '1000' });
+            await ethMock.waitForDeployment();
+
+            // Check rescueFunds
+            const balanceWalletBefore = await ethers.provider.getBalance(wallet1);
+            const balanceFarmBefore = await ethers.provider.getBalance(multiFarm);
+
+            const distributor = await multiFarm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            const tx = await multiFarm.rescueFunds(constants.ZERO_ADDRESS);
+            const receipt = await tx.wait();
+            const txCost = receipt.gasUsed * receipt.gasPrice;
+
+            expect(await ethers.provider.getBalance(wallet1)).to.equal(balanceWalletBefore - txCost + balanceFarmBefore);
+            expect(await ethers.provider.getBalance(multiFarm)).to.equal(0);
         });
 
         it('should transfer all tokens from farm to wallet during farming', async function () {
@@ -155,13 +158,87 @@ describe('MultiFarmingPlugin', function () {
 
             const distributor = await multiFarm.distributor();
             expect(wallet1.address).to.equal(distributor);
-            await multiFarm.rescueFunds(token, amount);
+            await multiFarm.rescueFunds(token);
 
             expect(await token.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
             expect(await token.balanceOf(multiFarm)).to.be.equal(balanceFarmBefore - amount);
             expect((await multiFarm.farmInfo(gift)).reward).to.be.equal(farmInfoBefore.reward);
             expect((await multiFarm.farmInfo(gift)).duration).to.be.equal(farmInfoBefore.duration);
             expect((await multiFarm.farmInfo(gift)).finished).to.be.equal(farmInfoBefore.finished);
+        });
+    });
+
+    describe('withdrawable', function () {
+        it('should calculate correct withdrawable amount of tokens', async function () {
+            const { gifts, token, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const amount = 100n;
+            await token.mint(multiFarm, amount);
+            const duration = BigInt(60 * 60 * 24);
+            await multiFarm.startFarming(gift, 1000n, duration);
+
+            expect(await multiFarm.withdrawable(token)).to.be.equal(amount);
+
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+            expect(await multiFarm.withdrawable(token)).to.be.equal(amount);
+        });
+
+        it('should calculate correct withdrawable amount of ethers', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const amount = 100n;
+
+            // Transfer ethers to farm
+            const EthTransferMock = await ethers.getContractFactory('EthTransferMock');
+            const ethMock = await EthTransferMock.deploy(multiFarm, { value: amount });
+            await ethMock.waitForDeployment();
+
+            const duration = BigInt(60 * 60 * 24);
+            await multiFarm.startFarming(gift, 1000n, duration);
+
+            expect(await multiFarm.withdrawable(constants.ZERO_ADDRESS)).to.be.equal(amount);
+
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+            expect(await multiFarm.withdrawable(constants.ZERO_ADDRESS)).to.be.equal(amount);
+        });
+
+        it('should calculate correct withdrawable amount of reward tokens', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const farmingAmount = 1000n;
+            const duration = BigInt(60 * 60 * 24);
+            await multiFarm.startFarming(gift, farmingAmount, duration);
+
+            expect(await multiFarm.withdrawable(gift)).to.be.equal(farmingAmount);
+
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+            expect(await multiFarm.withdrawable(gift)).to.be.equal(farmingAmount / 2n);
+        });
+
+        it('should calculate correct withdrawable amount of reward tokens at the specified timestamp', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const farmingAmount = 1000n;
+            const duration = BigInt(60 * 60 * 24);
+            await multiFarm.startFarming(gift, farmingAmount, duration);
+            const farmInfo = await multiFarm.farmInfo(gift);
+
+            // 0% of farming duration
+            let timestamp = farmInfo.finished - duration;
+            expect(await multiFarm.withdrawable(gift, Typed.uint256(timestamp))).to.be.equal(farmingAmount);
+
+            // 25% of farming duration
+            timestamp += duration / 4n;
+            expect(await multiFarm.withdrawable(gift, Typed.uint256(timestamp))).to.be.equal(farmingAmount * 3n / 4n);
+
+            // 75% of farming duration
+            timestamp += duration / 2n;
+            expect(await multiFarm.withdrawable(gift, Typed.uint256((timestamp)))).to.be.equal(farmingAmount / 4n);
+
+            // 100% of farming duration
+            timestamp += duration / 4n;
+            expect((await multiFarm.farmInfo(gift)).finished).to.be.equal(timestamp);
+            expect(await multiFarm.withdrawable(gift, Typed.uint256(timestamp))).to.be.equal(0);
         });
     });
 });

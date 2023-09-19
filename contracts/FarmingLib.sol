@@ -66,18 +66,22 @@ library FarmingLib {
         reward = data.farmInfo.startFarming(amount, period);
     }
 
-    function reduceFarming(Info memory self, uint256 amount) internal returns(uint256 reward, uint256 duration) {
+    /**
+     * @notice Stops farming and updates farmed per token ratio.
+     * @param self The FarmingLib.Info struct to retrieve data from storage
+     * @return rewardsLeft Amount of reward tokens remaining after farming
+     */
+    function stopFarming(Info memory self) internal returns(uint256 rewardsLeft) {
         Data storage data = self.getData();
         data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
         FarmAccounting.Info memory info = data.farmInfo;
-        uint256 leftover = info.reward - info.farmedSinceCheckpointScaled(info.finished - info.duration) / FarmAccounting._SCALE;
-        if (leftover < amount) revert InsufficientFunds();
-        duration = info.duration * (info.reward - amount) / info.reward;
-        info.finished = uint40(info.finished - info.duration + duration);
-        info.duration = uint32(duration);
-        info.reward = uint184(info.reward - amount);
-        data.farmInfo = info;
-        reward = info.reward;
+        rewardsLeft = info.reward -
+            info.farmedSinceCheckpointScaled(info.finished - info.duration, block.timestamp) / FarmAccounting._SCALE;
+        // Save FarmAccounting.Info to the storage, finished = block.timestamp, duration = 0, reward = 0
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            sstore(data.slot, timestamp())
+        }
     }
 
     /**
@@ -89,6 +93,18 @@ library FarmingLib {
      */
     function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
         return self.getData().userInfo.farmed(account, balance, _farmedPerToken(self));
+    }
+
+    /**
+     * @notice Gets amount of undistributed reward tokens at the specified timestamp.
+     * @param self The FarmingLib.Info struct to retrieve data from storage
+     * @return result Amount of undistributed reward tokens
+     */
+    function undistributedRewards(Info memory self, uint256 timestamp) internal view returns(uint256) {
+        Data storage data = self.getData();
+        FarmAccounting.Info memory info = data.farmInfo;
+        return info.reward -
+            info.farmedSinceCheckpointScaled(info.finished - info.duration, timestamp) / FarmAccounting._SCALE;
     }
 
     /**
@@ -131,7 +147,7 @@ library FarmingLib {
 
     function _lazyGetFarmed(bytes32 context, uint256 checkpoint) private view returns(uint256) {
         Info memory self = _contextToInfo(context);
-        return self.getData().farmInfo.farmedSinceCheckpointScaled(checkpoint);
+        return self.getData().farmInfo.farmedSinceCheckpointScaled(checkpoint, block.timestamp);
     }
 
     function _contextToInfo(bytes32 context) private pure returns(Info memory self) {

@@ -11,8 +11,9 @@ import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20P
 
 import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
 import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
+import { WithdrawableGetters } from "./WithdrawableGetters.sol";
 
-contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
+contract FarmingPlugin is WithdrawableGetters, Plugin, IFarmingPlugin, Ownable {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using FarmAccounting for FarmAccounting.Info;
@@ -96,16 +97,29 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
         }
     }
 
-    function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
-        if(token_ == IERC20(address(0))) {
-            payable(_distributor).sendValue(amount);
+    function rescueFunds(IERC20 token_) public virtual onlyDistributor {
+        if (token_ == IERC20(address(0))) {
+            payable(_distributor).sendValue(address(this).balance);
         } else {
+            uint256 amount;
             if (token_ == rewardsToken) {
-                (uint256 reward, uint256 duration) = _makeInfo().reduceFarming(amount);
-                emit RewardUpdated(reward, duration);
+                amount = _makeInfo().stopFarming();
+                emit FarmingStopped();
+            } else {
+                amount = token_.balanceOf(address(this));
             }
             token_.safeTransfer(_distributor, amount);
         }
+    }
+
+    function _withdrawable(IERC20 token_, uint256 timestamp) internal view override returns(uint256) {
+        if (token_ == IERC20(address(0))) {
+            return address(this).balance;
+        }
+        if (token_ == rewardsToken) {
+            return _makeInfo().undistributedRewards(timestamp);
+        }
+        return token_.balanceOf(address(this));
     }
 
     function _makeInfo() private view returns(FarmingLib.Info memory) {

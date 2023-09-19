@@ -19,10 +19,10 @@ library FarmAccounting {
     uint256 internal constant _SCALE = 1e18;  // 60 bits
 
     /// @dev Requires extra 18 decimals for precision, result fits in 168 bits
-    function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
+    function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint, uint256 timestamp) internal pure returns(uint256 amount) {
         unchecked {
             if (info.duration > 0) {
-                uint256 elapsed = Math.min(block.timestamp, info.finished) - Math.min(checkpoint, info.finished);
+                uint256 elapsed = Math.min(timestamp, info.finished) - Math.min(checkpoint, info.finished);
                 // size of (type(uint32).max * _MAX_REWARD_AMOUNT * _SCALE) is less than 200 bits, so there is no overflow
                 return elapsed * info.reward * _SCALE / info.duration;
             }
@@ -36,7 +36,8 @@ library FarmAccounting {
         // If something left from prev farming add it to the new farming
         Info memory prev = info;
         if (block.timestamp < prev.finished) {
-            amount += prev.reward - farmedSinceCheckpointScaled(prev, prev.finished - prev.duration) / _SCALE;
+            amount += prev.reward -
+                farmedSinceCheckpointScaled(prev, prev.finished - prev.duration, block.timestamp) / _SCALE;
         }
 
         if (amount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();

@@ -12,8 +12,9 @@ import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20P
 
 import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
+import { WithdrawableGetters } from "./WithdrawableGetters.sol";
 
-contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
+contract MultiFarmingPlugin is WithdrawableGetters, Plugin, IMultiFarmingPlugin, Ownable {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using Address for address payable;
@@ -135,16 +136,29 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         }
     }
 
-    function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
+    function rescueFunds(IERC20 token_) public virtual onlyDistributor {
         if(token_ == IERC20(address(0))) {
-            payable(_distributor).sendValue(amount);
+            payable(_distributor).sendValue(address(this).balance);
         } else {
+            uint256 amount;
             if (_rewardsTokens.contains(address(token_))) {
-                (uint256 reward, uint256 duration) = _makeInfo(token_).reduceFarming(amount);
-                emit RewardUpdated(address(token_), reward, duration);
+                amount = _makeInfo(token_).stopFarming();
+                emit FarmingStopped();
+            } else {
+                amount = token_.balanceOf(address(this));
             }
             token_.safeTransfer(_distributor, amount);
         }
+    }
+
+    function _withdrawable(IERC20 token_, uint256 timestamp) internal view override returns(uint256) {
+        if (token_ == IERC20(address(0))) {
+            return address(this).balance;
+        }
+        if (_rewardsTokens.contains(address(token_))) {
+            return _makeInfo(token_).undistributedRewards(timestamp);
+        }
+        return token_.balanceOf(address(this));
     }
 
     function _makeInfo(IERC20 rewardsToken) private view returns(FarmingLib.Info memory) {

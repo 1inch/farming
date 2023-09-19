@@ -10,8 +10,9 @@ import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.s
 
 import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
+import { WithdrawableGetters } from "./WithdrawableGetters.sol";
 
-contract FarmingPool is IFarmingPool, Ownable, ERC20 {
+contract FarmingPool is WithdrawableGetters, IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
     using Address for address payable;
     using FarmingLib for FarmingLib.Info;
@@ -106,21 +107,37 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         claim();
     }
 
-    function rescueFunds(IERC20 token, uint256 amount) public virtual onlyDistributor {
+    function rescueFunds(IERC20 token) public virtual onlyDistributor {
         if (token == IERC20(address(0))) {
-            payable(_distributor).sendValue(amount);
+            payable(_distributor).sendValue(address(this).balance);
         } else {
+            uint256 amount;
             if (token == rewardsToken) {
-                (uint256 reward, uint256 duration) = _makeInfo().reduceFarming(amount);
-                emit RewardUpdated(reward, duration);
+                amount = _makeInfo().stopFarming();
+                emit FarmingStopped();
+            } else {
+                amount = token.balanceOf(address(this));
+                if (token == stakingToken) {
+                    uint256 staked = totalSupply();
+                    amount = amount >= staked ? amount - staked: 0;
+                }
             }
-
             token.safeTransfer(_distributor, amount);
-
-            if (token == stakingToken) {
-                if (stakingToken.balanceOf(address(this)) < totalSupply()) revert NotEnoughBalance();
-            }
         }
+    }
+
+    function _withdrawable(IERC20 token, uint256 timestamp) internal view override returns(uint256) {
+        if(token == IERC20(address(0))) {
+            return address(this).balance;
+        }
+        if (token == rewardsToken) {
+            return _makeInfo().undistributedRewards(timestamp);
+        }
+        if (token == stakingToken) {
+            uint256 amount = token.balanceOf(address(this));
+            return amount >= totalSupply() ? amount - totalSupply(): 0;
+        }
+        return token.balanceOf(address(this));
     }
 
     function _makeInfo() private view returns(FarmingLib.Info memory) {

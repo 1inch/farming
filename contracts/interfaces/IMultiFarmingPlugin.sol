@@ -10,6 +10,7 @@ interface IMultiFarmingPlugin is IPlugin {
     event FarmCreated(address token, address reward);
     event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardUpdated(address token, uint256 reward, uint256 duration);
+    event FarmingStopped();
 
     // View functions
     function totalSupply() external view returns(uint256);
@@ -26,5 +27,5 @@ interface IMultiFarmingPlugin is IPlugin {
 
     // Distributor functions
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) external;
-    function rescueFunds(IERC20 token, uint256 amount) external;
+    function rescueFunds(IERC20 token) external;
 }
