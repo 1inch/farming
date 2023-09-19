@@ -119,7 +119,7 @@ contract FarmingPool is WithdrawableGetters, IFarmingPool, Ownable, ERC20 {
                 amount = token.balanceOf(address(this));
                 if (token == stakingToken) {
                     uint256 staked = totalSupply();
-                    amount = amount >= staked ? amount - staked: 0;
+                    amount = amount > staked ? amount - staked: 0;
                 }
             }
             token.safeTransfer(_distributor, amount);
@@ -135,7 +135,8 @@ contract FarmingPool is WithdrawableGetters, IFarmingPool, Ownable, ERC20 {
         }
         if (token == stakingToken) {
             uint256 amount = token.balanceOf(address(this));
-            return amount >= totalSupply() ? amount - totalSupply(): 0;
+            uint256 staked = totalSupply();
+            return amount > staked ? amount - staked: 0;
         }
         return token.balanceOf(address(this));
     }
