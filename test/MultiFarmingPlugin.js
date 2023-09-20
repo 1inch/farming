@@ -98,6 +98,16 @@ describe('MultiFarmingPlugin', function () {
     });
 
     describe('rescueFunds', function () {
+        it('should thrown with access denied', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const distributor = await multiFarm.distributor();
+            expect(wallet2).to.not.equal(distributor);
+            await expect(
+                multiFarm.connect(wallet2).rescueFunds(gift),
+            ).to.be.revertedWithCustomError(multiFarm, 'AccessDenied');
+        });
+
         it('should transfer remaining reward tokens from farm to wallet', async function () {
             const { gifts, multiFarm } = await loadFixture(initContracts);
             const gift = gifts[0];
@@ -239,6 +249,30 @@ describe('MultiFarmingPlugin', function () {
             timestamp += duration / 4n;
             expect((await multiFarm.farmInfo(gift)).finished).to.be.equal(timestamp);
             expect(await multiFarm.withdrawable(gift, Typed.uint256(timestamp))).to.be.equal(0);
+        });
+
+        it('should calculate correct withdrawable amount of reward tokens, 2 consecutive farmings', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const farmingAmount = 1000n;
+            const duration = BigInt(60 * 60 * 24);
+            await multiFarm.startFarming(gift, farmingAmount, duration);
+            expect(await multiFarm.withdrawable(gift)).to.be.equal(farmingAmount);
+
+            // 50% of 1st farming duration
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+            expect(await multiFarm.withdrawable(gift)).to.be.equal(farmingAmount / 2n);
+            // 1st farming stopped
+            await multiFarm.rescueFunds(gift);
+            expect(await multiFarm.withdrawable(gift)).to.be.equal(0);
+
+            // 2nd farming started
+            await multiFarm.startFarming(gift, farmingAmount * 2n, duration);
+            expect(await multiFarm.withdrawable(gift)).to.be.equal(farmingAmount * 2n);
+
+            // 2nd farming finished
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished + duration / 2n);
+            expect(await multiFarm.withdrawable(gift)).to.be.equal(0);
         });
     });
 });

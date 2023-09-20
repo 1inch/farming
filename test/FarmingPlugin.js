@@ -390,6 +390,40 @@ describe('FarmingPlugin', function () {
                 expect((await farm.farmInfo()).duration).to.be.equal(farmInfoBefore.duration);
                 expect((await farm.farmInfo()).finished).to.be.equal(farmInfoBefore.finished);
             });
+
+            /*
+                ***Test Scenario**
+                Ensures that a distributor account can get all remaining funds from the farm that haven't been distributed
+                or have been accidentally sent there, using the `rescueFunds` function.
+
+                ***Initial setup**
+                - A farm has started farming and reward tokens have been minted to the farm
+
+                ***Test Steps**
+                - Distributor calls the `rescueFunds` function to transfer 2000 reward tokens from the farm to its account
+                - Check the balances of the distributor's account and the farm's accounts
+
+                ***Expected results**
+                - 2000 reward tokens are transferred from the farm to the distributor
+                - The farm's reward tokens amount becomes 0
+            */
+                it('should transfer all remaining reward tokens from farm to wallet', async function () {
+                    const { gift, farm } = await loadFixture(initContracts);
+                    const duration = BigInt(60 * 60 * 24);
+                    const amount = 1000n;
+                    await farm.startFarming(amount, duration);
+                    await gift.mint(farm, amount);
+    
+                    const balanceWalletBefore = await gift.balanceOf(wallet1);
+                    const balanceFarmBefore = await gift.balanceOf(farm);
+
+                    const distributor = await farm.distributor();
+                    expect(wallet1.address).to.equal(distributor);
+                    await farm.rescueFunds(gift);
+
+                    expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount * 2n);
+                    expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount * 2n);
+                });
         });
 
         // Farm's plugins scenarios
@@ -557,6 +591,29 @@ describe('FarmingPlugin', function () {
                 timestamp += duration / 4n;
                 expect((await farm.farmInfo()).finished).to.be.equal(timestamp);
                 expect(await farm.withdrawable(gift, Typed.uint256(timestamp))).to.be.equal(0);
+            });
+
+            it('should calculate correct withdrawable amount of reward tokens, 2 consecutive farmings', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                const farmingAmount = 1000n;
+                const duration = BigInt(60 * 60 * 24);
+                await farm.startFarming(farmingAmount, duration);
+                expect(await farm.withdrawable(gift)).to.be.equal(farmingAmount);
+
+                // 50% of 1st farming duration
+                await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+                expect(await farm.withdrawable(gift)).to.be.equal(farmingAmount / 2n);
+                // 1st farming stopped
+                await farm.rescueFunds(gift);
+                expect(await farm.withdrawable(gift)).to.be.equal(0);
+
+                // 2nd farming started
+                await farm.startFarming(farmingAmount * 2n, duration);
+                expect(await farm.withdrawable(gift)).to.be.equal(farmingAmount * 2n);
+
+                // 2nd farming finished
+                await time.increaseTo((await farm.farmInfo()).finished + duration / 2n);
+                expect(await farm.withdrawable(gift)).to.be.equal(0);
             });
         });
     });

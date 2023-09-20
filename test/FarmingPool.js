@@ -643,16 +643,18 @@ describe('FarmingPool', function () {
         it('should calculate correct withdrawable amount of deposit tokens', async function () {
             const { token, farm } = await loadFixture(initContracts);
             const amount = 100n;
-            await token.mint(farm, amount);
             const duration = BigInt(60 * 60 * 24);
             await farm.startFarming(1000n, duration);
+            await farm.deposit(amount);
+            // balance = 100, staked = 100
+            expect(await farm.withdrawable(token)).to.be.equal(0);
 
+            await token.mint(farm, amount);
+            // balance = 200, staked = 100
             expect(await farm.withdrawable(token)).to.be.equal(amount);
 
             await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
-            expect(await farm.withdrawable(token)).to.be.equal(amount);
-            
-            await farm.deposit(amount);
+            // balance = 200, staked = 100
             expect(await farm.withdrawable(token)).to.be.equal(amount);
         });
 
@@ -709,6 +711,29 @@ describe('FarmingPool', function () {
             timestamp += duration / 4n;
             expect((await farm.farmInfo()).finished).to.be.equal(timestamp);
             expect(await farm.withdrawable(gift, Typed.uint256(timestamp))).to.be.equal(0);
+        });
+
+        it('should calculate correct withdrawable amount of reward tokens, 2 consecutive farmings', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const farmingAmount = 1000n;
+            const duration = BigInt(60 * 60 * 24);
+            await farm.startFarming(farmingAmount, duration);
+            expect(await farm.withdrawable(gift)).to.be.equal(farmingAmount);
+
+            // 50% of 1st farming duration
+            await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+            expect(await farm.withdrawable(gift)).to.be.equal(farmingAmount / 2n);
+            // 1st farming stopped
+            await farm.rescueFunds(gift);
+            expect(await farm.withdrawable(gift)).to.be.equal(0);
+
+            // 2nd farming started
+            await farm.startFarming(farmingAmount * 2n, duration);
+            expect(await farm.withdrawable(gift)).to.be.equal(farmingAmount * 2n);
+
+            // 2nd farming finished
+            await time.increaseTo((await farm.farmInfo()).finished + duration / 2n);
+            expect(await farm.withdrawable(gift)).to.be.equal(0);
         });
     });
 });
