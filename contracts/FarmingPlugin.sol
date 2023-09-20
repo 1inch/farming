@@ -13,7 +13,7 @@ import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
 import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
 import { WithdrawableGetters } from "./WithdrawableGetters.sol";
 
-contract FarmingPlugin is WithdrawableGetters, Plugin, IFarmingPlugin, Ownable {
+contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable, WithdrawableGetters {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using FarmAccounting for FarmAccounting.Info;

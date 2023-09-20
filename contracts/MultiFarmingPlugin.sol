@@ -14,7 +14,7 @@ import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
 import { WithdrawableGetters } from "./WithdrawableGetters.sol";
 
-contract MultiFarmingPlugin is WithdrawableGetters, Plugin, IMultiFarmingPlugin, Ownable {
+contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable, WithdrawableGetters {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using Address for address payable;

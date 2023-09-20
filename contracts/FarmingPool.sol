@@ -12,7 +12,7 @@ import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
 import { WithdrawableGetters } from "./WithdrawableGetters.sol";
 
-contract FarmingPool is WithdrawableGetters, IFarmingPool, Ownable, ERC20 {
+contract FarmingPool is IFarmingPool, Ownable, ERC20, WithdrawableGetters {
     using SafeERC20 for IERC20;
     using Address for address payable;
     using FarmingLib for FarmingLib.Info;
