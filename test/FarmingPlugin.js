@@ -407,23 +407,23 @@ describe('FarmingPlugin', function () {
                 - 2000 reward tokens are transferred from the farm to the distributor
                 - The farm's reward tokens amount becomes 0
             */
-                it('should transfer all remaining reward tokens from farm to wallet', async function () {
-                    const { gift, farm } = await loadFixture(initContracts);
-                    const duration = BigInt(60 * 60 * 24);
-                    const amount = 1000n;
-                    await farm.startFarming(amount, duration);
-                    await gift.mint(farm, amount);
+            it('should transfer all remaining reward tokens from farm to wallet', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                const duration = BigInt(60 * 60 * 24);
+                const amount = 1000n;
+                await farm.startFarming(amount, duration);
+                await gift.mint(farm, amount);
     
-                    const balanceWalletBefore = await gift.balanceOf(wallet1);
-                    const balanceFarmBefore = await gift.balanceOf(farm);
+                const balanceWalletBefore = await gift.balanceOf(wallet1);
+                const balanceFarmBefore = await gift.balanceOf(farm);
 
-                    const distributor = await farm.distributor();
-                    expect(wallet1.address).to.equal(distributor);
-                    await farm.rescueFunds(gift);
+                const distributor = await farm.distributor();
+                expect(wallet1.address).to.equal(distributor);
+                await farm.rescueFunds(gift);
 
-                    expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount * 2n);
-                    expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount * 2n);
-                });
+                expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount * 2n);
+                expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount * 2n);
+            });
         });
 
         // Farm's plugins scenarios
