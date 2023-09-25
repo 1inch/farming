@@ -28,7 +28,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     error RewardsTokensLimitTooHigh(uint256);
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
-    error NotEnoughBalance();
+    error InsufficientFunds();
 
     uint256 public immutable rewardsTokensLimit;
 
@@ -93,7 +93,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
 
         uint256 leftover = _makeInfo(rewardsToken).stopFarming();
         emit RewardUpdated(address(rewardsToken), 0, 0);
-        rewardsToken.safeTransfer(msg.sender, leftover);
+        if (leftover > 0) {
+            rewardsToken.safeTransfer(msg.sender, leftover);
+        }
     }
 
     function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
@@ -149,7 +151,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
             payable(_distributor).sendValue(amount);
         } else {
             if (_rewardsTokens.contains(address(token_))) {
-                if (token_.balanceOf(address(this)) < _farms[token_].farmInfo.balance + amount) revert NotEnoughBalance();
+                if (token_.balanceOf(address(this)) < _farms[token_].farmInfo.balance + amount) revert InsufficientFunds();
             }
             token_.safeTransfer(_distributor, amount);
         }

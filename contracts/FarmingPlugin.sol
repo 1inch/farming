@@ -22,7 +22,7 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
     error ZeroRewardsTokenAddress();
     error ZeroDistributorAddress();
     error SameDistributor();
-    error NotEnoughBalance();
+    error InsufficientFunds();
 
     IERC20 public immutable rewardsToken;
 
@@ -73,7 +73,9 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
     function stopFarming() public virtual onlyDistributor {
         uint256 leftover = _makeInfo().stopFarming();
         emit RewardUpdated(0, 0);
-        rewardsToken.safeTransfer(msg.sender, leftover);
+        if (leftover > 0) {
+            rewardsToken.safeTransfer(msg.sender, leftover);
+        }
     }
 
     function farmed(address account) public view virtual returns(uint256) {
@@ -108,7 +110,7 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
             payable(_distributor).sendValue(amount);
         } else {
             if (token_ == rewardsToken) {
-                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert NotEnoughBalance();
+                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
             }
             token_.safeTransfer(_distributor, amount);
         }

@@ -226,6 +226,28 @@ describe('FarmingPlugin', function () {
         describe('stopFarming', function () {
             /*
                 ***Test Scenario**
+                Ensures that a non-distributor account cannot call the `stopFarming` function to get all the remaining funds from the farm.
+
+                ***Initial setup**
+                - `wallet2` is not a distributor
+
+                ***Test Steps**
+                - `wallet2` calls `rescueFunds` function
+
+                ***Expected results**
+                - Call is reverted with an error `'AccessDenied()'`
+            */
+            it('should thrown with access denied', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                const distributor = await farm.distributor();
+                expect(wallet2).to.not.equal(distributor);
+                await expect(
+                    farm.connect(wallet2).stopFarming(),
+                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
+            });
+
+            /*
+                ***Test Scenario**
                 Ensures that a distributor account can get remaining funds from the farm using the `rescueFunds` function.
 
                 ***Initial setup**
@@ -279,7 +301,6 @@ describe('FarmingPlugin', function () {
 
                 const balanceWalletBefore = await gift.balanceOf(wallet1);
                 const balanceFarmBefore = await gift.balanceOf(farm);
-                const farmInfoBefore = await farm.farmInfo();
 
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
@@ -319,6 +340,36 @@ describe('FarmingPlugin', function () {
 
             /*
                 ***Test Scenario**
+                Ensures that a distributor account can get remaining funds from the farm using the `rescueFunds` function.
+
+                ***Initial setup**
+                - A farm has started farming
+
+                ***Test Steps**
+                - Distributor calls the `rescueFunds` function to transfer 1000 reward tokens from the farm to its account
+                - Check the balances of the distributor's account and the farm's accounts
+
+                ***Expected results**
+                - 1000 reward tokens are transferred from the farm to the distributor
+            */
+            it('should transfer tokens from farm to wallet', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                await farm.startFarming(1000, 60 * 60 * 24);
+                await gift.transfer(farm, 1000);
+
+                const balanceWalletBefore = await gift.balanceOf(wallet1);
+                const balanceFarmBefore = await gift.balanceOf(farm);
+
+                const distributor = await farm.distributor();
+                expect(wallet1.address).to.equal(distributor);
+                await farm.rescueFunds(gift, '1000');
+
+                expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore + 1000n);
+                expect(await gift.balanceOf(farm)).to.equal(balanceFarmBefore - 1000n);
+            });
+
+            /*
+                ***Test Scenario**
                 Ensure that `rescueFunds` can transfer ether to a distributor
 
                 ***Initial setup**
@@ -350,6 +401,37 @@ describe('FarmingPlugin', function () {
 
                 expect(await ethers.provider.getBalance(wallet1)).to.equal(balanceWalletBefore - txCost + 1000n);
                 expect(await ethers.provider.getBalance(farm)).to.equal(balanceFarmBefore - 1000n);
+            });
+
+            /*
+                ***Test Scenario**
+                Ensures that a distributor account cannot get funds that have been distributed
+                from the farm using the `rescueFunds` function.
+
+                ***Initial setup**
+                - A farm has started farming and distributed half of the reward tokens
+
+                ***Test Steps**
+                - Distributor calls the `rescueFunds` function to transfer 1000 reward tokens from the farm to its account
+
+                ***Expected results**
+                - Call is reverted with an error `'InsufficientFunds()'`
+            */
+            it('should thrown with insufficient funds', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                const duration = BigInt(60 * 60 * 24);
+                await farm.startFarming(1000, duration);
+                await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+
+                const balanceWalletBefore = await gift.balanceOf(wallet1);
+                const balanceFarmBefore = await gift.balanceOf(farm);
+
+                const distributor = await farm.distributor();
+                expect(wallet1.address).to.equal(distributor);
+                await expect(farm.rescueFunds(gift, '1000')).to.be.revertedWithCustomError(farm, 'InsufficientFunds');
+
+                expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore);
+                expect(await gift.balanceOf(farm)).to.equal(balanceFarmBefore);
             });
 
             /*

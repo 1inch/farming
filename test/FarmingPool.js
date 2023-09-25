@@ -507,6 +507,15 @@ describe('FarmingPool', function () {
     });
 
     describe('stopFarming', function () {
+        it('should throw with access denied', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const distributor = await farm.distributor();
+            expect(wallet2.address).to.not.equal(distributor);
+            await expect(
+                farm.connect(wallet2).stopFarming(),
+            ).to.be.revertedWithCustomError(farm, 'AccessDenied');
+        });
+
         it('should transfer tokens from farm to wallet', async function () {
             const { gift, farm } = await loadFixture(initContracts);
             await farm.startFarming(1000, time.duration.weeks(1));
@@ -563,7 +572,7 @@ describe('FarmingPool', function () {
             expect(wallet1.address).to.equal(distributor);
             await expect(
                 farm.rescueFunds(token, '1000'),
-            ).to.be.revertedWithCustomError(farm, 'NotEnoughBalance');
+            ).to.be.revertedWithCustomError(farm, 'InsufficientFunds');
         });
 
         it('should transfer staking token and leave balance of staking tokens more than (and equals to) totalBalance amount', async function () {
@@ -601,24 +610,40 @@ describe('FarmingPool', function () {
             expect(await ethers.provider.getBalance(farm)).to.equal(balanceFarmBefore - 1000n);
         });
 
-        it('should transfer all tokens from farm to wallet during farming', async function () {
-            const { token, farm } = await loadFixture(initContracts);
+        it('should thrown with insufficient funds for gift token', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const duration = BigInt(60 * 60 * 24);
+            await farm.startFarming(1000, duration);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(farm);
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await expect(farm.rescueFunds(gift, '1000')).to.be.revertedWithCustomError(farm, 'InsufficientFunds');
+
+            expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore);
+            expect(await gift.balanceOf(farm)).to.equal(balanceFarmBefore);
+        });
+
+        it('should rescue extra gift tokens from farm to wallet during farming', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
             const duration = BigInt(60 * 60 * 24);
             const amount = 100n;
-            await token.mint(farm, amount);
+            await gift.mint(farm, amount);
             await farm.startFarming(1000, duration);
             await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
 
-            const balanceWalletBefore = await token.balanceOf(wallet1);
-            const balanceFarmBefore = await token.balanceOf(farm);
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(farm);
             const farmInfoBefore = await farm.farmInfo();
 
             const distributor = await farm.distributor();
             expect(wallet1.address).to.equal(distributor);
-            await farm.rescueFunds(token, amount);
+            await farm.rescueFunds(gift, amount);
 
-            expect(await token.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
-            expect(await token.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
+            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
+            expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
             expect((await farm.farmInfo()).reward).to.be.equal(farmInfoBefore.reward);
             expect((await farm.farmInfo()).duration).to.be.equal(farmInfoBefore.duration);
             expect((await farm.farmInfo()).finished).to.be.equal(farmInfoBefore.finished);

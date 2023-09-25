@@ -107,7 +107,6 @@ describe('MultiFarmingPlugin', function () {
 
             const balanceWalletBefore = await gift.balanceOf(wallet1);
             const balanceFarmBefore = await gift.balanceOf(multiFarm);
-            const farmInfoBefore = await multiFarm.farmInfo(gift);
 
             const distributor = await multiFarm.distributor();
             expect(wallet1.address).to.equal(distributor);
@@ -122,6 +121,24 @@ describe('MultiFarmingPlugin', function () {
     });
 
     describe('rescueFunds', function () {
+        it('should thrown with insufficient funds', async function () {
+            const { gifts, multiFarm } = await loadFixture(initContracts);
+            const gift = gifts[0];
+            const duration = BigInt(60 * 60 * 24);
+            await multiFarm.startFarming(gift, 1000, duration);
+            await time.increaseTo((await multiFarm.farmInfo(gift)).finished - duration / 2n);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(multiFarm);
+
+            const distributor = await multiFarm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await expect(multiFarm.rescueFunds(gift, '1000')).to.be.revertedWithCustomError(multiFarm, 'InsufficientFunds');
+
+            expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore);
+            expect(await gift.balanceOf(multiFarm)).to.equal(balanceFarmBefore);
+        });
+
         it('should transfer all tokens from farm to wallet during farming', async function () {
             const { token, gifts, multiFarm } = await loadFixture(initContracts);
             const gift = gifts[0];
