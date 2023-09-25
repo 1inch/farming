@@ -28,6 +28,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     error RewardsTokensLimitTooHigh(uint256);
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
+    error NotEnoughBalance();
 
     uint256 public immutable rewardsTokensLimit;
 
@@ -148,8 +149,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
             payable(_distributor).sendValue(amount);
         } else {
             if (_rewardsTokens.contains(address(token_))) {
-                /// TODO: add feature
-                revert AccessDenied();
+                if (token_.balanceOf(address(this)) < _farms[token_].farmInfo.balance + amount) revert NotEnoughBalance();
             }
             token_.safeTransfer(_distributor, amount);
         }

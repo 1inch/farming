@@ -99,6 +99,7 @@ library FarmingLib {
         amount = data.userInfo.farmed(account, balance, fpt);
         if (amount > 0) {
             data.userInfo.eraseFarmed(account, balance, fpt);
+            data.farmInfo.claim(amount);
         }
     }
 
