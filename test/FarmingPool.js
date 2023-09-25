@@ -508,7 +508,7 @@ describe('FarmingPool', function () {
 
     describe('stopFarming', function () {
         it('should throw with access denied', async function () {
-            const { gift, farm } = await loadFixture(initContracts);
+            const { farm } = await loadFixture(initContracts);
             const distributor = await farm.distributor();
             expect(wallet2.address).to.not.equal(distributor);
             await expect(

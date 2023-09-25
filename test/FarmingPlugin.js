@@ -238,7 +238,7 @@ describe('FarmingPlugin', function () {
                 - Call is reverted with an error `'AccessDenied()'`
             */
             it('should thrown with access denied', async function () {
-                const { gift, farm } = await loadFixture(initContracts);
+                const { farm } = await loadFixture(initContracts);
                 const distributor = await farm.distributor();
                 expect(wallet2).to.not.equal(distributor);
                 await expect(
