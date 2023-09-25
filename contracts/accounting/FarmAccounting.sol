@@ -18,10 +18,6 @@ library FarmAccounting {
     uint256 internal constant _MAX_REWARD_AMOUNT = 1e32;  // 108 bits
     uint256 internal constant _SCALE = 1e18;  // 60 bits
 
-    function leftover(Info memory info) internal view returns(uint256) {
-        return info.reward - farmedSinceCheckpointScaled(info, info.finished - info.duration) / _SCALE;
-    }
-
     /// @dev Requires extra 18 decimals for precision, result fits in 168 bits
     function farmedSinceCheckpointScaled(Info memory info, uint256 checkpoint) internal view returns(uint256 amount) {
         unchecked {
@@ -47,5 +43,10 @@ library FarmAccounting {
 
         (info.finished, info.duration, info.reward) = (uint40(block.timestamp + period), uint32(period), uint184(amount));
         return amount;
+    }
+
+    function stopFarming(Info storage info) internal returns(uint256 leftover) {
+        leftover = info.reward - farmedSinceCheckpointScaled(info, info.finished - info.duration) / _SCALE;
+        (info.finished, info.duration, info.reward) = (uint40(block.timestamp), uint32(0), uint184(0));
     }
 }

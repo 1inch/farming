@@ -12,8 +12,6 @@ library FarmingLib {
     using UserAccounting for UserAccounting.Info;
     using FarmingLib for FarmingLib.Info;
 
-    error InsufficientFunds();
-
     /// @dev Struct containing farm and user detailed info for farming operations. See {FarmAccounting.Info} and {UserAccounting.Info} for.
     struct Data {
         FarmAccounting.Info farmInfo;
@@ -66,19 +64,15 @@ library FarmingLib {
         reward = data.farmInfo.startFarming(amount, period);
     }
 
-    function reduceFarming(Info memory self, uint256 amount) internal returns(uint256 reward, uint256 duration) {
+    /**
+     * @notice Stops farming immediately.
+     * @param self The Info struct.
+     * @return leftover The leftover amount.
+     */
+    function stopFarming(Info memory self) internal returns(uint256 leftover) {
         Data storage data = self.getData();
         data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
-        FarmAccounting.Info memory info = data.farmInfo;
-        if (info.leftover() < amount) revert InsufficientFunds();
-        duration = info.duration * (info.reward - amount) / info.reward;
-        reward = info.reward - amount;
-
-        data.farmInfo = FarmAccounting.Info({
-            finished: uint40(info.finished - info.duration + duration),
-            duration: uint32(duration),
-            reward: uint184(reward)
-        });
+        leftover = data.farmInfo.stopFarming();
     }
 
     /**

@@ -69,6 +69,12 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
+    function stopFarming() public virtual onlyDistributor {
+        uint256 leftover = _makeInfo().stopFarming();
+        emit RewardUpdated(0, 0);
+        rewardsToken.safeTransfer(msg.sender, leftover);
+    }
+
     function farmed(address account) public view virtual returns(uint256) {
         uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
         return _makeInfo().farmed(account, balance);
@@ -101,8 +107,8 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
             payable(_distributor).sendValue(amount);
         } else {
             if (token_ == rewardsToken) {
-                (uint256 reward, uint256 duration) = _makeInfo().reduceFarming(amount);
-                emit RewardUpdated(reward, duration);
+                /// TODO: add feature
+                revert AccessDenied();
             }
             token_.safeTransfer(_distributor, amount);
         }
