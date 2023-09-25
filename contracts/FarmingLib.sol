@@ -70,14 +70,15 @@ library FarmingLib {
         Data storage data = self.getData();
         data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
         FarmAccounting.Info memory info = data.farmInfo;
-        uint256 leftover = info.reward - info.farmedSinceCheckpointScaled(info.finished - info.duration) / FarmAccounting._SCALE;
-        if (leftover < amount) revert InsufficientFunds();
+        if (info.leftover() < amount) revert InsufficientFunds();
         duration = info.duration * (info.reward - amount) / info.reward;
-        info.finished = uint40(info.finished - info.duration + duration);
-        info.duration = uint32(duration);
-        info.reward = uint184(info.reward - amount);
-        data.farmInfo = info;
-        reward = info.reward;
+        reward = info.reward - amount;
+
+        data.farmInfo = FarmAccounting.Info({
+            finished: uint40(info.finished - info.duration + duration),
+            duration: uint32(duration),
+            reward: uint184(reward)
+        });
     }
 
     /**
