@@ -312,6 +312,42 @@ describe('FarmingPlugin', function () {
                 expect((await farm.farmInfo()).duration).to.be.equal(0);
                 expect((await farm.farmInfo()).finished).to.be.equal(await time.latest());
             });
+
+            /*
+                ***Test Scenario**
+                Ensures that a distributor account cannot get any funds from the farm after farming is finished
+
+                ***Initial setup**
+                - A farm has started farming, then finished it and distributed all the reward tokens
+
+                ***Test Steps**
+                - Distributor calls the `stopFarming` function to transfer 0 reward tokens from the farm to its account
+                - Check the balances of the distributor's account and the farm's accounts
+
+                ***Expected results**
+                - 0 reward tokens are transferred from the farm to the distributor
+                - The farm's reward tokens amount remains the same
+                - The farm's duration and finish time become 0
+            */
+            it('should transfer 0 reward tokens from farm to wallet after farming is finished', async function () {
+                const { gift, farm } = await loadFixture(initContracts);
+                const duration = BigInt(60 * 60 * 24);
+                await farm.startFarming(1000, duration);
+                await time.increaseTo((await farm.farmInfo()).finished + 1n);
+    
+                const balanceWalletBefore = await gift.balanceOf(wallet1);
+                const balanceFarmBefore = await gift.balanceOf(farm);
+    
+                const distributor = await farm.distributor();
+                expect(wallet1.address).to.equal(distributor);
+                await farm.stopFarming();
+    
+                expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore);
+                expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore);
+                expect((await farm.farmInfo()).reward).to.be.equal(0);
+                expect((await farm.farmInfo()).duration).to.be.equal(0);
+                expect((await farm.farmInfo()).finished).to.be.equal(await time.latest());
+            });
         });
 
         // Farm's rescueFunds scenarios
