@@ -65,6 +65,17 @@ library FarmingLib {
     }
 
     /**
+     * @notice Stops farming immediately.
+     * @param self The FarmingLib.Info struct to retrieve data from storage.
+     * @return leftover Amount of reward tokens remaining after farming.
+     */
+    function stopFarming(Info memory self) internal returns(uint256 leftover) {
+        Data storage data = self.getData();
+        data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
+        leftover = data.farmInfo.stopFarming();
+    }
+
+    /**
      * @notice Gets the farmed amount for an account.
      * @param self The Info struct.
      * @param account The account to check.
@@ -88,6 +99,7 @@ library FarmingLib {
         amount = data.userInfo.farmed(account, balance, fpt);
         if (amount > 0) {
             data.userInfo.eraseFarmed(account, balance, fpt);
+            data.farmInfo.claim(amount);
         }
     }
 

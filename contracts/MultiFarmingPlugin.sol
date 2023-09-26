@@ -28,6 +28,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     error RewardsTokensLimitTooHigh(uint256);
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
+    error InsufficientFunds();
 
     uint256 public immutable rewardsTokensLimit;
 
@@ -83,8 +84,18 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
         uint256 reward = _makeInfo(rewardsToken).startFarming(amount, period);
-        emit RewardAdded(address(rewardsToken), reward, period);
+        emit RewardUpdated(address(rewardsToken), reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    function stopFarming(IERC20 rewardsToken) public virtual onlyDistributor {
+        if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
+
+        uint256 leftover = _makeInfo(rewardsToken).stopFarming();
+        emit RewardUpdated(address(rewardsToken), 0, 0);
+        if (leftover > 0) {
+            rewardsToken.safeTransfer(msg.sender, leftover);
+        }
     }
 
     function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
@@ -139,6 +150,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
+            if (_rewardsTokens.contains(address(token_))) {
+                if (token_.balanceOf(address(this)) < _farms[token_].farmInfo.balance + amount) revert InsufficientFunds();
+            }
             token_.safeTransfer(_distributor, amount);
         }
     }

@@ -9,7 +9,7 @@ import { FarmAccounting } from "../accounting/FarmAccounting.sol";
 interface IFarmingPlugin is IPlugin {
     event FarmCreated(address token, address reward);
     event DistributorChanged(address oldDistributor, address newDistributor);
-    event RewardAdded(uint256 reward, uint256 duration);
+    event RewardUpdated(uint256 reward, uint256 duration);
 
     // View functions
     function totalSupply() external view returns(uint256);

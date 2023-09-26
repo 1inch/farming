@@ -31,6 +31,8 @@ describe('FarmingPool', function () {
         await token.waitForDeployment();
         const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.waitForDeployment();
+        const regularToken = await TokenMock.deploy('USDT', 'USDT');
+        await regularToken.waitForDeployment();
         const farm = await FarmingPool.deploy(token, gift);
         await farm.waitForDeployment();
 
@@ -42,7 +44,7 @@ describe('FarmingPool', function () {
         }
 
         await farm.setDistributor(wallet1);
-        return { token, gift, farm };
+        return { token, gift, regularToken, farm };
     };
 
     describe('startFarming', function () {
@@ -506,13 +508,13 @@ describe('FarmingPool', function () {
         });
     });
 
-    describe('rescueFunds', function () {
-        it('should thrown with access denied', async function () {
-            const { gift, farm } = await loadFixture(initContracts);
+    describe('stopFarming', function () {
+        it('should throw with access denied', async function () {
+            const { farm } = await loadFixture(initContracts);
             const distributor = await farm.distributor();
             expect(wallet2.address).to.not.equal(distributor);
             await expect(
-                farm.connect(wallet2).rescueFunds(gift, '1000'),
+                farm.connect(wallet2).stopFarming(),
             ).to.be.revertedWithCustomError(farm, 'AccessDenied');
         });
 
@@ -525,10 +527,62 @@ describe('FarmingPool', function () {
 
             const distributor = await farm.distributor();
             expect(wallet1.address).to.equal(distributor);
-            await farm.rescueFunds(gift, '1000');
+            await farm.stopFarming();
 
             expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore + 1000n);
             expect(await gift.balanceOf(farm)).to.equal(balanceFarmBefore - 1000n);
+        });
+
+        it('should transfer remaining reward tokens from farm to wallet', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const duration = BigInt(60 * 60 * 24);
+            const amount = 500n;
+            await farm.startFarming(1000, duration);
+            await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(farm);
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await farm.stopFarming();
+
+            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
+            expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
+            expect((await farm.farmInfo()).reward).to.be.equal(0);
+            expect((await farm.farmInfo()).duration).to.be.equal(0);
+            expect((await farm.farmInfo()).finished).to.be.equal(await time.latest());
+        });
+
+        it('should transfer 0 reward tokens from farm to wallet after farming is finished', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const duration = BigInt(60 * 60 * 24);
+            await farm.startFarming(1000, duration);
+            await time.increaseTo((await farm.farmInfo()).finished + 1n);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(farm);
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await farm.stopFarming();
+
+            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore);
+            expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore);
+            expect((await farm.farmInfo()).reward).to.be.equal(0);
+            expect((await farm.farmInfo()).duration).to.be.equal(0);
+            expect((await farm.farmInfo()).finished).to.be.equal(await time.latest());
+        });
+    });
+
+    describe('rescueFunds', function () {
+        it('should thrown with access denied', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const distributor = await farm.distributor();
+            expect(wallet2.address).to.not.equal(distributor);
+            await expect(
+                farm.connect(wallet2).rescueFunds(gift, '1000'),
+            ).to.be.revertedWithCustomError(farm, 'AccessDenied');
         });
 
         it('should thrown with not enough balance for staking token', async function () {
@@ -540,7 +594,7 @@ describe('FarmingPool', function () {
             expect(wallet1.address).to.equal(distributor);
             await expect(
                 farm.rescueFunds(token, '1000'),
-            ).to.be.revertedWithCustomError(farm, 'NotEnoughBalance');
+            ).to.be.revertedWithCustomError(farm, 'InsufficientFunds');
         });
 
         it('should transfer staking token and leave balance of staking tokens more than (and equals to) totalBalance amount', async function () {
@@ -576,6 +630,61 @@ describe('FarmingPool', function () {
 
             expect(await ethers.provider.getBalance(wallet1)).to.equal(balanceWalletBefore - txCost + 1000n);
             expect(await ethers.provider.getBalance(farm)).to.equal(balanceFarmBefore - 1000n);
+        });
+
+        it('should thrown with insufficient funds for gift token', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const duration = BigInt(60 * 60 * 24);
+            await farm.startFarming(1000, duration);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(farm);
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await expect(farm.rescueFunds(gift, '1000')).to.be.revertedWithCustomError(farm, 'InsufficientFunds');
+
+            expect(await gift.balanceOf(wallet1)).to.equal(balanceWalletBefore);
+            expect(await gift.balanceOf(farm)).to.equal(balanceFarmBefore);
+        });
+
+        it('should rescue extra gift tokens from farm to wallet during farming', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const duration = BigInt(60 * 60 * 24);
+            const amount = 100n;
+            await gift.mint(farm, amount);
+            await farm.startFarming(1000, duration);
+            await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(farm);
+            const farmInfoBefore = await farm.farmInfo();
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await farm.rescueFunds(gift, amount);
+
+            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore + amount);
+            expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore - amount);
+            expect((await farm.farmInfo()).reward).to.be.equal(farmInfoBefore.reward);
+            expect((await farm.farmInfo()).duration).to.be.equal(farmInfoBefore.duration);
+            expect((await farm.farmInfo()).finished).to.be.equal(farmInfoBefore.finished);
+        });
+
+        it('should transfer all regular tokens', async function () {
+            const { regularToken, farm } = await loadFixture(initContracts);
+            const amount = 1000n;
+            await regularToken.mint(farm, amount);
+
+            const balanceWalletBefore = await regularToken.balanceOf(wallet1);
+            const balanceFarmBefore = await regularToken.balanceOf(farm);
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await farm.rescueFunds(regularToken, amount);
+
+            expect(await regularToken.balanceOf(wallet1)).to.be.eq(balanceWalletBefore + amount);
+            expect(await regularToken.balanceOf(farm)).to.be.eq(balanceFarmBefore - amount);
         });
     });
 });

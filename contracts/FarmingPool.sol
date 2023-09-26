@@ -22,7 +22,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     error ZeroDistributorAddress();
     error SameDistributor();
     error AccessDenied();
-    error NotEnoughBalance();
+    error InsufficientFunds();
     error MaxBalanceExceeded();
 
     uint256 internal constant _MAX_BALANCE = 1e32;
@@ -73,8 +73,16 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().startFarming(amount, period);
-        emit RewardAdded(reward, period);
+        emit RewardUpdated(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    function stopFarming() public virtual onlyDistributor {
+        uint256 leftover = _makeInfo().stopFarming();
+        emit RewardUpdated(0, 0);
+        if (leftover > 0) {
+            rewardsToken.safeTransfer(msg.sender, leftover);
+        }
     }
 
     function farmed(address account) public view virtual returns (uint256) {
@@ -112,10 +120,13 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         if (token == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
-            token.safeTransfer(_distributor, amount);
             if (token == stakingToken) {
-                if (stakingToken.balanceOf(address(this)) < totalSupply()) revert NotEnoughBalance();
+                if (stakingToken.balanceOf(address(this)) < totalSupply() + amount) revert InsufficientFunds();
+            } else if (token == rewardsToken) {
+                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
             }
+
+            token.safeTransfer(_distributor, amount);
         }
     }
 
