@@ -66,8 +66,8 @@ library FarmingLib {
 
     /**
      * @notice Stops farming immediately.
-     * @param self The Info struct.
-     * @return leftover The leftover amount.
+     * @param self The FarmingLib.Info struct to retrieve data from storage.
+     * @return leftover Amount of reward tokens remaining after farming.
      */
     function stopFarming(Info memory self) internal returns(uint256 leftover) {
         Data storage data = self.getData();

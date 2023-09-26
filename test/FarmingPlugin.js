@@ -248,7 +248,7 @@ describe('FarmingPlugin', function () {
 
             /*
                 ***Test Scenario**
-                Ensures that a distributor account can get remaining funds from the farm using the `rescueFunds` function.
+                Ensures that a distributor account can get remaining funds from the farm using the `stopFarming` function.
 
                 ***Initial setup**
                 - A farm has started farming
@@ -278,19 +278,19 @@ describe('FarmingPlugin', function () {
             /*
                 ***Test Scenario**
                 Ensures that a distributor account can get remaining funds that haven't been distributed
-                from the farm using the `rescueFunds` function.
+                from the farm using the `stopFarming` function.
 
                 ***Initial setup**
                 - A farm has started farming and distributed half of the reward tokens
 
                 ***Test Steps**
-                - Distributor calls the `rescueFunds` function to transfer 500 reward tokens from the farm to its account
+                - Distributor calls the `stopFarming` function to transfer 500 reward tokens from the farm to its account
                 - Check the balances of the distributor's account and the farm's accounts
 
                 ***Expected results**
                 - 500 reward tokens are transferred from the farm to the distributor
                 - The farm's reward tokens amount is decreased by 500
-                - The farm's duration and finish time are decreased proportionally
+                - The farm's duration and finish time become 0
             */
             it('should transfer remaining reward tokens from farm to wallet', async function () {
                 const { gift, farm } = await loadFixture(initContracts);
