@@ -36,9 +36,10 @@ library FarmAccounting {
         if (period > type(uint32).max) revert DurationTooLarge();
 
         // If something left from prev farming add it to the new farming
-        Info memory prev = info;
-        if (block.timestamp < prev.finished) {
-            amount += prev.reward - farmedSinceCheckpointScaled(info, prev.finished - prev.duration) / _SCALE;
+        (uint40 finished, uint32 duration, uint184 reward, uint256 balance) = (info.finished, info.duration, info.reward, info.balance);
+        // Info memory prev = info;
+        if (block.timestamp < finished) {
+            amount += reward - farmedSinceCheckpointScaled(info, finished - duration) / _SCALE;
         }
 
         if (amount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();
@@ -47,7 +48,7 @@ library FarmAccounting {
             uint40(block.timestamp + period),
             uint32(period),
             uint184(amount),
-            prev.balance + amount
+            balance + amount
         );
         return amount;
     }
