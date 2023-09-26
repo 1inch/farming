@@ -4,11 +4,7 @@ pragma solidity ^0.8.0;
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-library FarmAccounting {
-    error ZeroDuration();
-    error DurationTooLarge();
-    error AmountTooLarge();
-
+library Farming {
     struct Info {
         uint40 finished;
         uint32 duration;
@@ -19,19 +15,11 @@ library FarmAccounting {
     uint256 internal constant _MAX_REWARD_AMOUNT = 1e32;  // 108 bits
     uint256 internal constant _SCALE = 1e18;  // 60 bits
 
-    /// @dev Requires extra 18 decimals for precision, result fits in 168 bits
-    function farmedSinceCheckpointScaled(Info storage info, uint256 checkpoint) internal view returns(uint256 amount) {
-        unchecked {
-            (uint40 finished, uint32 duration, uint184 reward) = (info.finished, info.duration, info.reward);
-            if (duration > 0) {
-                uint256 elapsed = Math.min(block.timestamp, finished) - Math.min(checkpoint, finished);
-                // size of (type(uint32).max * _MAX_REWARD_AMOUNT * _SCALE) is less than 200 bits, so there is no overflow
-                return elapsed * reward * _SCALE / duration;
-            }
-        }
-    }
+    error ZeroDuration();
+    error DurationTooLarge();
+    error AmountTooLarge();
 
-    function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
+    function update(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
         if (period == 0) revert ZeroDuration();
         if (period > type(uint32).max) revert DurationTooLarge();
 
@@ -52,7 +40,7 @@ library FarmAccounting {
         return amount;
     }
 
-    function stopFarming(Info storage info) internal returns(uint256 leftover) {
+    function cancel(Info storage info) internal returns(uint256 leftover) {
         leftover = info.reward - farmedSinceCheckpointScaled(info, info.finished - info.duration) / _SCALE;
         (info.finished, info.duration, info.reward, info.balance) = (
             uint40(block.timestamp),
@@ -64,5 +52,17 @@ library FarmAccounting {
 
     function claim(Info storage info, uint256 amount) internal {
         info.balance -= amount;
+    }
+
+    /// @dev Requires extra 18 decimals for precision, result fits in 168 bits
+    function farmedSinceCheckpointScaled(Info storage info, uint256 checkpoint) internal view returns(uint256 amount) {
+        unchecked {
+            (uint40 finished, uint32 duration, uint184 reward) = (info.finished, info.duration, info.reward);
+            if (duration > 0) {
+                uint256 elapsed = Math.min(block.timestamp, finished) - Math.min(checkpoint, finished);
+                // size of (type(uint32).max * _MAX_REWARD_AMOUNT * _SCALE) is less than 200 bits, so there is no overflow
+                return elapsed * reward * _SCALE / duration;
+            }
+        }
     }
 }

@@ -2,20 +2,21 @@
 
 pragma solidity ^0.8.0;
 
-import { FarmAccounting } from "./accounting/FarmAccounting.sol";
-import { UserAccounting } from "./accounting/UserAccounting.sol";
+import { Farming } from "./accounting/Farming.sol";
+import { Rewards } from "./accounting/Rewards.sol";
 
 /// @title FarmingLib
-/// @dev A library for farming logic, using FarmAccounting and UserAccounting.
+/// @dev A library for farming logic, using Farming and Rewards.
 library FarmingLib {
-    using FarmAccounting for FarmAccounting.Info;
-    using UserAccounting for UserAccounting.Info;
+    using Farming for Farming.Info;
+    using Rewards for Rewards.Info;
     using FarmingLib for FarmingLib.Info;
 
-    /// @dev Struct containing farm and user detailed info for farming operations. See {FarmAccounting.Info} and {UserAccounting.Info} for.
+    // TODO: check all docs and update
+    /// @dev Struct containing farm and user detailed info for farming operations. See {Farming.Info} and {Rewards.Info} for.
     struct Data {
-        FarmAccounting.Info farmInfo;
-        UserAccounting.Info userInfo;
+        Farming.Info farmingInfo;
+        Rewards.Info rewardsInfo;
     }
 
     /// @dev Struct containing the total supply function and a data slot for EVM storage.
@@ -58,10 +59,10 @@ library FarmingLib {
      * @param period The farming period.
      * @return reward The farming reward.
      */
-    function startFarming(Info memory self, uint256 amount, uint256 period) internal returns(uint256 reward) {
+    function updateFarmData(Info memory self, uint256 amount, uint256 period) internal returns(uint256 reward) {
         Data storage data = self.getData();
-        data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
-        reward = data.farmInfo.startFarming(amount, period);
+        data.rewardsInfo.updateFarmedPerToken(_farmedPerToken(self));
+        reward = data.farmingInfo.update(amount, period);
     }
 
     /**
@@ -69,21 +70,10 @@ library FarmingLib {
      * @param self The FarmingLib.Info struct to retrieve data from storage.
      * @return leftover Amount of reward tokens remaining after farming.
      */
-    function stopFarming(Info memory self) internal returns(uint256 leftover) {
+    function cancelFarming(Info memory self) internal returns(uint256 leftover) {
         Data storage data = self.getData();
-        data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
-        leftover = data.farmInfo.stopFarming();
-    }
-
-    /**
-     * @notice Gets the farmed amount for an account.
-     * @param self The Info struct.
-     * @param account The account to check.
-     * @param balance The account balance.
-     * @return result The farmed amount.
-     */
-    function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
-        return self.getData().userInfo.farmed(account, balance, _farmedPerToken(self));
+        data.rewardsInfo.updateFarmedPerToken(_farmedPerToken(self));
+        leftover = data.farmingInfo.cancel();
     }
 
     /**
@@ -96,10 +86,10 @@ library FarmingLib {
     function claim(Info memory self, address account, uint256 balance) internal returns(uint256 amount) {
         Data storage data = self.getData();
         uint256 fpt = _farmedPerToken(self);
-        amount = data.userInfo.farmed(account, balance, fpt);
+        amount = data.rewardsInfo.farmed(account, balance, fpt);
         if (amount > 0) {
-            data.userInfo.eraseFarmed(account, balance, fpt);
-            data.farmInfo.claim(amount);
+            data.rewardsInfo.eraseFarmed(account, balance, fpt);
+            data.farmingInfo.claim(amount);
         }
     }
 
@@ -111,25 +101,25 @@ library FarmingLib {
      * @param amount The amount to transfer.
      */
     function updateBalances(Info memory self, address from, address to, uint256 amount) internal {
-        self.getData().userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
+        self.getData().rewardsInfo.updateBalances(from, to, amount, _farmedPerToken(self));
+    }
+
+    /**
+     * @notice Gets the farmed amount for an account.
+     * @param self The Info struct.
+     * @param account The account to check.
+     * @param balance The account balance.
+     * @return result The farmed amount.
+     */
+    function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
+        return self.getData().rewardsInfo.farmed(account, balance, _farmedPerToken(self));
     }
 
     function _farmedPerToken(Info memory self) private view returns (uint256) {
-        return self.getData().userInfo.farmedPerToken(_infoToContext(self), _lazyGetSupply, _lazyGetFarmed);
+        return self.getData().rewardsInfo.farmedPerToken(_infoToContext(self), _lazyGetSupply, _lazyGetFarmed);
     }
 
-    // UserAccounting bindings
-
-    function _lazyGetSupply(bytes32 context) private view returns(uint256) {
-        Info memory self = _contextToInfo(context);
-        return self.getTotalSupply();
-    }
-
-    function _lazyGetFarmed(bytes32 context, uint256 checkpoint) private view returns(uint256) {
-        Info memory self = _contextToInfo(context);
-        return self.getData().farmInfo.farmedSinceCheckpointScaled(checkpoint);
-    }
-
+    // --- Rewards bindings section start ---
     function _contextToInfo(bytes32 context) private pure returns(Info memory self) {
         assembly ("memory-safe") {  // solhint-disable-line no-inline-assembly
             self := context
@@ -141,4 +131,15 @@ library FarmingLib {
             context := self
         }
     }
+
+    function _lazyGetSupply(bytes32 context) private view returns(uint256) {
+        Info memory self = _contextToInfo(context);
+        return self.getTotalSupply();
+    }
+
+    function _lazyGetFarmed(bytes32 context, uint256 checkpoint) private view returns(uint256) {
+        Info memory self = _contextToInfo(context);
+        return self.getData().farmingInfo.farmedSinceCheckpointScaled(checkpoint);
+    }
+    // --- Rewards bindings section end ---
 }

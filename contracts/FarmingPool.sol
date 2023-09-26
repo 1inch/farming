@@ -9,12 +9,20 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 
 import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
-import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
+import { Farming, FarmingLib } from "./FarmingLib.sol";
 
 contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     using SafeERC20 for IERC20;
     using Address for address payable;
     using FarmingLib for FarmingLib.Info;
+
+    uint256 internal constant _MAX_BALANCE = 1e32;
+
+    IERC20 public immutable stakingToken;
+    IERC20 public immutable rewardsToken;
+
+    address private _distributor;
+    FarmingLib.Data private _farm;
 
     error SameStakingAndRewardsTokens();
     error ZeroStakingTokenAddress();
@@ -24,14 +32,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     error AccessDenied();
     error InsufficientFunds();
     error MaxBalanceExceeded();
-
-    uint256 internal constant _MAX_BALANCE = 1e32;
-
-    IERC20 public immutable stakingToken;
-    IERC20 public immutable rewardsToken;
-
-    address private _distributor;
-    FarmingLib.Data private _farm;
 
     modifier onlyDistributor {
         if (msg.sender != _distributor) revert AccessDenied();
@@ -51,18 +51,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         rewardsToken = rewardsToken_;
     }
 
-    function decimals() public view virtual override returns (uint8) {
-        return IERC20Metadata(address(stakingToken)).decimals();
-    }
-
-    function farmInfo() public view returns(FarmAccounting.Info memory) {
-        return _farm.farmInfo;
-    }
-
-    function distributor() public view virtual returns (address) {
-        return _distributor;
-    }
-
     function setDistributor(address distributor_) public virtual onlyOwner {
         if (distributor_ == address(0)) revert ZeroDistributorAddress();
         address oldDistributor = _distributor;
@@ -72,21 +60,17 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     }
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
-        uint256 reward = _makeInfo().startFarming(amount, period);
+        uint256 reward = _makeInfo().updateFarmData(amount, period);
         emit RewardUpdated(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function stopFarming() public virtual onlyDistributor {
-        uint256 leftover = _makeInfo().stopFarming();
+        uint256 leftover = _makeInfo().cancelFarming();
         emit RewardUpdated(0, 0);
         if (leftover > 0) {
             rewardsToken.safeTransfer(msg.sender, leftover);
         }
-    }
-
-    function farmed(address account) public view virtual returns (uint256) {
-        return _makeInfo().farmed(account, balanceOf(account));
     }
 
     function deposit(uint256 amount) public virtual {
@@ -107,10 +91,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         }
     }
 
-    function _transferReward(IERC20 reward, address to, uint256 amount) internal virtual {
-        reward.safeTransfer(to, amount);
-    }
-
     function exit() public virtual {
         withdraw(balanceOf(msg.sender));
         claim();
@@ -123,24 +103,44 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
             if (token == stakingToken) {
                 if (stakingToken.balanceOf(address(this)) < totalSupply() + amount) revert InsufficientFunds();
             } else if (token == rewardsToken) {
-                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
+                if (rewardsToken.balanceOf(address(this)) < _farm.farmingInfo.balance + amount) revert InsufficientFunds();
             }
 
             token.safeTransfer(_distributor, amount);
         }
     }
 
-    function _makeInfo() private view returns(FarmingLib.Info memory) {
-        return FarmingLib.makeInfo(totalSupply, _farm);
+    function decimals() public view virtual override returns (uint8) {
+        return IERC20Metadata(address(stakingToken)).decimals();
     }
 
-    // ERC20 overrides
+    function farmInfo() public view returns(Farming.Info memory) {
+        return _farm.farmingInfo;
+    }
 
+    function distributor() public view virtual returns (address) {
+        return _distributor;
+    }
+
+    function farmed(address account) public view virtual returns (uint256) {
+        return _makeInfo().farmed(account, balanceOf(account));
+    }
+
+    function _transferReward(IERC20 reward, address to, uint256 amount) internal virtual {
+        reward.safeTransfer(to, amount);
+    }
+
+    // --- ERC20 overrides section start ---
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
         if (amount > 0 && from != to) {
             _makeInfo().updateBalances(from, to, amount);
         }
+    }
+    // --- ERC20 overrides section end ---
+
+    function _makeInfo() private view returns(FarmingLib.Info memory) {
+        return FarmingLib.makeInfo(totalSupply, _farm);
     }
 }

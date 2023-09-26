@@ -11,7 +11,7 @@ import { AddressArray, AddressSet } from "@1inch/solidity-utils/contracts/librar
 import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
 
 import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
-import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
+import { Farming, FarmingLib } from "./FarmingLib.sol";
 
 contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     using SafeERC20 for IERC20;
@@ -19,6 +19,13 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     using Address for address payable;
     using AddressSet for AddressSet.Data;
     using AddressArray for AddressArray.Data;
+
+    uint256 public immutable rewardsTokensLimit;
+
+    address private _distributor;
+    uint256 private _totalSupply;
+    mapping(IERC20 => FarmingLib.Data) private _farms;
+    AddressSet.Data private _rewardsTokens;
 
     error ZeroFarmableTokenAddress();
     error ZeroRewardsTokenAddress();
@@ -29,13 +36,6 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     error RewardsTokensLimitReached();
     error RewardsTokenNotFound();
     error InsufficientFunds();
-
-    uint256 public immutable rewardsTokensLimit;
-
-    address private _distributor;
-    uint256 private _totalSupply;
-    mapping(IERC20 => FarmingLib.Data) private _farms;
-    AddressSet.Data private _rewardsTokens;
 
     modifier onlyDistributor {
         if (msg.sender != _distributor) revert AccessDenied();
@@ -51,18 +51,6 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
 
     function rewardsTokens() external view returns(address[] memory) {
         return _rewardsTokens.items.get();
-    }
-
-    function farmInfo(IERC20 rewardsToken) public view returns(FarmAccounting.Info memory) {
-        return _farms[rewardsToken].farmInfo;
-    }
-
-    function totalSupply() public view returns(uint256) {
-        return _totalSupply;
-    }
-
-    function distributor() public view returns(address) {
-        return _distributor;
     }
 
     function setDistributor(address distributor_) public virtual onlyOwner {
@@ -83,7 +71,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) public virtual onlyDistributor {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
-        uint256 reward = _makeInfo(rewardsToken).startFarming(amount, period);
+        uint256 reward = _makeInfo(rewardsToken).updateFarmData(amount, period);
         emit RewardUpdated(address(rewardsToken), reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
@@ -91,16 +79,11 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
     function stopFarming(IERC20 rewardsToken) public virtual onlyDistributor {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
-        uint256 leftover = _makeInfo(rewardsToken).stopFarming();
+        uint256 leftover = _makeInfo(rewardsToken).cancelFarming();
         emit RewardUpdated(address(rewardsToken), 0, 0);
         if (leftover > 0) {
             rewardsToken.safeTransfer(msg.sender, leftover);
         }
-    }
-
-    function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
-        uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
-        return _makeInfo(rewardsToken).farmed(account, balance);
     }
 
     function claim(IERC20 rewardsToken) public virtual {
@@ -119,11 +102,32 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         }
     }
 
-    function _claim(IERC20 rewardsToken, address account, uint256 pluginBalance) private {
-        uint256 amount = _makeInfo(rewardsToken).claim(account, pluginBalance);
-        if (amount > 0) {
-            _transferReward(rewardsToken, account, amount);
+    function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
+        if(token_ == IERC20(address(0))) {
+            payable(_distributor).sendValue(amount);
+        } else {
+            if (_rewardsTokens.contains(address(token_))) {
+                if (token_.balanceOf(address(this)) < _farms[token_].farmingInfo.balance + amount) revert InsufficientFunds();
+            }
+            token_.safeTransfer(_distributor, amount);
         }
+    }
+
+    function farmInfo(IERC20 rewardsToken) public view returns(Farming.Info memory) {
+        return _farms[rewardsToken].farmingInfo;
+    }
+
+    function totalSupply() public view returns(uint256) {
+        return _totalSupply;
+    }
+
+    function distributor() public view returns(address) {
+        return _distributor;
+    }
+
+    function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
+        uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
+        return _makeInfo(rewardsToken).farmed(account, balance);
     }
 
     function _transferReward(IERC20 reward, address to, uint256 amount) internal virtual {
@@ -146,14 +150,10 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
         }
     }
 
-    function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
-        if(token_ == IERC20(address(0))) {
-            payable(_distributor).sendValue(amount);
-        } else {
-            if (_rewardsTokens.contains(address(token_))) {
-                if (token_.balanceOf(address(this)) < _farms[token_].farmInfo.balance + amount) revert InsufficientFunds();
-            }
-            token_.safeTransfer(_distributor, amount);
+    function _claim(IERC20 rewardsToken, address account, uint256 pluginBalance) private {
+        uint256 amount = _makeInfo(rewardsToken).claim(account, pluginBalance);
+        if (amount > 0) {
+            _transferReward(rewardsToken, account, amount);
         }
     }
 

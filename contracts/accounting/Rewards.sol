@@ -2,35 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import { FarmAccounting } from "./FarmAccounting.sol";
+import { Farming } from "./Farming.sol";
 
-library UserAccounting {
+library Rewards {
     struct Info {
         uint40 checkpoint;
         uint216 farmedPerTokenStored;
         mapping(address => int256) corrections;
-    }
-
-    function farmedPerToken(
-        Info storage info,
-        bytes32 context,
-        function(bytes32) internal view returns(uint256) lazyGetSupply,
-        function(bytes32, uint256) internal view returns(uint256) lazyGetFarmed
-    ) internal view returns(uint256) {
-        (uint256 checkpoint, uint256 fpt) = (info.checkpoint, info.farmedPerTokenStored);
-        if (block.timestamp != checkpoint) {
-            uint256 supply = lazyGetSupply(context);
-            if (supply > 0) {
-                // fpt increases by 168 bit / supply
-                unchecked { fpt += lazyGetFarmed(context, checkpoint) / supply; }
-            }
-        }
-        return fpt;
-    }
-
-    function farmed(Info storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
-        // balance * fpt is less than 168 bit
-        return uint256(int256(balance * fpt) - info.corrections[account]) / FarmAccounting._SCALE;
     }
 
     function eraseFarmed(Info storage info, address account, uint256 balance, uint256 fpt) internal {
@@ -59,5 +37,27 @@ library UserAccounting {
                 info.corrections[to] += diff;
             }
         }
+    }
+
+    function farmedPerToken(
+        Info storage info,
+        bytes32 context,
+        function(bytes32) internal view returns(uint256) lazyGetSupply,
+        function(bytes32, uint256) internal view returns(uint256) lazyGetFarmed
+    ) internal view returns(uint256) {
+        (uint256 checkpoint, uint256 fpt) = (info.checkpoint, info.farmedPerTokenStored);
+        if (block.timestamp != checkpoint) {
+            uint256 supply = lazyGetSupply(context);
+            if (supply > 0) {
+                // fpt increases by 168 bit / supply
+                unchecked { fpt += lazyGetFarmed(context, checkpoint) / supply; }
+            }
+        }
+        return fpt;
+    }
+
+    function farmed(Info storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
+        // balance * fpt is less than 168 bit
+        return uint256(int256(balance * fpt) - info.corrections[account]) / Farming._SCALE;
     }
 }
