@@ -37,7 +37,6 @@ library FarmAccounting {
 
         // If something left from prev farming add it to the new farming
         (uint40 finished, uint32 duration, uint184 reward, uint256 balance) = (info.finished, info.duration, info.reward, info.balance);
-        // Info memory prev = info;
         if (block.timestamp < finished) {
             amount += reward - farmedSinceCheckpointScaled(info, finished - duration) / _SCALE;
         }
