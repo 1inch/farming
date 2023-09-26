@@ -31,6 +31,8 @@ describe('FarmingPool', function () {
         await token.waitForDeployment();
         const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.waitForDeployment();
+        const regularToken = await TokenMock.deploy('USDT', 'USDT');
+        await regularToken.waitForDeployment();
         const farm = await FarmingPool.deploy(token, gift);
         await farm.waitForDeployment();
 
@@ -42,7 +44,7 @@ describe('FarmingPool', function () {
         }
 
         await farm.setDistributor(wallet1);
-        return { token, gift, farm };
+        return { token, gift, regularToken, farm };
     };
 
     describe('startFarming', function () {
@@ -551,6 +553,26 @@ describe('FarmingPool', function () {
             expect((await farm.farmInfo()).duration).to.be.equal(0);
             expect((await farm.farmInfo()).finished).to.be.equal(await time.latest());
         });
+
+        it('should transfer 0 reward tokens from farm to wallet after farming is finished', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const duration = BigInt(60 * 60 * 24);
+            await farm.startFarming(1000, duration);
+            await time.increaseTo((await farm.farmInfo()).finished + 1n);
+
+            const balanceWalletBefore = await gift.balanceOf(wallet1);
+            const balanceFarmBefore = await gift.balanceOf(farm);
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await farm.stopFarming();
+
+            expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore);
+            expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore);
+            expect((await farm.farmInfo()).reward).to.be.equal(0);
+            expect((await farm.farmInfo()).duration).to.be.equal(0);
+            expect((await farm.farmInfo()).finished).to.be.equal(await time.latest());
+        });
     });
 
     describe('rescueFunds', function () {
@@ -647,6 +669,22 @@ describe('FarmingPool', function () {
             expect((await farm.farmInfo()).reward).to.be.equal(farmInfoBefore.reward);
             expect((await farm.farmInfo()).duration).to.be.equal(farmInfoBefore.duration);
             expect((await farm.farmInfo()).finished).to.be.equal(farmInfoBefore.finished);
+        });
+
+        it('should transfer all regular tokens', async function () {
+            const { regularToken, farm } = await loadFixture(initContracts);
+            const amount = 1000n;
+            await regularToken.mint(farm, amount);
+
+            const balanceWalletBefore = await regularToken.balanceOf(wallet1);
+            const balanceFarmBefore = await regularToken.balanceOf(farm);
+
+            const distributor = await farm.distributor();
+            expect(wallet1.address).to.equal(distributor);
+            await farm.rescueFunds(regularToken, amount);
+
+            expect(await regularToken.balanceOf(wallet1)).to.be.eq(balanceWalletBefore + amount);
+            expect(await regularToken.balanceOf(farm)).to.be.eq(balanceFarmBefore - amount);
         });
     });
 });
