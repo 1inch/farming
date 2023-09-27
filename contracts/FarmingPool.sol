@@ -2,42 +2,34 @@
 
 pragma solidity ^0.8.0;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 
-import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
+import { Distributor } from "./Distributor.sol";
 import { Farming, FarmingLib } from "./FarmingLib.sol";
+import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
 
-contract FarmingPool is IFarmingPool, Ownable, ERC20 {
-    using SafeERC20 for IERC20;
+contract FarmingPool is IFarmingPool, Distributor, ERC20 {
     using Address for address payable;
     using FarmingLib for FarmingLib.Info;
+    using SafeERC20 for IERC20;
 
     uint256 internal constant _MAX_BALANCE = 1e32;
 
-    IERC20 public immutable stakingToken;
     IERC20 public immutable rewardsToken;
+    IERC20 public immutable stakingToken;
 
-    address private _distributor;
     FarmingLib.Data private _farm;
 
+    error InsufficientFunds();
+    error MaxBalanceExceeded();
     error SameStakingAndRewardsTokens();
     error ZeroStakingTokenAddress();
     error ZeroRewardsTokenAddress();
-    error ZeroDistributorAddress();
-    error SameDistributor();
-    error AccessDenied();
-    error InsufficientFunds();
-    error MaxBalanceExceeded();
-
-    modifier onlyDistributor {
-        if (msg.sender != _distributor) revert AccessDenied();
-        _;
-    }
-
+    
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
         ERC20(
             string(abi.encodePacked("Farming of ", stakingToken_.name())),
@@ -49,14 +41,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
         stakingToken = stakingToken_;
         rewardsToken = rewardsToken_;
-    }
-
-    function setDistributor(address distributor_) public virtual onlyOwner {
-        if (distributor_ == address(0)) revert ZeroDistributorAddress();
-        address oldDistributor = _distributor;
-        if (distributor_ == oldDistributor) revert SameDistributor();
-        emit DistributorChanged(oldDistributor, distributor_);
-        _distributor = distributor_;
     }
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
@@ -116,10 +100,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function farmInfo() public view returns(Farming.Info memory) {
         return _farm.farmingInfo;
-    }
-
-    function distributor() public view virtual returns (address) {
-        return _distributor;
     }
 
     function farmed(address account) public view virtual returns (uint256) {

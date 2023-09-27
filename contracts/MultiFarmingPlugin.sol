@@ -2,45 +2,39 @@
 
 pragma solidity ^0.8.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
-import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
+
 import { AddressArray, AddressSet } from "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
+import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
+import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
 
-import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
+import { Distributor } from "./Distributor.sol";
 import { Farming, FarmingLib } from "./FarmingLib.sol";
+import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
 
-contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
-    using SafeERC20 for IERC20;
-    using FarmingLib for FarmingLib.Info;
+contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     using Address for address payable;
-    using AddressSet for AddressSet.Data;
     using AddressArray for AddressArray.Data;
-
+    using AddressSet for AddressSet.Data;
+    using FarmingLib for FarmingLib.Info;
+    using SafeERC20 for IERC20;
+    
     uint256 public immutable rewardsTokensLimit;
 
-    address private _distributor;
-    uint256 private _totalSupply;
     mapping(IERC20 => FarmingLib.Data) private _farms;
     AddressSet.Data private _rewardsTokens;
+    uint256 private _totalSupply;
 
+    error InsufficientFunds();
     error ZeroFarmableTokenAddress();
     error ZeroRewardsTokenAddress();
-    error ZeroDistributorAddress();
-    error SameDistributor();
     error RewardsTokenAlreadyAdded();
+    error RewardsTokenNotFound();
     error RewardsTokensLimitTooHigh(uint256);
     error RewardsTokensLimitReached();
-    error RewardsTokenNotFound();
-    error InsufficientFunds();
-
-    modifier onlyDistributor {
-        if (msg.sender != _distributor) revert AccessDenied();
-        _;
-    }
 
     constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_) Plugin(farmableToken_) {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
@@ -51,14 +45,6 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
 
     function rewardsTokens() external view returns(address[] memory) {
         return _rewardsTokens.items.get();
-    }
-
-    function setDistributor(address distributor_) public virtual onlyOwner {
-        if (distributor_ == address(0)) revert ZeroDistributorAddress();
-        address oldDistributor = _distributor;
-        if (distributor_ == oldDistributor) revert SameDistributor();
-        emit DistributorChanged(oldDistributor, distributor_);
-        _distributor = distributor_;
     }
 
     function addRewardsToken(address rewardsToken) public virtual onlyOwner {
@@ -119,10 +105,6 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
 
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
-    }
-
-    function distributor() public view returns(address) {
-        return _distributor;
     }
 
     function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {

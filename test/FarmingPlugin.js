@@ -62,7 +62,7 @@ describe('FarmingPlugin', function () {
                 const { farm } = await loadFixture(initContracts);
                 await expect(
                     farm.connect(wallet2).startFarming(1000, 60 * 60 * 24),
-                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
+                ).to.be.revertedWithCustomError(farm, 'NotDistributor');
             });
 
             /*
@@ -243,7 +243,7 @@ describe('FarmingPlugin', function () {
                 expect(wallet2).to.not.equal(distributor);
                 await expect(
                     farm.connect(wallet2).stopFarming(),
-                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
+                ).to.be.revertedWithCustomError(farm, 'NotDistributor');
             });
 
             /*
@@ -371,7 +371,7 @@ describe('FarmingPlugin', function () {
                 expect(wallet2).to.not.equal(distributor);
                 await expect(
                     farm.connect(wallet2).rescueFunds(gift, '1000'),
-                ).to.be.revertedWithCustomError(farm, 'AccessDenied');
+                ).to.be.revertedWithCustomError(farm, 'NotDistributor');
             });
 
             /*

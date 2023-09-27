@@ -6,13 +6,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Farming } from "../accounting/Farming.sol";
 
 interface IFarmingPool is IERC20 {
-    event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardUpdated(uint256 reward, uint256 duration);
-
-    // View functions
-    function distributor() external view returns(address);
-    function farmInfo() external view returns(Farming.Info memory);
-    function farmed(address account) external view returns(uint256);
 
     // User functions
     function deposit(uint256 amount) external;
@@ -20,10 +14,12 @@ interface IFarmingPool is IERC20 {
     function claim() external;
     function exit() external;
 
-    // Owner functions
-    function setDistributor(address distributor_) external;
-
     // Distributor functions
     function startFarming(uint256 amount, uint256 period) external;
+    function stopFarming() external;
     function rescueFunds(IERC20 token, uint256 amount) external;
+
+    // View functions
+    function farmInfo() external view returns(Farming.Info memory);
+    function farmed(address account) external view returns(uint256);
 }
