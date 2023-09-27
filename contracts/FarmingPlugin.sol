@@ -14,6 +14,11 @@ import { Distributor } from "./Distributor.sol";
 import { FarmingLib, Farming } from "./FarmingLib.sol";
 import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
 
+/**
+ * @title Plugin for farming reward tokens.
+ * @notice This contract only accounts for the balances of users
+ * who added it as a plugin to the farmable token.
+ */
 contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     using Address for address payable;
     using Farming for Farming.Info;
@@ -38,12 +43,18 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         emit FarmCreated(address(farmableToken_), address(rewardsToken_));
     }
 
+    /**
+     * @notice See {IFarmingPlugin-startFarming}
+     */
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().updateFarmData(amount, period);
         emit RewardUpdated(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
+    /**
+     * @notice See {IFarmingPlugin-stopFarming}
+     */
     function stopFarming() public virtual onlyDistributor {
         uint256 leftover = _makeInfo().cancelFarming();
         emit RewardUpdated(0, 0);
@@ -51,6 +62,10 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
             rewardsToken.safeTransfer(msg.sender, leftover);
         }
     }
+
+    /**
+     * @notice See {IFarmingPlugin-claim}
+     */
     function claim() public virtual {
         uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
         uint256 amount = _makeInfo().claim(msg.sender, pluginBalance);
@@ -59,6 +74,9 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         }
     }
 
+    /**
+     * @notice See {IFarmingPlugin-rescueFunds}
+     */
     function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
@@ -70,14 +88,23 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         }
     }
 
+    /**
+     * @notice See {IFarmingPlugin-farmInfo}
+     */
     function farmInfo() public view returns(Farming.Info memory) {
         return _farm.farmingInfo;
     }
 
+    /**
+     * @notice See {IFarmingPlugin-totalSupply}
+     */
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
     }
 
+    /**
+     * @notice See {IFarmingPlugin-farmed}
+     */
     function farmed(address account) public view virtual returns(uint256) {
         uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
         return _makeInfo().farmed(account, balance);

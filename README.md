@@ -113,22 +113,28 @@ contract AMMPoolToken is ERC20Plugins {
 
 Storage access:
 
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L14-L16) for farming params, updated only on farming restarting:
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/Farming.sol#L9-L11) for farming params, updated when farming is restarted or stopped:
     
     ```solidity
     uint40 public finished;
     uint32 public duration;
     uint184 public reward;
     ```
+
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/Farming.sol#L9-L12) for total amount of rewards that haven't been claimed yet, updated when farming is restarted, stopped or when the user claims rewards:
     
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L7-L8) for farming state, updated only on changing number of farming tokens:
+    ```solidity
+    uint256 balance;
+    ```
+    
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/Rewards.sol#L9-L10) for farming state, updated only on changing number of farming tokens:
     
     ```solidity
     uint40 public checkpoint;
     uint216 public farmedPerTokenStored;
     ```
     
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L9) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/Rewards.sol#L11) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
     
     ```solidity
     mapping(address => int256) public corrections;

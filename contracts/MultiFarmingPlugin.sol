@@ -15,6 +15,11 @@ import { Distributor } from "./Distributor.sol";
 import { Farming, FarmingLib } from "./FarmingLib.sol";
 import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
 
+/**
+ * @title Plugin for farming multiple reward tokens.
+ * @notice This contract only accounts for the balances of users
+ * who added it as a plugin to the farmable token.
+ */
 contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     using Address for address payable;
     using AddressArray for AddressArray.Data;
@@ -29,12 +34,12 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     uint256 private _totalSupply;
 
     error InsufficientFunds();
-    error ZeroFarmableTokenAddress();
-    error ZeroRewardsTokenAddress();
     error RewardsTokenAlreadyAdded();
     error RewardsTokenNotFound();
     error RewardsTokensLimitTooHigh(uint256);
     error RewardsTokensLimitReached();
+    error ZeroFarmableTokenAddress();
+    error ZeroRewardsTokenAddress();
 
     constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_) Plugin(farmableToken_) {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
@@ -43,10 +48,16 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         rewardsTokensLimit = rewardsTokensLimit_;
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-rewardsTokens}
+     */
     function rewardsTokens() external view returns(address[] memory) {
         return _rewardsTokens.items.get();
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-addRewardsToken}
+     */
     function addRewardsToken(address rewardsToken) public virtual onlyOwner {
         if (rewardsToken == address(0)) revert ZeroRewardsTokenAddress();
         if (_rewardsTokens.length() == rewardsTokensLimit) revert RewardsTokensLimitReached();
@@ -54,6 +65,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         emit FarmCreated(address(token), rewardsToken);
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-startFarming}
+     */
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) public virtual onlyDistributor {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
@@ -62,6 +76,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-stopFarming}
+     */
     function stopFarming(IERC20 rewardsToken) public virtual onlyDistributor {
         if (!_rewardsTokens.contains(address(rewardsToken))) revert RewardsTokenNotFound();
 
@@ -72,11 +89,17 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         }
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-claim}
+     */
     function claim(IERC20 rewardsToken) public virtual {
         uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
         _claim(rewardsToken, msg.sender, pluginBalance);
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-claim}
+     */
     function claim() public virtual {
         uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
         address[] memory tokens = _rewardsTokens.items.get();
@@ -88,6 +111,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         }
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-rescueFunds}
+     */
     function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
@@ -99,14 +125,23 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         }
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-farmInfo}
+     */
     function farmInfo(IERC20 rewardsToken) public view returns(Farming.Info memory) {
         return _farms[rewardsToken].farmingInfo;
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-totalSupply}
+     */
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
     }
 
+    /**
+     * @notice See {IMultiFarmingPlugin-farmed}
+     */
     function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
         uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
         return _makeInfo(rewardsToken).farmed(account, balance);
