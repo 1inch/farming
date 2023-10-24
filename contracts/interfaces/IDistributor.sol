@@ -3,6 +3,12 @@
 pragma solidity ^0.8.0;
 
 interface IDistributor {
+    // Emitted when the distributor is changed
+    event DistributorChanged(address newDistributor);
+
+    error NotDistributor();
+    error ZeroDistributorAddress();
+
     /**
      * @notice Sets the entity that can manage the farming
      */

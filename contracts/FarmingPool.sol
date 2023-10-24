@@ -12,17 +12,15 @@ import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
 import { Distributor } from "./Distributor.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
 
+/**
+ * @title Implementation of the {IFarmingPool} interface.
+ * @notice This contract accounts for the balance of the farmable token's deposits through
+ * its own balance as it is inherited from ERC20.
+ */
 contract FarmingPool is IFarmingPool, Distributor, ERC20 {
     using SafeERC20 for IERC20;
     using Address for address payable;
     using FarmingLib for FarmingLib.Info;
-
-    error SameStakingAndRewardsTokens();
-    error ZeroStakingTokenAddress();
-    error ZeroRewardsTokenAddress();
-    error AccessDenied();
-    error InsufficientFunds();
-    error MaxBalanceExceeded();
 
     uint256 internal constant _MAX_BALANCE = 1e32;
 
@@ -44,20 +42,32 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
         rewardsToken = rewardsToken_;
     }
 
+    /**
+     * @notice See {IERC20Metadata-decimals}
+     */
     function decimals() public view virtual override returns (uint8) {
         return IERC20Metadata(address(stakingToken)).decimals();
     }
 
+    /**
+     * @notice See {IFarmingPool-farmInfo}
+     */
     function farmInfo() public view returns(FarmAccounting.Info memory) {
         return _farm.farmInfo;
     }
 
+    /**
+     * @notice See {IFarmingPool-startFarming}
+     */
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().startFarming(amount, period);
         emit RewardUpdated(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
+    /**
+     * @notice See {IFarmingPool-stopFarming}
+     */
     function stopFarming() public virtual onlyDistributor {
         uint256 leftover = _makeInfo().stopFarming();
         emit RewardUpdated(0, 0);
@@ -66,21 +76,33 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
         }
     }
 
+    /**
+     * @notice See {IFarmingPool-farmed}
+     */
     function farmed(address account) public view virtual returns (uint256) {
         return _makeInfo().farmed(account, balanceOf(account));
     }
 
+    /**
+     * @notice See {IFarmingPool-deposit}
+     */
     function deposit(uint256 amount) public virtual {
         _mint(msg.sender, amount);
         if (balanceOf(msg.sender) > _MAX_BALANCE) revert MaxBalanceExceeded();
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
+    /**
+     * @notice See {IFarmingPool-withdraw}
+     */
     function withdraw(uint256 amount) public virtual {
         _burn(msg.sender, amount);
         stakingToken.safeTransfer(msg.sender, amount);
     }
 
+    /**
+     * @notice See {IFarmingPool-claim}
+     */
     function claim() public virtual {
         uint256 amount = _makeInfo().claim(msg.sender, balanceOf(msg.sender));
         if (amount > 0) {
@@ -92,11 +114,17 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
         reward.safeTransfer(to, amount);
     }
 
+    /**
+     * @notice See {IFarmingPool-exit}
+     */
     function exit() public virtual {
         withdraw(balanceOf(msg.sender));
         claim();
     }
 
+    /**
+     * @notice See {IFarmingPool-rescueFunds}
+     */
     function rescueFunds(IERC20 token, uint256 amount) public virtual onlyDistributor {
         if (token == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
