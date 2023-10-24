@@ -2,20 +2,20 @@
 
 pragma solidity ^0.8.0;
 
-import { FarmAccounting } from "./accounting/FarmAccounting.sol";
-import { UserAccounting } from "./accounting/UserAccounting.sol";
+import { Allocation } from "./Allocation.sol";
+import { Accounting } from "./Accounting.sol";
 
 /// @title FarmingLib
-/// @dev A library for farming logic, using FarmAccounting and UserAccounting.
+/// @dev A library for farming logic, using Allocation and Accounting.
 library FarmingLib {
-    using FarmAccounting for FarmAccounting.Info;
-    using UserAccounting for UserAccounting.Info;
+    using Allocation for Allocation.Info;
+    using Accounting for Accounting.Info;
     using FarmingLib for FarmingLib.Info;
 
-    /// @dev Struct containing farm and user detailed info for farming operations. See {FarmAccounting.Info} and {UserAccounting.Info} for.
+    /// @dev Struct containing allocation and accounting detailed info for farming operations. See {Allocation.Info} and {Accounting.Info} for.
     struct Data {
-        FarmAccounting.Info farmInfo;
-        UserAccounting.Info userInfo;
+        Allocation.Info allocationInfo;
+        Accounting.Info accountingInfo;
     }
 
     /// @dev Struct containing the total supply function and a data slot for EVM storage.
@@ -60,8 +60,8 @@ library FarmingLib {
      */
     function startFarming(Info memory self, uint256 amount, uint256 period) internal returns(uint256 reward) {
         Data storage data = self.getData();
-        data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
-        reward = data.farmInfo.startFarming(amount, period);
+        data.accountingInfo.updateFarmedPerToken(_farmedPerToken(self));
+        reward = data.allocationInfo.allocate(amount, period);
     }
 
     /**
@@ -71,8 +71,8 @@ library FarmingLib {
      */
     function stopFarming(Info memory self) internal returns(uint256 leftover) {
         Data storage data = self.getData();
-        data.userInfo.updateFarmedPerToken(_farmedPerToken(self));
-        leftover = data.farmInfo.stopFarming();
+        data.accountingInfo.updateFarmedPerToken(_farmedPerToken(self));
+        leftover = data.allocationInfo.terminateAllocation();
     }
 
     /**
@@ -83,7 +83,7 @@ library FarmingLib {
      * @return result The farmed amount.
      */
     function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
-        return self.getData().userInfo.farmed(account, balance, _farmedPerToken(self));
+        return self.getData().accountingInfo.farmed(account, balance, _farmedPerToken(self));
     }
 
     /**
@@ -96,10 +96,10 @@ library FarmingLib {
     function claim(Info memory self, address account, uint256 balance) internal returns(uint256 amount) {
         Data storage data = self.getData();
         uint256 fpt = _farmedPerToken(self);
-        amount = data.userInfo.farmed(account, balance, fpt);
+        amount = data.accountingInfo.farmed(account, balance, fpt);
         if (amount > 0) {
-            data.userInfo.eraseFarmed(account, balance, fpt);
-            data.farmInfo.claim(amount);
+            data.accountingInfo.eraseFarmed(account, balance, fpt);
+            data.allocationInfo.claim(amount);
         }
     }
 
@@ -111,14 +111,14 @@ library FarmingLib {
      * @param amount The amount to transfer.
      */
     function updateBalances(Info memory self, address from, address to, uint256 amount) internal {
-        self.getData().userInfo.updateBalances(from, to, amount, _farmedPerToken(self));
+        self.getData().accountingInfo.updateBalances(from, to, amount, _farmedPerToken(self));
     }
 
     function _farmedPerToken(Info memory self) private view returns (uint256) {
-        return self.getData().userInfo.farmedPerToken(_infoToContext(self), _lazyGetSupply, _lazyGetFarmed);
+        return self.getData().accountingInfo.farmedPerToken(_infoToContext(self), _lazyGetSupply, _lazyGetFarmed);
     }
 
-    // UserAccounting bindings
+    // Accounting bindings
 
     function _lazyGetSupply(bytes32 context) private view returns(uint256) {
         Info memory self = _contextToInfo(context);
@@ -127,7 +127,7 @@ library FarmingLib {
 
     function _lazyGetFarmed(bytes32 context, uint256 checkpoint) private view returns(uint256) {
         Info memory self = _contextToInfo(context);
-        return self.getData().farmInfo.farmedSinceCheckpointScaled(checkpoint);
+        return self.getData().allocationInfo.farmedSinceCheckpointScaled(checkpoint);
     }
 
     function _contextToInfo(bytes32 context) private pure returns(Info memory self) {

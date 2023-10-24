@@ -113,7 +113,7 @@ contract AMMPoolToken is ERC20Plugins {
 
 Storage access:
 
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L14-L16) for farming params, updated only on farming restarting:
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/libraries/Allocation.sol#L13-L15) for farming params, updated only when farming is restarted or stopped:
     
     ```solidity
     uint40 public finished;
@@ -121,14 +121,14 @@ Storage access:
     uint184 public reward;
     ```
     
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L7-L8) for farming state, updated only on changing number of farming tokens:
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/libraries/Accounting.sol#L9-L10) for farming state, updated only on changing number of farming tokens:
     
     ```solidity
     uint40 public checkpoint;
     uint216 public farmedPerTokenStored;
     ```
     
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L9) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/libraries/Accounting.sol#L11) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
     
     ```solidity
     mapping(address => int256) public corrections;

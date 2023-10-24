@@ -11,12 +11,12 @@ import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20P
 
 import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
 import { Distributor } from "./Distributor.sol";
-import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
+import { FarmingLib, Allocation } from "./libraries/FarmingLib.sol";
 
 contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
-    using FarmAccounting for FarmAccounting.Info;
+    using Allocation for Allocation.Info;
     using Address for address payable;
 
     error ZeroFarmableTokenAddress();
@@ -37,8 +37,8 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         emit FarmCreated(address(farmableToken_), address(rewardsToken_));
     }
 
-    function farmInfo() public view returns(FarmAccounting.Info memory) {
-        return _farm.farmInfo;
+    function farmInfo() public view returns(Allocation.Info memory) {
+        return _farm.allocationInfo;
     }
 
     function totalSupply() public view returns(uint256) {
@@ -91,7 +91,7 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
             payable(_distributor).sendValue(amount);
         } else {
             if (token_ == rewardsToken) {
-                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
+                if (rewardsToken.balanceOf(address(this)) < _farm.allocationInfo.balance + amount) revert InsufficientFunds();
             }
             token_.safeTransfer(_distributor, amount);
         }

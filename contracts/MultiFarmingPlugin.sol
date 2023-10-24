@@ -12,7 +12,7 @@ import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20P
 
 import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
 import { Distributor } from "./Distributor.sol";
-import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
+import { Allocation, FarmingLib } from "./libraries/FarmingLib.sol";
 
 contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     using SafeERC20 for IERC20;
@@ -46,8 +46,8 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         return _rewardsTokens.items.get();
     }
 
-    function farmInfo(IERC20 rewardsToken) public view returns(FarmAccounting.Info memory) {
-        return _farms[rewardsToken].farmInfo;
+    function farmInfo(IERC20 rewardsToken) public view returns(Allocation.Info memory) {
+        return _farms[rewardsToken].allocationInfo;
     }
 
     function totalSupply() public view returns(uint256) {
@@ -132,7 +132,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
             payable(_distributor).sendValue(amount);
         } else {
             if (_rewardsTokens.contains(address(token_))) {
-                if (token_.balanceOf(address(this)) < _farms[token_].farmInfo.balance + amount) revert InsufficientFunds();
+                if (token_.balanceOf(address(this)) < _farms[token_].allocationInfo.balance + amount) revert InsufficientFunds();
             }
             token_.safeTransfer(_distributor, amount);
         }

@@ -10,7 +10,7 @@ import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.s
 
 import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
 import { Distributor } from "./Distributor.sol";
-import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
+import { Allocation, FarmingLib } from "./libraries/FarmingLib.sol";
 
 contract FarmingPool is IFarmingPool, Distributor, ERC20 {
     using SafeERC20 for IERC20;
@@ -48,8 +48,8 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
         return IERC20Metadata(address(stakingToken)).decimals();
     }
 
-    function farmInfo() public view returns(FarmAccounting.Info memory) {
-        return _farm.farmInfo;
+    function farmInfo() public view returns(Allocation.Info memory) {
+        return _farm.allocationInfo;
     }
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
@@ -104,7 +104,7 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
             if (token == stakingToken) {
                 if (stakingToken.balanceOf(address(this)) < totalSupply() + amount) revert InsufficientFunds();
             } else if (token == rewardsToken) {
-                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
+                if (rewardsToken.balanceOf(address(this)) < _farm.allocationInfo.balance + amount) revert InsufficientFunds();
             }
 
             token.safeTransfer(_distributor, amount);
