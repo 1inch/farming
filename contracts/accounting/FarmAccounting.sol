@@ -5,10 +5,6 @@ pragma solidity ^0.8.0;
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 library FarmAccounting {
-    error ZeroDuration();
-    error DurationTooLarge();
-    error AmountTooLarge();
-
     struct Info {
         uint40 finished;
         uint32 duration;
@@ -18,6 +14,10 @@ library FarmAccounting {
 
     uint256 internal constant _MAX_REWARD_AMOUNT = 1e32;  // 108 bits
     uint256 internal constant _SCALE = 1e18;  // 60 bits
+
+    error ZeroDuration();
+    error DurationTooLarge();
+    error AmountTooLarge();
 
     /// @dev Requires extra 18 decimals for precision, result fits in 168 bits
     function farmedSinceCheckpointScaled(Info storage info, uint256 checkpoint) internal view returns(uint256 amount) {

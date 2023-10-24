@@ -13,15 +13,16 @@ import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
 import { Distributor } from "./Distributor.sol";
 import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
 
+/**
+ * @title Implementation of the {IFarmingPlugin} interface.
+ * @notice This contract only accounts for the balances of users
+ * who added it as a plugin to the farmable token.
+ */
 contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using FarmAccounting for FarmAccounting.Info;
     using Address for address payable;
-
-    error ZeroFarmableTokenAddress();
-    error ZeroRewardsTokenAddress();
-    error InsufficientFunds();
 
     IERC20 public immutable rewardsToken;
 
@@ -37,20 +38,32 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         emit FarmCreated(address(farmableToken_), address(rewardsToken_));
     }
 
+    /**
+     * @notice See {IFarmingPlugin-farmInfo}
+     */
     function farmInfo() public view returns(FarmAccounting.Info memory) {
         return _farm.farmInfo;
     }
 
+    /**
+     * @notice See {IFarmingPlugin-totalSupply}
+     */
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
     }
 
+    /**
+     * @notice See {IFarmingPlugin-startFarming}
+     */
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().startFarming(amount, period);
         emit RewardUpdated(reward, period);
         rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
+    /**
+     * @notice See {IFarmingPlugin-stopFarming}
+     */
     function stopFarming() public virtual onlyDistributor {
         uint256 leftover = _makeInfo().stopFarming();
         emit RewardUpdated(0, 0);
@@ -59,11 +72,17 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         }
     }
 
+    /**
+     * @notice See {IFarmingPlugin-farmed}
+     */
     function farmed(address account) public view virtual returns(uint256) {
         uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
         return _makeInfo().farmed(account, balance);
     }
 
+    /**
+     * @notice See {IFarmingPlugin-claim}
+     */
     function claim() public virtual {
         uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
         uint256 amount = _makeInfo().claim(msg.sender, pluginBalance);
@@ -86,6 +105,9 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         }
     }
 
+    /**
+     * @notice See {IFarmingPlugin-rescueFunds}
+     */
     function rescueFunds(IERC20 token_, uint256 amount) public virtual onlyDistributor {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);

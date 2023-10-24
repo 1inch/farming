@@ -25,7 +25,7 @@ library FarmingLib {
     }
 
     /**
-     * @notice Creates a new Info struct.
+     * @notice Creates a new FarmingLib.Info struct.
      * @param getTotalSupply The function to get the total supply.
      * @param data The data struct for storage.
      * @return info The created Info struct.
@@ -40,8 +40,8 @@ library FarmingLib {
     }
 
     /**
-     * @notice Retrieves the Data struct from an Info struct.
-     * @param self The Info struct.
+     * @notice Retrieves the FarmingLib.Data struct from an FarmingLib.Info struct.
+     * @param self The Info struct to retrieve data from storage.
      * @return data The retrieved Data struct.
      */
     function getData(Info memory self) internal pure returns(Data storage data) {
@@ -52,11 +52,11 @@ library FarmingLib {
     }
 
     /**
-     * @notice Begins farming for a specified period.
-     * @param self The Info struct.
-     * @param amount The amount to farm.
-     * @param period The farming period.
-     * @return reward The farming reward.
+     * @notice Updates farming info with new amount and specified period.
+     * @param self The FarmingLib.Info struct to retrieve data from storage.
+     * @param amount A new amount to farm.
+     * @param period A new farming period.
+     * @return reward Updated farming reward.
      */
     function startFarming(Info memory self, uint256 amount, uint256 period) internal returns(uint256 reward) {
         Data storage data = self.getData();
@@ -76,22 +76,22 @@ library FarmingLib {
     }
 
     /**
-     * @notice Gets the farmed amount for an account.
-     * @param self The Info struct.
-     * @param account The account to check.
-     * @param balance The account balance.
-     * @return result The farmed amount.
+     * @notice Gets the amount of farmed reward tokens for an account.
+     * @param self The FarmingLib.Info struct to retrieve data from storage.
+     * @param account The address of the account to check.
+     * @param balance The farmable token balance of the account.
+     * @return result The number of tokens farmed.
      */
     function farmed(Info memory self, address account, uint256 balance) internal view returns(uint256) {
         return self.getData().userInfo.farmed(account, balance, _farmedPerToken(self));
     }
 
     /**
-     * @notice Claims the farmed amount for an account.
-     * @param self The Info struct.
-     * @param account The account to claim for.
-     * @param balance The account balance.
-     * @return amount The claimed amount.
+     * @notice Claims the farmed reward tokens for an account.
+     * @param self The FarmingLib.Info struct to retrieve data from storage.
+     * @param account The address of the account to claim for.
+     * @param balance The account balance of farmable tokens.
+     * @return amount The claimed amount of reward tokens.
      */
     function claim(Info memory self, address account, uint256 balance) internal returns(uint256 amount) {
         Data storage data = self.getData();
@@ -104,10 +104,10 @@ library FarmingLib {
     }
 
     /**
-     * @notice Updates the balances of two accounts.
-     * @param self The Info struct.
-     * @param from The account to transfer from.
-     * @param to The account to transfer to.
+     * @notice Updates the farmable token balances of two accounts.
+     * @param self The FarmingLib.Info struct to retrieve data from storage.
+     * @param from The address of the account to transfer from.
+     * @param to The address of the account to transfer to.
      * @param amount The amount to transfer.
      */
     function updateBalances(Info memory self, address from, address to, uint256 amount) internal {
