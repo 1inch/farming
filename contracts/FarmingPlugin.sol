@@ -10,9 +10,10 @@ import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
 import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
 
 import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
+import { Distributor } from "./Distributor.sol";
 import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
 
-contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
+contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using FarmAccounting for FarmAccounting.Info;
@@ -20,20 +21,12 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
 
     error ZeroFarmableTokenAddress();
     error ZeroRewardsTokenAddress();
-    error ZeroDistributorAddress();
-    error SameDistributor();
     error InsufficientFunds();
 
     IERC20 public immutable rewardsToken;
 
-    address private _distributor;
     uint256 private _totalSupply;
     FarmingLib.Data private _farm;
-
-    modifier onlyDistributor {
-        if (msg.sender != _distributor) revert AccessDenied();
-        _;
-    }
 
     constructor(IERC20Plugins farmableToken_, IERC20 rewardsToken_)
         Plugin(farmableToken_)
@@ -50,18 +43,6 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Ownable {
 
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
-    }
-
-    function distributor() public view returns(address) {
-        return _distributor;
-    }
-
-    function setDistributor(address distributor_) public virtual onlyOwner {
-        if (distributor_ == address(0)) revert ZeroDistributorAddress();
-        address oldDistributor = _distributor;
-        if (distributor_ == oldDistributor) revert SameDistributor();
-        emit DistributorChanged(oldDistributor, distributor_);
-        _distributor = distributor_;
     }
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {

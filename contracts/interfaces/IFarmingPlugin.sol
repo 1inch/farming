@@ -8,22 +8,18 @@ import { FarmAccounting } from "../accounting/FarmAccounting.sol";
 
 interface IFarmingPlugin is IPlugin {
     event FarmCreated(address token, address reward);
-    event DistributorChanged(address oldDistributor, address newDistributor);
     event RewardUpdated(uint256 reward, uint256 duration);
 
     // View functions
     function totalSupply() external view returns(uint256);
-    function distributor() external view returns(address);
     function farmInfo() external view returns(FarmAccounting.Info memory);
     function farmed(address account) external view returns(uint256);
 
     // User functions
     function claim() external;
 
-    // Owner functions
-    function setDistributor(address distributor_) external;
-
     // Distributor functions
     function startFarming(uint256 amount, uint256 period) external;
+    function stopFarming() external;
     function rescueFunds(IERC20 token, uint256 amount) external;
 }

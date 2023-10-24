@@ -11,9 +11,10 @@ import { AddressArray, AddressSet } from "@1inch/solidity-utils/contracts/librar
 import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
 
 import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
+import { Distributor } from "./Distributor.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
 
-contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
+contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using Address for address payable;
@@ -22,8 +23,6 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
 
     error ZeroFarmableTokenAddress();
     error ZeroRewardsTokenAddress();
-    error ZeroDistributorAddress();
-    error SameDistributor();
     error RewardsTokenAlreadyAdded();
     error RewardsTokensLimitTooHigh(uint256);
     error RewardsTokensLimitReached();
@@ -32,15 +31,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
 
     uint256 public immutable rewardsTokensLimit;
 
-    address private _distributor;
     uint256 private _totalSupply;
     mapping(IERC20 => FarmingLib.Data) private _farms;
     AddressSet.Data private _rewardsTokens;
-
-    modifier onlyDistributor {
-        if (msg.sender != _distributor) revert AccessDenied();
-        _;
-    }
 
     constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_) Plugin(farmableToken_) {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
@@ -59,18 +52,6 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Ownable {
 
     function totalSupply() public view returns(uint256) {
         return _totalSupply;
-    }
-
-    function distributor() public view returns(address) {
-        return _distributor;
-    }
-
-    function setDistributor(address distributor_) public virtual onlyOwner {
-        if (distributor_ == address(0)) revert ZeroDistributorAddress();
-        address oldDistributor = _distributor;
-        if (distributor_ == oldDistributor) revert SameDistributor();
-        emit DistributorChanged(oldDistributor, distributor_);
-        _distributor = distributor_;
     }
 
     function addRewardsToken(address rewardsToken) public virtual onlyOwner {
