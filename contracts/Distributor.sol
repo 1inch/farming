@@ -9,11 +9,6 @@ import { IDistributor } from "./interfaces/IDistributor.sol";
 abstract contract Distributor is IDistributor, Ownable {
     address internal _distributor;
 
-    event DistributorChanged(address newDistributor);
-
-    error NotDistributor();
-    error ZeroDistributorAddress();
-
     modifier onlyDistributor {
         if (msg.sender != _distributor) revert NotDistributor();
         _;
