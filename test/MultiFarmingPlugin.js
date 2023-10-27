@@ -104,7 +104,7 @@ describe('MultiFarmingPlugin', function () {
             expect(wallet2).to.not.equal(distributor);
             await expect(
                 multiFarm.connect(wallet2).stopFarming(gift),
-            ).to.be.revertedWithCustomError(multiFarm, 'AccessDenied');
+            ).to.be.revertedWithCustomError(multiFarm, 'NotDistributor');
         });
 
         it('should be reverted because of an invalid reward token', async function () {
@@ -168,7 +168,7 @@ describe('MultiFarmingPlugin', function () {
             expect(wallet2).to.not.equal(distributor);
             await expect(
                 multiFarm.connect(wallet2).rescueFunds(gift, '1000'),
-            ).to.be.revertedWithCustomError(multiFarm, 'AccessDenied');
+            ).to.be.revertedWithCustomError(multiFarm, 'NotDistributor');
         });
 
         it('should thrown with insufficient funds', async function () {

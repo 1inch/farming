@@ -9,9 +9,10 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 
 import { IFarmingPool } from "./interfaces/IFarmingPool.sol";
+import { Distributor } from "./Distributor.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
 
-contract FarmingPool is IFarmingPool, Ownable, ERC20 {
+contract FarmingPool is IFarmingPool, Distributor, ERC20 {
     using SafeERC20 for IERC20;
     using Address for address payable;
     using FarmingLib for FarmingLib.Info;
@@ -19,8 +20,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     error SameStakingAndRewardsTokens();
     error ZeroStakingTokenAddress();
     error ZeroRewardsTokenAddress();
-    error ZeroDistributorAddress();
-    error SameDistributor();
     error AccessDenied();
     error InsufficientFunds();
     error MaxBalanceExceeded();
@@ -30,13 +29,7 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardsToken;
 
-    address private _distributor;
     FarmingLib.Data private _farm;
-
-    modifier onlyDistributor {
-        if (msg.sender != _distributor) revert AccessDenied();
-        _;
-    }
 
     constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
         ERC20(
@@ -57,18 +50,6 @@ contract FarmingPool is IFarmingPool, Ownable, ERC20 {
 
     function farmInfo() public view returns(FarmAccounting.Info memory) {
         return _farm.farmInfo;
-    }
-
-    function distributor() public view virtual returns (address) {
-        return _distributor;
-    }
-
-    function setDistributor(address distributor_) public virtual onlyOwner {
-        if (distributor_ == address(0)) revert ZeroDistributorAddress();
-        address oldDistributor = _distributor;
-        if (distributor_ == oldDistributor) revert SameDistributor();
-        emit DistributorChanged(oldDistributor, distributor_);
-        _distributor = distributor_;
     }
 
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
