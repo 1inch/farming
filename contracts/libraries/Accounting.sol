@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import { FarmAccounting } from "./FarmAccounting.sol";
+import { Allocation } from "./Allocation.sol";
 
-library UserAccounting {
+library Accounting {
     struct Info {
         uint40 checkpoint;
         uint216 farmedPerTokenStored;
@@ -30,7 +30,7 @@ library UserAccounting {
 
     function farmed(Info storage info, address account, uint256 balance, uint256 fpt) internal view returns(uint256) {
         // balance * fpt is less than 168 bit
-        return uint256(int256(balance * fpt) - info.corrections[account]) / FarmAccounting._SCALE;
+        return uint256(int256(balance * fpt) - info.corrections[account]) / Allocation._SCALE;
     }
 
     function eraseFarmed(Info storage info, address account, uint256 balance, uint256 fpt) internal {

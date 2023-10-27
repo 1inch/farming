@@ -3,13 +3,13 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { FarmAccounting } from "../accounting/FarmAccounting.sol";
+import { Allocation } from "../libraries/Allocation.sol";
 
 interface IFarmingPool is IERC20 {
     event RewardUpdated(uint256 reward, uint256 duration);
 
     // View functions
-    function farmInfo() external view returns(FarmAccounting.Info memory);
+    function farmInfo() external view returns(Allocation.Info memory);
     function farmed(address account) external view returns(uint256);
 
     // User functions

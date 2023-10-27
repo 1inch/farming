@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-library FarmAccounting {
+library Allocation {
     error ZeroDuration();
     error DurationTooLarge();
     error AmountTooLarge();
@@ -31,7 +31,7 @@ library FarmAccounting {
         }
     }
 
-    function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
+    function allocate(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
         if (period == 0) revert ZeroDuration();
         if (period > type(uint32).max) revert DurationTooLarge();
 
@@ -52,7 +52,7 @@ library FarmAccounting {
         return amount;
     }
 
-    function stopFarming(Info storage info) internal returns(uint256 leftover) {
+    function terminateAllocation(Info storage info) internal returns(uint256 leftover) {
         leftover = info.reward - farmedSinceCheckpointScaled(info, info.finished - info.duration) / _SCALE;
         (info.finished, info.duration, info.reward, info.balance) = (
             uint40(block.timestamp),

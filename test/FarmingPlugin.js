@@ -334,14 +334,14 @@ describe('FarmingPlugin', function () {
                 const duration = BigInt(60 * 60 * 24);
                 await farm.startFarming(1000, duration);
                 await time.increaseTo((await farm.farmInfo()).finished + 1n);
-    
+
                 const balanceWalletBefore = await gift.balanceOf(wallet1);
                 const balanceFarmBefore = await gift.balanceOf(farm);
-    
+
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
                 await farm.stopFarming();
-    
+
                 expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore);
                 expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore);
                 expect((await farm.farmInfo()).reward).to.be.equal(0);

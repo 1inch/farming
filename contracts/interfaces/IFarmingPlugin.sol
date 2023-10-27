@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IPlugin } from "@1inch/token-plugins/contracts/interfaces/IPlugin.sol";
-import { FarmAccounting } from "../accounting/FarmAccounting.sol";
+import { Allocation } from "../libraries/Allocation.sol";
 
 interface IFarmingPlugin is IPlugin {
     event FarmCreated(address token, address reward);
@@ -12,7 +12,7 @@ interface IFarmingPlugin is IPlugin {
 
     // View functions
     function totalSupply() external view returns(uint256);
-    function farmInfo() external view returns(FarmAccounting.Info memory);
+    function farmInfo() external view returns(Allocation.Info memory);
     function farmed(address account) external view returns(uint256);
 
     // User functions
