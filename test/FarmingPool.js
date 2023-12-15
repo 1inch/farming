@@ -97,7 +97,8 @@ describe('FarmingPool', function () {
 
         it('should be thrown', async function () {
             const { farm } = await loadFixture(initContracts);
-            await expect(farm.withdraw('1')).to.be.revertedWith('ERC20: burn amount exceeds balance');
+            await expect(farm.withdraw('1')).to.be.revertedWithCustomError(farm, 'ERC20InsufficientBalance')
+                .withArgs(wallet1.address, 0, 1);
         });
     });
 

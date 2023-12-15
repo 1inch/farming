@@ -117,10 +117,10 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
     // ERC20 overrides
 
     function _update(address from, address to, uint256 amount) internal virtual override {
-        super._update(from, to, amount);
-
         if (amount > 0 && from != to) {
             _makeInfo().updateBalances(from, to, amount);
         }
+
+        super._update(from, to, amount);
     }
 }
