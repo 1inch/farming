@@ -9,6 +9,8 @@ import { IDistributor } from "./interfaces/IDistributor.sol";
 abstract contract Distributor is IDistributor, Ownable {
     address internal _distributor;
 
+    constructor () Ownable(msg.sender) {}
+
     modifier onlyDistributor {
         if (msg.sender != _distributor) revert NotDistributor();
         _;
