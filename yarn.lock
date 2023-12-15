@@ -838,6 +838,13 @@
     debug "^4.1.1"
     lodash.isequal "^4.5.0"
 
+"@nomicfoundation/hardhat-network-helpers@1.0.10":
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-network-helpers/-/hardhat-network-helpers-1.0.10.tgz#c61042ceb104fdd6c10017859fdef6529c1d6585"
+  integrity sha512-R35/BMBlx7tWN5V6d/8/19QCwEmIdbnA4ZrsuXgvs8i2qFx5i7h6mH5pBS4Pwi4WigLH+upl6faYusrNPuzMrQ==
+  dependencies:
+    ethereumjs-util "^7.1.4"
+
 "@nomicfoundation/hardhat-network-helpers@1.0.8":
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-network-helpers/-/hardhat-network-helpers-1.0.8.tgz#e4fe1be93e8a65508c46d73c41fa26c7e9f84931"
@@ -2772,7 +2779,7 @@ ethers@^4.0.40:
     uuid "2.0.1"
     xmlhttprequest "1.8.0"
 
-ethers@^5.3.1, ethers@^5.5.3, ethers@^5.7.0, ethers@^5.7.1:
+ethers@^5.3.1, ethers@^5.5.3, ethers@^5.6.1, ethers@^5.7.0, ethers@^5.7.1:
   version "5.7.2"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.7.2.tgz#3a7deeabbb8c030d4126b24f84e525466145872e"
   integrity sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==
@@ -3455,6 +3462,15 @@ hardhat-gas-reporter@1.0.9:
     array-uniq "1.0.3"
     eth-gas-reporter "^0.2.25"
     sha1 "^1.1.1"
+
+hardhat-tracer@^2.7.0:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-2.7.0.tgz#af04e5cd7ec2525c24a70634f6d1051252992d03"
+  integrity sha512-H+30jj6bCyX7NfhY7Umbzq535jhi9Wd5fGNli9qWcQ+5iOB477Nm8XdGtPtgOV1vQ7VQzIwKFzoEbqy+BuxTlg==
+  dependencies:
+    chalk "^4.1.2"
+    debug "^4.3.4"
+    ethers "^5.6.1"
 
 hardhat@2.19.1:
   version "2.19.1"
