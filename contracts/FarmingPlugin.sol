@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
@@ -23,7 +22,7 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     error ZeroRewardsTokenAddress();
     error InsufficientFunds();
 
-    IERC20 public immutable rewardsToken;
+    IERC20 public immutable REWARDS_TOKEN;
 
     uint256 private _totalSupply;
     FarmingLib.Data private _farm;
@@ -33,7 +32,7 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
-        rewardsToken = rewardsToken_;
+        REWARDS_TOKEN = rewardsToken_;
         emit FarmCreated(address(farmableToken_), address(rewardsToken_));
     }
 
@@ -48,14 +47,14 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().startFarming(amount, period);
         emit RewardUpdated(reward, period);
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
+        REWARDS_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function stopFarming() public virtual onlyDistributor {
         uint256 leftover = _makeInfo().stopFarming();
         emit RewardUpdated(0, 0);
         if (leftover > 0) {
-            rewardsToken.safeTransfer(msg.sender, leftover);
+            REWARDS_TOKEN.safeTransfer(msg.sender, leftover);
         }
     }
 
@@ -68,7 +67,7 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         uint256 pluginBalance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), msg.sender);
         uint256 amount = _makeInfo().claim(msg.sender, pluginBalance);
         if (amount > 0) {
-            _transferReward(rewardsToken, msg.sender, amount);
+            _transferReward(REWARDS_TOKEN, msg.sender, amount);
         }
     }
 
@@ -90,8 +89,8 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
         if(token_ == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
-            if (token_ == rewardsToken) {
-                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
+            if (token_ == REWARDS_TOKEN) {
+                if (REWARDS_TOKEN.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
             }
             token_.safeTransfer(_distributor, amount);
         }

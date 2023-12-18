@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
@@ -29,7 +28,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     error RewardsTokenNotFound();
     error InsufficientFunds();
 
-    uint256 public immutable rewardsTokensLimit;
+    uint256 public immutable REWARDS_TOKENS_LIMIT;
 
     uint256 private _totalSupply;
     mapping(IERC20 => FarmingLib.Data) private _farms;
@@ -39,7 +38,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
 
-        rewardsTokensLimit = rewardsTokensLimit_;
+        REWARDS_TOKENS_LIMIT = rewardsTokensLimit_;
     }
 
     function rewardsTokens() external view returns(address[] memory) {
@@ -56,7 +55,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
 
     function addRewardsToken(address rewardsToken) public virtual onlyOwner {
         if (rewardsToken == address(0)) revert ZeroRewardsTokenAddress();
-        if (_rewardsTokens.length() == rewardsTokensLimit) revert RewardsTokensLimitReached();
+        if (_rewardsTokens.length() == REWARDS_TOKENS_LIMIT) revert RewardsTokensLimitReached();
         if (!_rewardsTokens.add(rewardsToken)) revert RewardsTokenAlreadyAdded();
         emit FarmCreated(address(TOKEN), rewardsToken);
     }

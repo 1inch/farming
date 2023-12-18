@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20, ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
@@ -26,8 +25,8 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
 
     uint256 internal constant _MAX_BALANCE = 1e32;
 
-    IERC20 public immutable stakingToken;
-    IERC20 public immutable rewardsToken;
+    IERC20 public immutable STAKING_TOKEN;
+    IERC20 public immutable REWARDS_TOKEN;
 
     FarmingLib.Data private _farm;
 
@@ -41,12 +40,12 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
         if (stakingToken_ == rewardsToken_) revert SameStakingAndRewardsTokens();
         if (address(stakingToken_) == address(0)) revert ZeroStakingTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
-        stakingToken = stakingToken_;
-        rewardsToken = rewardsToken_;
+        STAKING_TOKEN = stakingToken_;
+        REWARDS_TOKEN = rewardsToken_;
     }
 
     function decimals() public view virtual override returns (uint8) {
-        return IERC20Metadata(address(stakingToken)).decimals();
+        return IERC20Metadata(address(STAKING_TOKEN)).decimals();
     }
 
     function farmInfo() public view returns(FarmAccounting.Info memory) {
@@ -56,14 +55,14 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
     function startFarming(uint256 amount, uint256 period) public virtual onlyDistributor {
         uint256 reward = _makeInfo().startFarming(amount, period);
         emit RewardUpdated(reward, period);
-        rewardsToken.safeTransferFrom(msg.sender, address(this), amount);
+        REWARDS_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function stopFarming() public virtual onlyDistributor {
         uint256 leftover = _makeInfo().stopFarming();
         emit RewardUpdated(0, 0);
         if (leftover > 0) {
-            rewardsToken.safeTransfer(msg.sender, leftover);
+            REWARDS_TOKEN.safeTransfer(msg.sender, leftover);
         }
     }
 
@@ -74,18 +73,18 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
     function deposit(uint256 amount) public virtual {
         _mint(msg.sender, amount);
         if (balanceOf(msg.sender) > _MAX_BALANCE) revert MaxBalanceExceeded();
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        STAKING_TOKEN.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public virtual {
         _burn(msg.sender, amount);
-        stakingToken.safeTransfer(msg.sender, amount);
+        STAKING_TOKEN.safeTransfer(msg.sender, amount);
     }
 
     function claim() public virtual {
         uint256 amount = _makeInfo().claim(msg.sender, balanceOf(msg.sender));
         if (amount > 0) {
-            _transferReward(rewardsToken, msg.sender, amount);
+            _transferReward(REWARDS_TOKEN, msg.sender, amount);
         }
     }
 
@@ -102,10 +101,10 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
         if (token == IERC20(address(0))) {
             payable(_distributor).sendValue(amount);
         } else {
-            if (token == stakingToken) {
-                if (stakingToken.balanceOf(address(this)) < totalSupply() + amount) revert InsufficientFunds();
-            } else if (token == rewardsToken) {
-                if (rewardsToken.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
+            if (token == STAKING_TOKEN) {
+                if (STAKING_TOKEN.balanceOf(address(this)) < totalSupply() + amount) revert InsufficientFunds();
+            } else if (token == REWARDS_TOKEN) {
+                if (REWARDS_TOKEN.balanceOf(address(this)) < _farm.farmInfo.balance + amount) revert InsufficientFunds();
             }
 
             token.safeTransfer(_distributor, amount);
