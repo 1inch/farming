@@ -28,8 +28,8 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     uint256 private _totalSupply;
     FarmingLib.Data private _farm;
 
-    constructor(IERC20Plugins farmableToken_, IERC20 rewardsToken_)
-        Plugin(farmableToken_)
+    constructor(IERC20Plugins farmableToken_, IERC20 rewardsToken_, address owner_)
+        Plugin(farmableToken_) Distributor(owner_)
     {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
@@ -60,12 +60,12 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     }
 
     function farmed(address account) public view virtual returns(uint256) {
-        uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
+        uint256 balance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), account);
         return _makeInfo().farmed(account, balance);
     }
 
     function claim() public virtual {
-        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
+        uint256 pluginBalance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), msg.sender);
         uint256 amount = _makeInfo().claim(msg.sender, pluginBalance);
         if (amount > 0) {
             _transferReward(rewardsToken, msg.sender, amount);

@@ -31,11 +31,12 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
 
     FarmingLib.Data private _farm;
 
-    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_)
+    constructor(IERC20Metadata stakingToken_, IERC20 rewardsToken_, address owner_)
         ERC20(
             string(abi.encodePacked("Farming of ", stakingToken_.name())),
             string(abi.encodePacked("farm", stakingToken_.symbol()))
         )
+        Distributor(owner_)
     {
         if (stakingToken_ == rewardsToken_) revert SameStakingAndRewardsTokens();
         if (address(stakingToken_) == address(0)) revert ZeroStakingTokenAddress();
@@ -117,11 +118,10 @@ contract FarmingPool is IFarmingPool, Distributor, ERC20 {
 
     // ERC20 overrides
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
-        super._beforeTokenTransfer(from, to, amount);
-
+    function _update(address from, address to, uint256 amount) internal virtual override {
         if (amount > 0 && from != to) {
             _makeInfo().updateBalances(from, to, amount);
         }
+        super._update(from, to, amount);
     }
 }

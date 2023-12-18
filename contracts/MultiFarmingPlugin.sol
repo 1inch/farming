@@ -35,7 +35,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     mapping(IERC20 => FarmingLib.Data) private _farms;
     AddressSet.Data private _rewardsTokens;
 
-    constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_) Plugin(farmableToken_) {
+    constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_, address owner_) Plugin(farmableToken_) Distributor(owner_) {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
 
@@ -58,7 +58,7 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
         if (rewardsToken == address(0)) revert ZeroRewardsTokenAddress();
         if (_rewardsTokens.length() == rewardsTokensLimit) revert RewardsTokensLimitReached();
         if (!_rewardsTokens.add(rewardsToken)) revert RewardsTokenAlreadyAdded();
-        emit FarmCreated(address(token), rewardsToken);
+        emit FarmCreated(address(TOKEN), rewardsToken);
     }
 
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) public virtual onlyDistributor {
@@ -80,17 +80,17 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     }
 
     function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
-        uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
+        uint256 balance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), account);
         return _makeInfo(rewardsToken).farmed(account, balance);
     }
 
     function claim(IERC20 rewardsToken) public virtual {
-        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
+        uint256 pluginBalance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), msg.sender);
         _claim(rewardsToken, msg.sender, pluginBalance);
     }
 
     function claim() public virtual {
-        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
+        uint256 pluginBalance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), msg.sender);
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
             uint256 length = tokens.length;

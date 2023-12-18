@@ -27,7 +27,7 @@ describe('MultiFarmingPlugin', function () {
         gifts[1] = await TokenMock.deploy('USDT', 'USDT');
         gifts[1].waitForDeployment();
         const MultiFarmingPlugin = await ethers.getContractFactory('MultiFarmingPlugin');
-        const multiFarm = await MultiFarmingPlugin.deploy(token, REWARDS_TOKENS_LIMITS);
+        const multiFarm = await MultiFarmingPlugin.deploy(token, REWARDS_TOKENS_LIMITS, wallet1);
         await multiFarm.waitForDeployment();
         await multiFarm.addRewardsToken(gifts[0]);
 
