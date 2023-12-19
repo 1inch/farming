@@ -10,3 +10,9 @@ dist
 .coverage_artifacts
 .env
 .idea
+.wake
+pytypes
+__pycache__/
+*.py[cod]
+.hypothesis/
+wake-coverage.cov
