@@ -20,9 +20,10 @@
     hardhat "2.19.2"
     hardhat-deploy "0.11.44"
 
-"@1inch/token-plugins@https://github.com/1inch/token-plugins.git#feature/bump-solidity":
+"@1inch/token-plugins@1.3.0":
   version "1.3.0"
-  resolved "https://github.com/1inch/token-plugins.git#fbeedec4e8f52182d4cf769e4a57755cb6d16074"
+  resolved "https://registry.yarnpkg.com/@1inch/token-plugins/-/token-plugins-1.3.0.tgz#365d50d4953225816a4749301150c6612b13e874"
+  integrity sha512-Um/8GKAC2Q2C6sITmGj+zr1xiJ3/jPtR/FllwMsDrdfEr7+AVbKH+GL755A7/MS8qz2Df10gSS8iz9Dj/N7/0g==
   dependencies:
     "@1inch/solidity-utils" "3.5.5"
     "@openzeppelin/contracts" "5.0.1"
