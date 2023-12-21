@@ -42,7 +42,7 @@
         "hardhat-deploy": "0.11.45",
         "hardhat-gas-reporter": "1.0.9",
         "rimraf": "5.0.5",
-        "solhint": "4.0.0",
+        "solhint": "3.6.2",
         "solidity-coverage": "0.8.5"
     },
     "scripts": {
