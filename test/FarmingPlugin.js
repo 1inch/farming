@@ -31,7 +31,7 @@ describe('FarmingPlugin', function () {
         const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.waitForDeployment();
         const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
-        const farm = await FarmingPlugin.deploy(token, gift);
+        const farm = await FarmingPlugin.deploy(token, gift, wallet1);
         await farm.waitForDeployment();
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
@@ -202,7 +202,7 @@ describe('FarmingPlugin', function () {
                 let lastFarmStarted;
                 const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
                 for (let i = 0; i < farmsCount; i++) {
-                    farms[i] = await FarmingPlugin.deploy(token, gift);
+                    farms[i] = await FarmingPlugin.deploy(token, gift, wallet1);
                     await farms[i].waitForDeployment();
                     await farms[i].setDistributor(wallet1);
                 }
@@ -334,14 +334,14 @@ describe('FarmingPlugin', function () {
                 const duration = BigInt(60 * 60 * 24);
                 await farm.startFarming(1000, duration);
                 await time.increaseTo((await farm.farmInfo()).finished + 1n);
-    
+
                 const balanceWalletBefore = await gift.balanceOf(wallet1);
                 const balanceFarmBefore = await gift.balanceOf(farm);
-    
+
                 const distributor = await farm.distributor();
                 expect(wallet1.address).to.equal(distributor);
                 await farm.stopFarming();
-    
+
                 expect(await gift.balanceOf(wallet1)).to.be.equal(balanceWalletBefore);
                 expect(await gift.balanceOf(farm)).to.be.equal(balanceFarmBefore);
                 expect((await farm.farmInfo()).reward).to.be.equal(0);

@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
@@ -29,17 +28,17 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     error RewardsTokenNotFound();
     error InsufficientFunds();
 
-    uint256 public immutable rewardsTokensLimit;
+    uint256 public immutable REWARDS_TOKENS_LIMIT;
 
     uint256 private _totalSupply;
     mapping(IERC20 => FarmingLib.Data) private _farms;
     AddressSet.Data private _rewardsTokens;
 
-    constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_) Plugin(farmableToken_) {
+    constructor(IERC20Plugins farmableToken_, uint256 rewardsTokensLimit_, address owner_) Plugin(farmableToken_) Distributor(owner_) {
         if (rewardsTokensLimit_ > 5) revert RewardsTokensLimitTooHigh(rewardsTokensLimit_);
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
 
-        rewardsTokensLimit = rewardsTokensLimit_;
+        REWARDS_TOKENS_LIMIT = rewardsTokensLimit_;
     }
 
     function rewardsTokens() external view returns(address[] memory) {
@@ -56,9 +55,9 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
 
     function addRewardsToken(address rewardsToken) public virtual onlyOwner {
         if (rewardsToken == address(0)) revert ZeroRewardsTokenAddress();
-        if (_rewardsTokens.length() == rewardsTokensLimit) revert RewardsTokensLimitReached();
+        if (_rewardsTokens.length() == REWARDS_TOKENS_LIMIT) revert RewardsTokensLimitReached();
         if (!_rewardsTokens.add(rewardsToken)) revert RewardsTokenAlreadyAdded();
-        emit FarmCreated(address(token), rewardsToken);
+        emit FarmCreated(address(TOKEN), rewardsToken);
     }
 
     function startFarming(IERC20 rewardsToken, uint256 amount, uint256 period) public virtual onlyDistributor {
@@ -80,17 +79,17 @@ contract MultiFarmingPlugin is Plugin, IMultiFarmingPlugin, Distributor {
     }
 
     function farmed(IERC20 rewardsToken, address account) public view virtual returns(uint256) {
-        uint256 balance = IERC20Plugins(token).pluginBalanceOf(address(this), account);
+        uint256 balance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), account);
         return _makeInfo(rewardsToken).farmed(account, balance);
     }
 
     function claim(IERC20 rewardsToken) public virtual {
-        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
+        uint256 pluginBalance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), msg.sender);
         _claim(rewardsToken, msg.sender, pluginBalance);
     }
 
     function claim() public virtual {
-        uint256 pluginBalance = IERC20Plugins(token).pluginBalanceOf(address(this), msg.sender);
+        uint256 pluginBalance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), msg.sender);
         address[] memory tokens = _rewardsTokens.items.get();
         unchecked {
             uint256 length = tokens.length;

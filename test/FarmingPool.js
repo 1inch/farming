@@ -33,7 +33,7 @@ describe('FarmingPool', function () {
         await gift.waitForDeployment();
         const regularToken = await TokenMock.deploy('USDT', 'USDT');
         await regularToken.waitForDeployment();
-        const farm = await FarmingPool.deploy(token, gift);
+        const farm = await FarmingPool.deploy(token, gift, wallet1);
         await farm.waitForDeployment();
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
@@ -97,7 +97,7 @@ describe('FarmingPool', function () {
 
         it('should be thrown', async function () {
             const { farm } = await loadFixture(initContracts);
-            await expect(farm.withdraw('1')).to.be.revertedWith('ERC20: burn amount exceeds balance');
+            await expect(farm.withdraw('1')).to.be.revertedWithCustomError(farm, 'ERC20InsufficientBalance');
         });
     });
 

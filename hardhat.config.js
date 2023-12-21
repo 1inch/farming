@@ -6,23 +6,20 @@ require('hardhat-dependency-compiler');
 require('hardhat-deploy');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
+const { Networks, getNetwork } = require('@1inch/solidity-utils/hardhat-setup');
 
-const networks = require('./hardhat.networks');
+const { networks, etherscan } = (new Networks()).registerAll();
 
 module.exports = {
-    etherscan: {
-        apiKey: {
-            mainnet: process.env.MAINNET_ETHERSCAN_KEY,
-            avalanche: process.env.AVAX_ETHERSCAN_KEY,
-        },
-    },
+    etherscan,
     solidity: {
-        version: '0.8.19',
+        version: '0.8.23',
         settings: {
             optimizer: {
                 enabled: true,
                 runs: 1000000,
             },
+            evmVersion: networks[getNetwork()]?.hardfork || 'shanghai',
             viaIR: true,
         },
     },

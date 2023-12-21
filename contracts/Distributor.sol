@@ -14,6 +14,8 @@ abstract contract Distributor is IDistributor, Ownable {
         _;
     }
 
+    constructor(address owner_) Ownable(owner_) {} // solhint-disable-line no-empty-blocks
+
     /**
      * @notice See {IDistributor-setDistributor}
      */
