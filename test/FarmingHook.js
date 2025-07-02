@@ -715,7 +715,7 @@ describe('FarmingHook', function () {
         */
         it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
+            await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
             expect(await farm.farmed(wallet2)).to.equal(0n);
 
             await token.connect(wallet2).addHook(farm);
@@ -749,7 +749,7 @@ describe('FarmingHook', function () {
         */
         it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
+            await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
             expect(await farm.farmed(wallet2)).to.equal(0n);
 
             await token.connect(wallet2).addHook(farm);

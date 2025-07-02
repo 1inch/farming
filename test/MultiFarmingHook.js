@@ -68,9 +68,9 @@ describe('MultiFarmingHook', function () {
             expect(await multiFarm.farmed(gifts[1], wallet1)).to.equal(BigInt(rewardAmount / 2));
         });
 
-            it('should show farming parameters for both tokens', async function () {
-                const { token, gifts, multiFarm } = await loadFixture(initContracts);
-                await token.addHook(multiFarm);
+        it('should show farming parameters for both tokens', async function () {
+            const { token, gifts, multiFarm } = await loadFixture(initContracts);
+            await token.addHook(multiFarm);
             await gifts[0].connect(wallet2).transfer(multiFarm, '1000');
             await gifts[1].connect(wallet2).transfer(multiFarm, '1000');
 
