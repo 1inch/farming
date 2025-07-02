@@ -9,11 +9,11 @@ import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.s
 import { AddressArray, AddressSet } from "@1inch/solidity-utils/contracts/libraries/AddressSet.sol";
 import { IERC20Hooks } from "@1inch/token-hooks/contracts/interfaces/IERC20Hooks.sol";
 
-import { IMultiFarmingPlugin } from "./interfaces/IMultiFarmingPlugin.sol";
+import { IMultiFarmingHook } from "./interfaces/IMultiFarmingHook.sol";
 import { Distributor } from "./Distributor.sol";
 import { FarmAccounting, FarmingLib } from "./FarmingLib.sol";
 
-contract MultiFarmingPlugin is Hook, IMultiFarmingPlugin, Distributor {
+contract MultiFarmingHook is Hook, IMultiFarmingHook, Distributor {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using Address for address payable;

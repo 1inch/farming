@@ -10,7 +10,7 @@ require('chai').use(function (chai, utils) {
     });
 });
 
-describe('FarmingPlugin', function () {
+describe('FarmingHook', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
@@ -29,8 +29,8 @@ describe('FarmingPlugin', function () {
         const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('UDSC', 'USDC');
         await gift.waitForDeployment();
-        const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
-        const farm = await FarmingPlugin.deploy(token, gift, wallet1);
+        const FarmingHook = await ethers.getContractFactory('FarmingHook');
+        const farm = await FarmingHook.deploy(token, gift, wallet1);
         await farm.waitForDeployment();
 
         for (const wallet of [wallet1, wallet2, wallet3]) {
@@ -199,9 +199,9 @@ describe('FarmingPlugin', function () {
                 const farmsCount = 10;
                 const farms = [];
                 let lastFarmStarted;
-                const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
+                const FarmingHook = await ethers.getContractFactory('FarmingHook');
                 for (let i = 0; i < farmsCount; i++) {
-                    farms[i] = await FarmingPlugin.deploy(token, gift, wallet1);
+                    farms[i] = await FarmingHook.deploy(token, gift, wallet1);
                     await farms[i].waitForDeployment();
                     await farms[i].setDistributor(wallet1);
                 }
@@ -514,7 +514,7 @@ describe('FarmingPlugin', function () {
         describe('hasHook', function () {
             /*
                 ***Test Scenario**
-                Ensures that the `hasPlugin` view returns the correct farming status
+                Ensures that the `hasHook` view returns the correct farming status
 
                 ***Initial setup**
                 - `wallet1` has not joined a farm
@@ -536,7 +536,7 @@ describe('FarmingPlugin', function () {
 
             /*
                 ***Test Scenario**
-                Ensures that `hasPlugin` returns the correct farming status after `quit` is called
+                Ensures that `hasHook` returns the correct farming status after `quit` is called
 
                 ***Test Steps**
                 - `wallet2` joins to farm
@@ -760,14 +760,14 @@ describe('FarmingPlugin', function () {
 
         /*
             ***Test Scenario**
-            Checks that farm's total supply decreases after a user removePlugins farming
+            Checks that farm's total supply decreases after a user removeHooks farming
 
             ***Initial setup**
             - `farm` has not started farming
             - `wallet1` has 1000 unit of farmable token and joined the `farm`
 
             ***Test Steps**
-            `wallet1` removePlugins the `farm`
+            `wallet1` removeHooks the `farm`
 
             ***Expected results**
             Farm's total supply equals 0
@@ -1252,7 +1252,7 @@ describe('FarmingPlugin', function () {
             |1. |Fast-forward => **week 1**                 |18k|54k|0|
             |2. |`wallet3` joins `farm`                     |18k|54k|0|
             |3. |Fast-forward => **week 2**                 |26k|78k|40k|
-            |4. |`wallet2` removePlugins `farm`                     |26k|78k|40k|
+            |4. |`wallet2` removeHooks `farm`                     |26k|78k|40k|
             |5. |Fast-forward => **week 3**                 |38k|78k|100k|
 
         */

@@ -29,8 +29,8 @@ async function joinNewFarms (erc20farmableToken, farmsCount, from) {
         const TokenMock = await ethers.getContractFactory('TokenMock');
         const gift = await TokenMock.deploy('GIFT', 'GIFT');
         await gift.waitForDeployment();
-        const FarmingPlugin = await ethers.getContractFactory('FarmingPlugin');
-        const farm = await FarmingPlugin.deploy(erc20farmableToken, gift, from);
+        const FarmingHook = await ethers.getContractFactory('FarmingHook');
+        const farm = await FarmingHook.deploy(erc20farmableToken, gift, from);
         await farm.waitForDeployment();
         await erc20farmableToken.connect(from).addHook(farm);
     }

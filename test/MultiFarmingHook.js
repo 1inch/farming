@@ -4,7 +4,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { startMultiFarming } = require('./utils');
 
-describe('MultiFarmingPlugin', function () {
+describe('MultiFarmingHook', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
@@ -27,8 +27,8 @@ describe('MultiFarmingPlugin', function () {
         gifts[0].waitForDeployment();
         gifts[1] = await TokenMock.deploy('USDT', 'USDT');
         gifts[1].waitForDeployment();
-        const MultiFarmingPlugin = await ethers.getContractFactory('MultiFarmingPlugin');
-        const multiFarm = await MultiFarmingPlugin.deploy(token, REWARDS_TOKENS_LIMITS, wallet1);
+        const MultiFarmingHook = await ethers.getContractFactory('MultiFarmingHook');
+        const multiFarm = await MultiFarmingHook.deploy(token, REWARDS_TOKENS_LIMITS, wallet1);
         await multiFarm.waitForDeployment();
         await multiFarm.addRewardsToken(gifts[0]);
 

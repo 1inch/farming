@@ -6,7 +6,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IHook } from "@1inch/token-hooks/contracts/interfaces/IHook.sol";
 import { FarmAccounting } from "../accounting/FarmAccounting.sol";
 
-interface IMultiFarmingPlugin is IHook {
+interface IMultiFarmingHook is IHook {
     event FarmCreated(address token, address reward);
     event RewardUpdated(address token, uint256 reward, uint256 duration);
 
