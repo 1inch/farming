@@ -5,14 +5,14 @@ pragma solidity ^0.8.0;
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
-import { Plugin } from "@1inch/token-plugins/contracts/Plugin.sol";
-import { IERC20Plugins } from "@1inch/token-plugins/contracts/interfaces/IERC20Plugins.sol";
+import { Hook } from "@1inch/token-hooks/contracts/Hook.sol";
+import { IERC20Hooks } from "@1inch/token-hooks/contracts/interfaces/IERC20Hooks.sol";
 
 import { IFarmingPlugin } from "./interfaces/IFarmingPlugin.sol";
 import { Distributor } from "./Distributor.sol";
 import { FarmingLib, FarmAccounting } from "./FarmingLib.sol";
 
-contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
+contract FarmingPlugin is Hook, IFarmingPlugin, Distributor {
     using SafeERC20 for IERC20;
     using FarmingLib for FarmingLib.Info;
     using FarmAccounting for FarmAccounting.Info;
@@ -27,8 +27,8 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     uint256 private _totalSupply;
     FarmingLib.Data private _farm;
 
-    constructor(IERC20Plugins farmableToken_, IERC20 rewardsToken_, address owner_)
-        Plugin(farmableToken_) Distributor(owner_)
+    constructor(IERC20Hooks farmableToken_, IERC20 rewardsToken_, address owner_)
+        Hook(farmableToken_) Distributor(owner_)
     {
         if (address(farmableToken_) == address(0)) revert ZeroFarmableTokenAddress();
         if (address(rewardsToken_) == address(0)) revert ZeroRewardsTokenAddress();
@@ -59,13 +59,13 @@ contract FarmingPlugin is Plugin, IFarmingPlugin, Distributor {
     }
 
     function farmed(address account) public view virtual returns(uint256) {
-        uint256 balance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), account);
+        uint256 balance = IERC20Hooks(TOKEN).hookBalanceOf(address(this), account);
         return _makeInfo().farmed(account, balance);
     }
 
     function claim() public virtual {
-        uint256 pluginBalance = IERC20Plugins(TOKEN).pluginBalanceOf(address(this), msg.sender);
-        uint256 amount = _makeInfo().claim(msg.sender, pluginBalance);
+        uint256 hookBalance = IERC20Hooks(TOKEN).hookBalanceOf(address(this), msg.sender);
+        uint256 amount = _makeInfo().claim(msg.sender, hookBalance);
         if (amount > 0) {
             _transferReward(REWARDS_TOKEN, msg.sender, amount);
         }

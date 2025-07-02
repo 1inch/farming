@@ -1,13 +1,14 @@
-const { constants, expect, time, ether } = require('@1inch/solidity-utils');
+const { constants, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const { startMultiFarming } = require('./utils');
 
 describe('MultiFarmingPlugin', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
-    const MAX_PLUGIN_GAS_LIMIT = 200_000;
+    const MAX_HOOK_GAS_LIMIT = 200_000;
     const REWARDS_TOKENS_LIMITS = 5;
 
     before(async function () {
@@ -15,8 +16,8 @@ describe('MultiFarmingPlugin', function () {
     });
 
     async function initContracts () {
-        const ERC20FarmableMock = await ethers.getContractFactory('ERC20PluginsMock');
-        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_PLUGIN_GAS_LIMIT);
+        const ERC20FarmableMock = await ethers.getContractFactory('ERC20HooksMock');
+        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_HOOK_GAS_LIMIT);
         await token.waitForDeployment();
         await token.mint(wallet1, INITIAL_SUPPLY);
 
@@ -44,7 +45,7 @@ describe('MultiFarmingPlugin', function () {
     describe('farmed', function () {
         it('should farmed tokens from both farms', async function () {
             const { token, gifts, multiFarm } = await loadFixture(initContracts);
-            await token.addPlugin(multiFarm);
+            await token.addHook(multiFarm);
             await gifts[0].connect(wallet2).transfer(multiFarm, '1000');
             await gifts[1].connect(wallet2).transfer(multiFarm, '1000');
 
@@ -60,16 +61,16 @@ describe('MultiFarmingPlugin', function () {
             await startMultiFarming(multiFarm, gifts[1], rewardAmount, period, wallet1);
 
             // Check that farmed gifts[0] is equal to half of amount after half of period
-            expect(await multiFarm.farmed(gifts[0], wallet1)).to.equal(rewardAmount / 2);
-            expect(await multiFarm.farmed(gifts[1], wallet1)).to.equal(0);
+            expect(await multiFarm.farmed(gifts[0], wallet1)).to.equal(BigInt(rewardAmount / 2));
+            expect(await multiFarm.farmed(gifts[1], wallet1)).to.equal(0n);
             await time.increaseTo(started + period);
-            expect(await multiFarm.farmed(gifts[0], wallet1)).to.equal(rewardAmount);
-            expect(await multiFarm.farmed(gifts[1], wallet1)).to.equal(rewardAmount / 2);
+            expect(await multiFarm.farmed(gifts[0], wallet1)).to.equal(BigInt(rewardAmount));
+            expect(await multiFarm.farmed(gifts[1], wallet1)).to.equal(BigInt(rewardAmount / 2));
         });
 
-        it('should show farming parameters for both tokens', async function () {
-            const { token, gifts, multiFarm } = await loadFixture(initContracts);
-            await token.addPlugin(multiFarm);
+            it('should show farming parameters for both tokens', async function () {
+                const { token, gifts, multiFarm } = await loadFixture(initContracts);
+                await token.addHook(multiFarm);
             await gifts[0].connect(wallet2).transfer(multiFarm, '1000');
             await gifts[1].connect(wallet2).transfer(multiFarm, '1000');
 
@@ -85,14 +86,14 @@ describe('MultiFarmingPlugin', function () {
             const startedGift1 = await startMultiFarming(multiFarm, gifts[1], rewardAmount, period, wallet1);
 
             const farmInfo0 = await multiFarm.farmInfo(gifts[0]);
-            expect(farmInfo0.duration).to.be.equal(period);
-            expect(farmInfo0.finished).to.be.equal(startedGift0 + period);
-            expect(farmInfo0.reward).to.be.equal(rewardAmount);
+            expect(farmInfo0.duration).to.be.equal(BigInt(period));
+            expect(farmInfo0.finished).to.be.equal(BigInt(startedGift0 + period));
+            expect(farmInfo0.reward).to.be.equal(BigInt(rewardAmount));
 
             const farmInfo1 = await multiFarm.farmInfo(gifts[1]);
-            expect(farmInfo1.duration).to.be.equal(period);
-            expect(farmInfo1.finished).to.be.equal(startedGift1 + period);
-            expect(farmInfo1.reward).to.be.equal(rewardAmount);
+            expect(farmInfo1.duration).to.be.equal(BigInt(period));
+            expect(farmInfo1.finished).to.be.equal(BigInt(startedGift1 + period));
+            expect(farmInfo1.reward).to.be.equal(BigInt(rewardAmount));
         });
     });
 

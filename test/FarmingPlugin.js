@@ -1,13 +1,12 @@
-const { expect, constants, time, ether } = require('@1inch/solidity-utils');
+const { constants, time, ether } = require('@1inch/solidity-utils');
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const { almostEqual, startFarming, joinNewFarms } = require('./utils');
 
 require('chai').use(function (chai, utils) {
-    chai.Assertion.overwriteMethod('almostEqual', (_) => {
-        return function (value) {
-            almostEqual.apply(this, [value, this._obj]);
-        };
+    chai.Assertion.addMethod('almostEqual', function (expected) {
+        almostEqual.call(this, expected, this._obj);
     });
 });
 
@@ -15,15 +14,15 @@ describe('FarmingPlugin', function () {
     let wallet1, wallet2, wallet3;
     const INITIAL_SUPPLY = ether('1');
     const MAX_USER_FARMS = 10;
-    const MAX_PLUGIN_GAS_LIMIT = 200_000;
+    const MAX_HOOK_GAS_LIMIT = 200_000;
 
     before(async function () {
         [wallet1, wallet2, wallet3] = await ethers.getSigners();
     });
 
     async function initContracts () {
-        const ERC20FarmableMock = await ethers.getContractFactory('ERC20PluginsMock');
-        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_PLUGIN_GAS_LIMIT);
+        const ERC20FarmableMock = await ethers.getContractFactory('ERC20HooksMock');
+        const token = await ERC20FarmableMock.deploy('1INCH', '1INCH', MAX_USER_FARMS, MAX_HOOK_GAS_LIMIT);
         await token.waitForDeployment();
         await token.mint(wallet1, INITIAL_SUPPLY);
 
@@ -104,7 +103,7 @@ describe('FarmingPlugin', function () {
 
             it('should show farming parameters', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.addPlugin(farm);
+                await token.addHook(farm);
 
                 const duration = 60 * 60 * 24;
                 const reward = 1000;
@@ -113,9 +112,9 @@ describe('FarmingPlugin', function () {
 
                 const farmInfo = await farm.farmInfo();
 
-                expect(farmInfo.duration).to.be.equal(duration);
-                expect(farmInfo.finished).to.be.equal(started + duration);
-                expect(farmInfo.reward).to.be.equal(reward);
+                expect(farmInfo.duration).to.be.equal(BigInt(duration));
+                expect(farmInfo.finished).to.be.equal(BigInt(started + duration));
+                expect(farmInfo.reward).to.be.equal(BigInt(reward));
             });
         });
 
@@ -137,7 +136,7 @@ describe('FarmingPlugin', function () {
             */
             it('should claim tokens', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.addPlugin(farm);
+                await token.addHook(farm);
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
@@ -164,7 +163,7 @@ describe('FarmingPlugin', function () {
             */
             it('should claim tokens for non-user farms wallet', async function () {
                 const { token, gift, farm } = await loadFixture(initContracts);
-                await token.addPlugin(farm);
+                await token.addHook(farm);
 
                 const started = await startFarming(farm, 1000, 60 * 60 * 24, wallet1);
                 await time.increaseTo(started + 60 * 60 * 25);
@@ -209,7 +208,7 @@ describe('FarmingPlugin', function () {
 
                 // Join and start farming, then delay
                 for (let i = 0; i < farmsCount; i++) {
-                    await token.addPlugin(farms[i]);
+                    await token.addHook(farms[i]);
                     await gift.approve(farms[i], '100');
                     lastFarmStarted = await startFarming(farms[i], 100, time.duration.days(1), wallet1);
                 }
@@ -511,8 +510,8 @@ describe('FarmingPlugin', function () {
             });
         });
 
-        // Farm's plugins scenarios
-        describe('hasPlugin', function () {
+        // Farm's hooks scenarios
+        describe('hasHook', function () {
             /*
                 ***Test Scenario**
                 Ensures that the `hasPlugin` view returns the correct farming status
@@ -530,9 +529,9 @@ describe('FarmingPlugin', function () {
             */
             it('should return false when user does not farm and true when user farms', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).addPlugin(farm);
-                expect(await token.hasPlugin(wallet1, farm)).to.equal(false);
-                expect(await token.hasPlugin(wallet2, farm)).to.equal(true);
+                await token.connect(wallet2).addHook(farm);
+                expect(await token.hasHook(wallet1, farm)).to.equal(false);
+                expect(await token.hasHook(wallet2, farm)).to.equal(true);
             });
 
             /*
@@ -548,13 +547,13 @@ describe('FarmingPlugin', function () {
             */
             it('should return false when user quits from farm', async function () {
                 const { token, farm } = await loadFixture(initContracts);
-                await token.connect(wallet2).addPlugin(farm);
-                await token.connect(wallet2).removePlugin(farm);
-                expect(await token.hasPlugin(wallet1, farm)).to.equal(false);
+                await token.connect(wallet2).addHook(farm);
+                await token.connect(wallet2).removeHook(farm);
+                expect(await token.hasHook(wallet1, farm)).to.equal(false);
             });
         });
 
-        describe('pluginsCount', function () {
+        describe('hooksCount', function () {
             /*
                 ***Test Scenario**
                 Ensures that the `pluginsCount` view returns the correct amount of user's farms
@@ -571,28 +570,28 @@ describe('FarmingPlugin', function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                expect(await token.pluginsCount(wallet1)).to.equal(farmsCount);
+                expect(await token.hooksCount(wallet1)).to.equal(farmsCount);
 
-                const farms = await token.plugins(wallet1);
+                const farms = await token.hooks(wallet1);
                 expect(farms.length).to.equal(farmsCount);
                 for (let i = 0; i < farmsCount; i++) {
-                    await token.removePlugin(farms[i]);
-                    expect(await token.pluginsCount(wallet1)).to.equal(farmsCount - i - 1);
+                    await token.removeHook(farms[i]);
+                    expect(await token.hooksCount(wallet1)).to.equal(farmsCount - i - 1);
                 }
             });
         });
 
-        describe('pluginAt', function () {
+        describe('hookAt', function () {
             /*
                 ***Test Scenario**
-                Ensure that the `pluginAt` view returns the correct farm by index
+                Ensure that the `hookAt` view returns the correct farm by index
 
                 ***Initial setup**
                 - Account joins an array of farms
 
                 ***Test Steps**
-                1. Call `plugins` view to get an array of joined farms for the account
-                2. Request each farm's address with `pluginAt` view and compare it with the farm's address in the array
+                1. Call `hooks` view to get an array of joined farms for the account
+                2. Request each farm's address with `hookAt` view and compare it with the farm's address in the array
 
                 ***Expected results**
                 - Each pair of addresses should be equal
@@ -601,9 +600,9 @@ describe('FarmingPlugin', function () {
                 const { token } = await loadFixture(initContracts);
                 const farmsCount = 10;
                 await joinNewFarms(token, farmsCount, wallet1);
-                const farms = await token.plugins(wallet1);
+                const farms = await token.hooks(wallet1);
                 for (let i = 0; i < farmsCount; i++) {
-                    const farmAddress = await token.pluginAt(wallet1, i);
+                    const farmAddress = await token.hookAt(wallet1, i);
                     expect(farmAddress).to.equal(farms[i]);
                 }
             });
@@ -627,7 +626,7 @@ describe('FarmingPlugin', function () {
         */
         it('should update totalSupply', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm);
+            await token.addHook(farm);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
         });
 
@@ -645,7 +644,7 @@ describe('FarmingPlugin', function () {
         */
         it('should make totalSupply to decrease with balance', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm);
+            await token.addHook(farm);
             await token.transfer(wallet2, INITIAL_SUPPLY * 6n / 10n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY * 4n / 10n);
         });
@@ -665,7 +664,7 @@ describe('FarmingPlugin', function () {
         it('should make totalSupply to increase with balance', async function () {
             const { token, farm } = await loadFixture(initContracts);
             await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
-            await token.addPlugin(farm);
+            await token.addHook(farm);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY / 2n);
             await token.connect(wallet2).transfer(wallet1, INITIAL_SUPPLY / 2n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
@@ -685,32 +684,10 @@ describe('FarmingPlugin', function () {
         */
         it('should make totalSupply ignore internal transfers', async function () {
             const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
-            expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
             await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
             expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY);
-        });
-
-        /*
-            ***Test Scenario**
-            Checks that farm's total supply decreases after a user removePlugins farming
-
-            ***Initial setup**
-            - `farm` has not started farming
-            - `wallet1` has 1000 unit of farmable token and joined the `farm`
-
-            ***Test Steps**
-            `wallet1` removePlugins the `farm`
-
-            ***Expected results**
-            Farm's total supply equals 0
-        */
-        it('should be burn', async function () {
-            const { token, farm } = await loadFixture(initContracts);
-            await token.addPlugin(farm);
-            await token.removePlugin(farm);
-            expect(await farm.totalSupply()).to.equal('0');
         });
     });
 
@@ -739,13 +716,102 @@ describe('FarmingPlugin', function () {
         it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
             const { token, farm } = await loadFixture(initContracts);
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
-            await token.connect(wallet2).addPlugin(farm);
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            await token.connect(wallet2).addHook(farm);
+            expect(await farm.totalSupply()).to.equal(0n);
+            await token.connect(wallet2).removeHook(farm);
+            expect(await farm.totalSupply()).to.equal(0n);
+        });
+    });
+
+    // Farming reward calculations scenarios
+    describe('deposit', function () {
+        /*
+            ***Test Scenario**
+            Staker without farming tokens joins on 1st week and adds them on 2nd
+            ```
+            72k => 1x: +       +-------+ => 36k
+            ```
+
+            ***Initial setup**
+            - `farm` has started farming **72k** for **2 weeks**
+            - `wallet1` has no farmable token and joined the `farm`
+
+            ***Test Steps**
+            1. Fast-forward to 1 week end
+            2. `wallet1` gets farming tokens
+            3. Fast-forward to 2 week
+
+            ***Expected results**
+            After step 1 - farmed reward = 0
+            After step 3 - farmed reward = 36k
+        */
+        it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
+            const { token, farm } = await loadFixture(initContracts);
+            const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
+
+            await token.connect(wallet2).addHook(farm);
+            expect(await farm.totalSupply()).to.equal(0n);
+            await token.transfer(wallet2, INITIAL_SUPPLY / 2n);
+            expect(await farm.totalSupply()).to.equal(INITIAL_SUPPLY / 2n);
+        });
+
+        /*
+            ***Test Scenario**
+            Checks that farm's total supply decreases after a user removePlugins farming
+
+            ***Initial setup**
+            - `farm` has not started farming
+            - `wallet1` has 1000 unit of farmable token and joined the `farm`
+
+            ***Test Steps**
+            `wallet1` removePlugins the `farm`
+
+            ***Expected results**
+            Farm's total supply equals 0
+        */
+        it('should be burn', async function () {
+            const { token, farm } = await loadFixture(initContracts);
+            await token.addHook(farm);
+            await token.removeHook(farm);
+            expect(await farm.totalSupply()).to.equal(0n);
+        });
+    });
+
+    // Farming reward calculations scenarios
+    describe('deposit', function () {
+        /*
+            ***Test Scenario**
+            Staker without farming tokens joins on 1st week and adds them on 2nd
+            ```
+            72k => 1x: +       +-------+ => 36k
+            ```
+
+            ***Initial setup**
+            - `farm` has started farming **72k** for **2 weeks**
+            - `wallet1` has no farmable token and joined the `farm`
+
+            ***Test Steps**
+            1. Fast-forward to 1 week end
+            2. `wallet1` gets farming tokens
+            3. Fast-forward to 2 week
+
+            ***Expected results**
+            After step 1 - farmed reward = 0
+            After step 3 - farmed reward = 36k
+        */
+        it('Staker w/o tokens joins on 1st week and adds token on 2nd', async function () {
+            const { token, farm } = await loadFixture(initContracts);
+            const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
+
+            await token.connect(wallet2).addHook(farm);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
             await time.increaseTo(started + time.duration.weeks(1));
-            expect(await farm.farmed(wallet1)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal(0n);
 
             await token.transfer(wallet2, INITIAL_SUPPLY);
             await time.increaseTo(started + time.duration.weeks(2));
@@ -780,15 +846,15 @@ describe('FarmingPlugin', function () {
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1)).to.equal('0');
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal(0n);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1)).to.equal('0');
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal(0n);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -825,15 +891,15 @@ describe('FarmingPlugin', function () {
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1)).to.equal('0');
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal(0n);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1)).to.equal('0');
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal(0n);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -876,12 +942,12 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm);
+            await token.addHook(farm);
             expect(await farm.totalSupply()).to.almostEqual(INITIAL_SUPPLY - recipientAmount);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet2).addPlugin(farm);
+            await token.connect(wallet2).addHook(farm);
 
             // expect(await token.farmedPerToken()).to.almostEqual('72000');
             expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
@@ -924,7 +990,7 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm);
+            await token.addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -970,7 +1036,7 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm);
+            await token.addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -1003,7 +1069,7 @@ describe('FarmingPlugin', function () {
             |#  |Test Steps|`wallet1`|
             |---|----------|---------|
             |1. |Fast-forward => **week 1**                 |72k|
-            |2. |`wallet1` removePlugins `farm`                     |72k|
+            |2. |`wallet1` removes hook from `farm`         |72k|
             |3. |`wallet1` joins `farm`                     |72k|
             |4. |Fast-forward => **week 2**                 |72k|
             |5. |`farm` starts new farming 72k for 1 week   |72k|
@@ -1019,14 +1085,14 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm);
+            await token.addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
             expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
-            await token.removePlugin(farm);
+            await token.removeHook(farm);
             expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
-            await token.addPlugin(farm);
+            await token.addHook(farm);
             expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
 
             await time.increaseTo(started + time.duration.weeks(2));
@@ -1054,7 +1120,7 @@ describe('FarmingPlugin', function () {
             |#  |Test Steps|`wallet1`|
             |---|----------|---------|
             |1. |Fast-forward => **week 1**                 |72k|
-            |2. |`wallet1` removePlugins `farm`                     |72k|
+            |2. |`wallet1` removes hook from `farm`                |72k|
             |3. |`wallet1` claims farming reward            |0k|
             |4. |`wallet1` joins `farm`                     |0k|
             |5. |Fast-forward => **week 2**                 |0k|
@@ -1071,16 +1137,16 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 1 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm);
+            await token.addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
             expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
-            await token.removePlugin(farm);
+            await token.removeHook(farm);
             expect(await farm.farmed(wallet1)).to.almostEqual(72000n);
             await farm.claim();
             expect(await farm.farmed(wallet1)).to.almostEqual(0n);
-            await token.addPlugin(farm);
+            await token.addHook(farm);
             expect(await farm.farmed(wallet1)).to.almostEqual(0n);
 
             await time.increaseTo(started + time.duration.weeks(2));
@@ -1115,7 +1181,7 @@ describe('FarmingPlugin', function () {
             |2. |`wallet3` joins `farm`                     |18k|54k|0|
             |3. |`farm` starts new farming 72k for 1 week   |18k|54k|0|
             |4. |Fast-forward => **week 2**                 |26k|78k|40k|
-            |5. |`wallet2` removePlugins `farm`                     |26k|78k|40k|
+            |5. |`wallet2` removes hook from `farm`                 |26k|78k|40k|
             |6. |`farm` starts new farming 72k for 1 week   |26k|78k|40k|
             |7. |Fast-forward => **week 3**                 |38k|78k|100k|
 
@@ -1135,12 +1201,12 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(1), wallet1);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet3).addPlugin(farm);
+            await token.connect(wallet3).addHook(farm);
 
             // expect(await token.farmedPerToken()).to.almostEqual('18000');
             expect(await farm.farmed(wallet1)).to.almostEqual(18000n);
@@ -1154,7 +1220,7 @@ describe('FarmingPlugin', function () {
             expect(await farm.farmed(wallet2)).to.almostEqual(78000n);
             expect(await farm.farmed(wallet3)).to.almostEqual(40000n);
 
-            await token.connect(wallet2).removePlugin(farm);
+            await token.connect(wallet2).removeHook(farm);
 
             await farm.startFarming('72000', time.duration.weeks(1));
             await time.increaseTo(started + time.duration.weeks(3));
@@ -1205,12 +1271,12 @@ describe('FarmingPlugin', function () {
             // 72000 UDSC per week for 3 weeks
             const started = await startFarming(farm, '216000', time.duration.weeks(3), wallet1);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
-            await token.connect(wallet3).addPlugin(farm);
+            await token.connect(wallet3).addHook(farm);
 
             // expect(await token.farmedPerToken()).to.almostEqual('18000');
             expect(await farm.farmed(wallet1)).to.almostEqual(18000n);
@@ -1218,7 +1284,7 @@ describe('FarmingPlugin', function () {
 
             await time.increaseTo(started + time.duration.weeks(2));
 
-            await token.connect(wallet2).removePlugin(farm);
+            await token.connect(wallet2).removeHook(farm);
 
             expect(await farm.farmed(wallet1)).to.almostEqual(26000n);
             expect(await farm.farmed(wallet2)).to.almostEqual(78000n);
@@ -1260,14 +1326,14 @@ describe('FarmingPlugin', function () {
             const started = await startFarming(farm, '10000', time.duration.weeks(1), wallet1);
 
             // expect(await token.farmedPerToken()).to.equal('0');
-            expect(await farm.farmed(wallet1)).to.equal('0');
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal(0n);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
             // 1000 UDSC per week for 1 weeks
             await farm.startFarming('1000', time.duration.weeks(1));
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1) + 2);
 
@@ -1303,7 +1369,7 @@ describe('FarmingPlugin', function () {
             await gift.mint(wallet1, _MAX_REWARD_AMOUNT);
             await gift.approve(farm, _MAX_REWARD_AMOUNT);
 
-            await token.addPlugin(farm);
+            await token.addHook(farm);
             const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), wallet1);
             await time.increaseTo(started + time.duration.weeks(1));
             expect(await farm.farmed(wallet1)).to.almostEqual(_MAX_REWARD_AMOUNT);
@@ -1339,7 +1405,7 @@ describe('FarmingPlugin', function () {
             await gift.approve(farm, _MAX_REWARD_AMOUNT);
 
             const started = await startFarming(farm, _MAX_REWARD_AMOUNT, time.duration.weeks(1), wallet1);
-            await token.addPlugin(farm);
+            await token.addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
             const farmedAmount = await farm.farmed(wallet1);
@@ -1384,8 +1450,8 @@ describe('FarmingPlugin', function () {
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -1437,8 +1503,8 @@ describe('FarmingPlugin', function () {
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -1484,8 +1550,8 @@ describe('FarmingPlugin', function () {
             // 36000 UDSC per week for 2 weeks
             const started = await startFarming(farm, '72000', time.duration.weeks(2), wallet1);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
             await time.increaseTo(started + time.duration.weeks(1));
 
@@ -1530,11 +1596,11 @@ describe('FarmingPlugin', function () {
 
             await token.transfer(wallet2, INITIAL_SUPPLY / 4n);
 
-            await token.addPlugin(farm);
-            await token.connect(wallet2).addPlugin(farm);
+            await token.addHook(farm);
+            await token.connect(wallet2).addHook(farm);
 
-            expect(await farm.farmed(wallet1)).to.equal('0');
-            expect(await farm.farmed(wallet2)).to.equal('0');
+            expect(await farm.farmed(wallet1)).to.equal(0n);
+            expect(await farm.farmed(wallet2)).to.equal(0n);
 
             await time.increaseTo(started + time.duration.weeks(2));
 

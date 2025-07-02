@@ -36,7 +36,7 @@ module.exports = {
     dependencyCompiler: {
         paths: [
             '@1inch/solidity-utils/contracts/mocks/TokenMock.sol',
-            '@1inch/token-plugins/contracts/mocks/ERC20PluginsMock.sol',
+            '@1inch/token-hooks/contracts/mocks/ERC20HooksMock.sol',
         ],
     },
 };
