@@ -14,7 +14,7 @@
 
 1inch farming contract offers protocols to give rewards to users holding specific tokens. The repository offers two ways to get incentivisation rewards to holders:
 
-- Token smart contract could be derived from `ERC20Plugins` and allow farming in multiple farms without necessarity staking token to any pool. User should add farm as a plugin ([see `ERC20Plugins` concept](https://github.com/1inch/token-plugins)) and keep tokens on its address to be eligible for rewards.
+- Token smart contract could be derived from `ERC20Hooks` and allow farming in multiple farms without necessarity staking token to any pool. User should add farm as a hook ([see `ERC20Hooks` concept](https://github.com/1inch/token-hooks)) and keep tokens on its address to be eligible for rewards.
 - A user can stake/deposit specific tokens to `FarmingPool` smart contract. It is less convenient way and is only used for backward compatibility for those smart contracts that have been deployed and there are no way to change it.
 
 ## Math
@@ -29,11 +29,11 @@ where $R_p$ - total farming reward for a farming participant
 
 *R* - total reward locked for farming
 
-*t* - time period duration (between farm’s joins and/or exits) 
+*t* - time period duration (between farm's joins and/or exits) 
 
 *T* - total farming duration
 
-*V* - participant’s farmable tokens share
+*V* - participant's farmable tokens share
 
 $V_{total}$ - total number of farmable tokens joined the farm
 
@@ -61,7 +61,7 @@ The resulting reward distribution would be the following
 
 More examples are here [@1inch/farming/TESTS.md#deposit](https://github.com/1inch/farming/blob/master/TESTS.md#deposit)
 
-# `ERC20Plugins` and `FarmingPlugin` usage
+# `ERC20Hooks` and `FarmingHook` usage
 
 ## Concept
 
@@ -72,11 +72,11 @@ To start new farming owner should deploy (or use already deployed) farming for a
     - Set distributor
     - From distributor account send reward amount and set farming period
 
-When farming is started users holding farmable tokens may `addPlugin` the farm to accumulate rewards. After joining a farm, a user starts to get farm rewards for the whole amount of farmable tokens he owns. When a user’s balance changes the reward share is changed automatically.
+When farming is started users holding farmable tokens may `addHook` the farm to accumulate rewards. After joining a farm, a user starts to get farm rewards for the whole amount of farmable tokens he owns. When a user's balance changes the reward share is changed automatically.
 
-If a user wants to stop participating in farming he should `removePlugin` the farm with. Rewards for previous farming periods may be claimed any time with `claim` function of the farm regardless if a user is still farming or has already exited the farm.
+If a user wants to stop participating in farming he should `removeHook` the farm with. Rewards for previous farming periods may be claimed any time with `claim` function of the farm regardless if a user is still farming or has already exited the farm.
 
-![ERC20Plugins and FarmingPlugin concept](.github/concept-ERC20Farmable.png)
+![ERC20Hooks and FarmingHook concept](.github/concept-ERC20Farmable.png)
 
 A user may join several farms which provide rewards for the same token.
 
@@ -96,15 +96,15 @@ $ yarn add @1inch/farming
 
 ## Usage
 
-Once installed, you can use the contracts in the library by importing them. Just use `ERC20Plugins` instead of `ERC20` to derive from
+Once installed, you can use the contracts in the library by importing them. Just use `ERC20Hooks` instead of `ERC20` to derive from
 
 ```solidity
 pragma solidity ^0.8.0;
 
-import "@1inch/farming/contracts/ERC20Plugins.sol";
+import "@1inch/farming/contracts/ERC20Hooks.sol";
 
-contract AMMPoolToken is ERC20Plugins {
-    constructor(uint256 farmsLimit) ERC20("AMMPoolToken", "AMM") ERC20Plugins(farmsLimit) {
+contract AMMPoolToken is ERC20Hooks {
+    constructor(uint256 farmsLimit) ERC20("AMMPoolToken", "AMM") ERC20Hooks(farmsLimit) {
     }
 }
 ```
@@ -113,7 +113,7 @@ contract AMMPoolToken is ERC20Plugins {
 
 Storage access:
 
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L14-L16) for farming params, updated only on farming restarting:
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/FarmAccounting.sol#L14-L16) for farming params, updated only on farming restarting:
     
     ```solidity
     uint40 public finished;
@@ -121,14 +121,14 @@ Storage access:
     uint184 public reward;
     ```
     
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L7-L8) for farming state, updated only on changing number of farming tokens:
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L7-L8) for farming state, updated only on changing number of farming tokens:
     
     ```solidity
     uint40 public checkpoint;
     uint216 public farmedPerTokenStored;
     ```
     
-- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L9) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
+- [1 storage slot](https://github.com/1inch/farming/blob/master/contracts/accounting/UserAccounting.sol#L9) per each farmer, updated on deposits/withdrawals (kudos to [@snjax](https://github.com/snjax)):
     
     ```solidity
     mapping(address => int256) public corrections;
