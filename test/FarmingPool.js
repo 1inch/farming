@@ -51,6 +51,23 @@ describe('FarmingPool', function () {
                 farm.connect(wallet2).startFarming(1000, 60 * 60 * 24),
             ).to.be.revertedWithCustomError(farm, 'NotDistributor');
         });
+
+        it('should rescue extra gift tokens from farm in the case of overlapping farming', async function () {
+            const { gift, farm } = await loadFixture(initContracts);
+            const duration = BigInt(60 * 60 * 24);
+            const amount = 100n;
+            await gift.mint(farm, amount);
+            await farm.startFarming(1000, duration);
+            await time.increaseTo((await farm.farmInfo()).finished - duration / 2n);
+            await farm.startFarming(1000, duration);
+            await farm.stopFarming();
+            const farmInfoBefore = await farm.farmInfo();
+            console.log(`farmBalance = ${await gift.balanceOf(farm)}, farmInfo.reward = ${farmInfoBefore.reward}, farmInfo.balance = ${farmInfoBefore.balance}`);
+            // Shouldn't revert with InsufficientFunds
+            await farm.rescueFunds(gift, amount);
+            const farmInfoAfter = await farm.farmInfo();
+            console.log(`farmBalance = ${await gift.balanceOf(farm)}, farmInfo.reward = ${farmInfoAfter.reward}, farmInfo.balance = ${farmInfoAfter.balance}`);
+        });
     });
 
     describe('name', function () {
