@@ -31,22 +31,23 @@ library FarmAccounting {
         }
     }
 
-    function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256) {
+    function startFarming(Info storage info, uint256 amount, uint256 period) internal returns(uint256 newAmount) {
         if (period == 0) revert ZeroDuration();
         if (period > type(uint32).max) revert DurationTooLarge();
 
+        newAmount = amount;
         // If something left from prev farming add it to the new farming
         (uint40 finished, uint32 duration, uint184 reward, uint256 balance) = (info.finished, info.duration, info.reward, info.balance);
         if (block.timestamp < finished) {
-            amount += reward - farmedSinceCheckpointScaled(info, finished - duration) / _SCALE;
+            newAmount += reward - farmedSinceCheckpointScaled(info, finished - duration) / _SCALE;
         }
 
-        if (amount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();
+        if (newAmount > _MAX_REWARD_AMOUNT) revert AmountTooLarge();
 
         (info.finished, info.duration, info.reward, info.balance) = (
             uint40(block.timestamp + period),
             uint32(period),
-            uint184(amount),
+            uint184(newAmount),
             balance + amount
         );
         return amount;
