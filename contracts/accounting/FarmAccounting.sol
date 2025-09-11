@@ -50,7 +50,6 @@ library FarmAccounting {
             uint184(newAmount),
             balance + amount
         );
-        return amount;
     }
 
     function stopFarming(Info storage info) internal returns(uint256 leftover) {
